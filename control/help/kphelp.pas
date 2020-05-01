@@ -31,6 +31,8 @@ implementation
        writeln('    update: update KodePas from Git. Required Git CLI or wget in Linux');
        writeln('    license: read license of KodePas project');
        writeln('    legends: show the legends');
+       writeln('    pack: pack on folder to *.kpa');
+       writeln('    get: get pack online');
        writeln('More documents:');
        writeln('    KodePas Docs Official: https://kodelang.dev/docs');
        writeln('    GitHub Wiki: https://github.com/kodestudio/kodepas/wiki');

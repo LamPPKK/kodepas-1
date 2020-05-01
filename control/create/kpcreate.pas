@@ -2,7 +2,9 @@ unit kpcreate;
 interface 
     uses crt, sysutils, process,
         terminalprint in './effect/print/terminalprint',
-        getos in './system/getos';
+        getos in './system/getos',
+        kpget in 'get/kpget',
+        kpzip in 'zip/kpzip';
     procedure kpcreate_run;
 implementation
     procedure help;
@@ -18,24 +20,26 @@ implementation
     procedure create_desktop;
     var s: ansistring;
     begin
-        if (paramStr(3) = '') then 
-            begin
-                terminalprint_error('[Error] Project name error');
-                exit;
-            end;
         case getos_run of
             'linux' : 
                 begin
-                    writeln('[Start] Clone project from Git');
-                    if (RunCommand('git clone https://www.github.com/kodestudio/kodepasproject ' + paramStr(3), s)) then terminalprint_complete('[Done] Create project complete')
-                    else terminalprint_error('[Error] Can not create project. Error code: ' + s );
+                    writeln('[Start] Get project from KPStore: kodestudio/project-desktop');
+                    kpget_download('kodestudio', 'project-desktop');
+                    kpzip_unzip('project-desktop');
+                    if (deleteFile('project-desktop.kpa'))then 
+                        terminalprint_complete('[Done ] Clear file temp')
+                    else terminalprint_error('[Error] Fail clear');
+                    terminalprint_complete('[Done ] Create project complete');
                 end;
             'windows':
                 begin
-                    writeln('[Start] Clone project from GitHub');
-                    {ExecuteProcess('git','clone https://www.github.com/kodestudio/kodepasproject '+ paramStr(3));}
-                     if (RunCommand('git clone https://www.github.com/kodestudio/kodepasproject ' + paramStr(3), s)) then terminalprint_complete('[Done] Create project complete')
-                    else terminalprint_error('[Error] Can not create project. Error code: ' + s );
+                    writeln('[Start] Get project from KPStore: kodestudio/project-desktop');
+                    kpget_download('kodestudio', 'project-desktop');
+                    kpzip_unzip('project-desktop');
+                    if (deleteFile('project-desktop.kpa'))then 
+                        terminalprint_complete('[Done ] Clear file temp')
+                    else terminalprint_error('[Error] Fail clear');
+                    terminalprint_complete('[Done ] Create project complete');
                 end;
             else terminalprint_error('[Error] Unknow OS');
         end;

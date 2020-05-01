@@ -14,6 +14,11 @@ implementation
         end;
         writeln('KodePas Control: 1.0');
         writeln('KodePas Kernel: 1.0');
+        case getos_run of
+            'linux': writeln('KodePas Getter: wget');
+            'windows': writeln('KodePas Getter: 1.0');
+            else writeln('KodePas Getter: 1.0');
+        end;
         writeln('System packages:');
         writeln('   LCL: 2.1');
         writeln('   FCL: 1.0.1');

@@ -4,7 +4,8 @@ interface
         terminalprint in 'effect/terminalprint',
         kpbuid in 'build/kpbuild',
         kplog in 'log/kplog',
-        kpini in 'file/kpini';
+        kpini in 'file/kpini',
+        desktop_run in 'desktop/desktop_run';
     procedure kprun_run;
 implementation
     procedure help;
@@ -16,10 +17,14 @@ implementation
         writeln('   --only: run only');
     end;
     procedure kprun_now;
-    var f_bin: string;
+    var f_bin, p_type: string;
     begin
-        f_bin := kpini_string('local.ini', 'CONFIG', 'filebin');
-        ExecuteProcess(f_bin,'');
+        p_type := kpini_string('local.ini', 'CONFIG', 'type');
+        case p_type of
+            'desktop' : desktop_run_run;
+            'package': terminalprint_wan('[Warn ] This project only build');
+            else terminalprint_error('[Error] Unknow to run');
+        end;
     end;
     procedure kprun_run;
     begin
