@@ -2,9 +2,11 @@ unit kpzip;
 interface 
     uses crt, sysutils, process,
     getos in './system/getos',
-    terminalprint in './effect/terminalprint';
+    terminalprint in './effect/terminalprint',
+    getkpdir in './system/getkpdir';
     procedure kpzip_zip(f_name: string);
     procedure kpzip_unzip(f_name: string);
+    procedure kpzip_updates(f_name:string);
 implementation
     procedure kpzip_zip(f_name: string);
         var s, runStr: ansistring;
@@ -56,6 +58,33 @@ implementation
             'windows':
                 begin
                     if (runCommand('unzip -o ' + f_name + '.kpa', s)) then
+                        terminalprint_complete('[Done ] Unpacked')
+                    else
+                        begin
+                            terminalprint_error('[Eror] Unpack fail. Error output: ');
+                            writeln(s);
+                        end;
+                end;
+            else terminalprint_error('[Error] Unknow OS');
+        end;
+    end;
+    procedure kpzip_updates(f_name: string);
+    var s: ansistring;
+    begin
+        case getos_run of
+            'linux':
+                begin
+                    if (runCommand('unzip -o ' + f_name + '.kpa -q ' + getkpdir_run, s)) then
+                        terminalprint_complete('[Done ] Unpacked')
+                    else
+                        begin
+                            terminalprint_error('[Eror] Unpack fail. Error output: ');
+                            writeln(s);
+                        end;
+                end;
+            'windows':
+                begin
+                    if (runCommand('unzip -o ' + f_name + '.kpa -q ' + getkpdir_run, s)) then
                         terminalprint_complete('[Done ] Unpacked')
                     else
                         begin

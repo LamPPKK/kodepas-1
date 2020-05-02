@@ -20,7 +20,7 @@ implementation
             else writeln('KodePas Getter: 1.0');
         end;
         writeln('System packages:');
-        writeln('   LCL: 2.1');
+        writeln('   LCL: 2.0.8');
         writeln('   FCL: 1.0.1');
         writeln('   LazUtils: 1.0');
         writeln('   CodeTools: 1.0.1');
