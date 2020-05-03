@@ -74,7 +74,7 @@ implementation
         case getos_run of
             'linux':
                 begin
-                    if (runCommand('unzip -o ' + f_name + '.kpa -q ' + getkpdir_run, s)) then
+                    if (runCommand('unzip -o ' + f_name + '.kpa -d ' + getkpdir_run, s)) then
                         terminalprint_complete('[Done ] Unpacked')
                     else
                         begin
@@ -84,7 +84,7 @@ implementation
                 end;
             'windows':
                 begin
-                    if (runCommand('unzip -o ' + f_name + '.kpa -q ' + getkpdir_run, s)) then
+                    if (runCommand('unzip -o ' + f_name + '.kpa -d ' + getkpdir_run, s)) then
                         terminalprint_complete('[Done ] Unpacked')
                     else
                         begin

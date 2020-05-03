@@ -53,7 +53,6 @@ implementation
                 exit;
             end;
         {lấy dữ liệu ở local.ini}
-        writeln('[Start] Get data in local.ini');
         p_type := kpini_string('local.ini', 'CONFIG', 'type');
         case p_type of
             'desktop': desktop_build_run;
