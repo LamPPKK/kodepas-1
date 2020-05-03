@@ -28,7 +28,7 @@ implementation
        writeln('    add: add template, package to your project');
        writeln('    doctor: check KodePas in your computer');
        writeln('    setup: setup KodePas');
-       writeln('    update: update KodePas from Git. Required Git CLI or wget in Linux');
+       writeln('    upgrade: update KodePas System Packages');
        writeln('    license: read license of KodePas project');
        writeln('    legends: show the legends');
        writeln('    pack: pack on folder to *.kpa');

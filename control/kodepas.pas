@@ -24,7 +24,8 @@ uses crt, sysutils,
     desktop_run in 'run/desktop/desktop_run',
     kppath in 'path/kppath',
     renderos in 'system/renderos',
-    kpupdates in 'updates/kpupdates';
+    kpupdates in 'updates/kpupdates',
+    kpinit in 'init/kpinit';
 begin
     renderos_run;
     if (ParamCount > 0) then
@@ -43,6 +44,7 @@ begin
             'pack': kppack_run;
             'clear': kpbuild_clear;
             'upgrade': kpupdates_run;
+            'init': kpinit_run;
             else terminalprint_error('[Error] Unknow param (' + paramStr(1) + ') try "kodepas help" to see more param');
         end;
     end
