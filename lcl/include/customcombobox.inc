@@ -253,10 +253,7 @@ procedure TCustomComboBox.CloseUp;
 begin
   if [csLoading,csDestroying,csDesigning]*ComponentState<>[] then exit;
   if Style in [csSimple, csDropDown, csOwnerDrawEditableFixed, csOwnerDrawEditableVariable] then
-  begin
     EditingDone;
-    FEditingDone := False;
-  end;
   if Assigned(FOnCloseUp) then FOnCloseUp(Self);
   if FAutoSelect then
    begin
@@ -492,7 +489,6 @@ procedure TCustomComboBox.KeyDown(var Key: Word; Shift: TShiftState);
 var
   Skip, UserDropDown, PreventDropDown: Boolean;
 begin
-  FEditingDone := Key = VK_RETURN;
   Skip := False;
   UserDropDown := ((Shift *[ssAlt] = [ssAlt]) and (Key = VK_DOWN));
   PreventDropDown := Key in [VK_TAB, VK_RETURN, VK_ESCAPE];
@@ -696,8 +692,6 @@ end;
  ------------------------------------------------------------------------------}
 procedure TCustomComboBox.SetDropDownCount(const AValue: Integer);
 begin
-  if AValue = FDropDownCount then
-    exit;
   FDropDownCount := AValue;
   if HandleAllocated then
     TWSCustomComboBoxClass(WidgetSetClass).SetDropDownCount(Self, AValue);
@@ -712,9 +706,12 @@ procedure TCustomComboBox.SetItemHeight(const AValue: Integer);
 begin
   if AValue = FItemHeight then
     exit;
+
   FItemHeight := AValue;
-  if not HandleAllocated then
+
+  if (not HandleAllocated) then 
     exit;
+
   if Style in [csOwnerDrawFixed, csOwnerDrawVariable,
                csOwnerDrawEditableFixed, csOwnerDrawEditableVariable] then
     TWSCustomComboBoxClass(WidgetSetClass).SetItemHeight(Self, FItemHeight);
@@ -1047,7 +1044,7 @@ begin
       AHeight := FItemHeight
     else
       AHeight := ItemHeight;
-    if FStyle in [csOwnerDrawVariable, csOwnerDrawEditableVariable] then
+    if FStyle = csOwnerDrawVariable then
       MeasureItem(Integer(ItemId), AHeight);
     if AHeight > 0 then
       ItemHeight := AHeight;
@@ -1064,9 +1061,8 @@ end;
 procedure TCustomComboBox.KeyUpAfterInterface(var Key: Word; Shift: TShiftState);
 begin
   inherited KeyUpAfterInterface(Key, Shift);
-  if (Key = VK_RETURN) and (FEditingDone) then
+  if Key = VK_RETURN then
     EditingDone;
-  FEditingDone := False;
 end;
 
 {------------------------------------------------------------------------------

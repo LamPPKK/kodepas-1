@@ -1,4 +1,4 @@
-﻿{
+{
 
  Function series for TAChart.
 
@@ -18,8 +18,8 @@ interface
 
 uses
   Classes, Graphics, typ, Types,
-  TAChartUtils, TACustomFuncSeries, TACustomSeries, TACustomSource, TASources,
-  TADrawUtils, TAFitUtils, TALegend, TATypes, TAFitLib, TAStyles;
+  TAChartUtils, TACustomFuncSeries, TACustomSeries, TACustomSource,
+  TADrawUtils, TAFitUtils, TALegend, TATypes, TAFitLib;
 
 const
   DEF_FUNC_STEP = 2;
@@ -77,11 +77,15 @@ type
     FOnCalculate: TFuncCalculateEvent;
     procedure SetOnCalculate(AValue: TFuncCalculateEvent);
   protected
+    function DoCalcIdentity(AX: Double): Double;
     function DoCalculate(AX: Double): Double; override;
     procedure GetBounds(var ABounds: TDoubleRect); override;
   public
     procedure Assign(ASource: TPersistent); override;
     procedure Draw(ADrawer: IChartDrawer); override;
+    function GetNearestPoint(
+      const AParams: TNearestPointParams;
+      out AResults: TNearestPointResults): Boolean; override;
     function IsEmpty: Boolean; override;
   published
     property OnCalculate: TFuncCalculateEvent
@@ -99,6 +103,8 @@ type
     FParamMin: Double;
     FPen: TChartPen;
     FStep: TFuncSeriesStep;
+
+    function DoCalcIdentity(AT: Double): TDoublePoint;
     function DoCalculate(AT: Double): TDoublePoint;
     function ParamMaxIsStored: Boolean;
     function ParamMaxStepIsStored: Boolean;
@@ -116,6 +122,7 @@ type
     procedure Assign(ASource: TPersistent); override;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     procedure Draw(ADrawer: IChartDrawer); override;
     function IsEmpty: Boolean; override;
   published
@@ -171,13 +178,10 @@ type
   published
     property Degree: TSplineDegree
       read FDegree write SetDegree default DEF_SPLINE_DEGREE;
-    property MarkPositions;
-    property Marks;
     property Pen: TChartPen read FPen write SetPen;
     property Pointer;
     property Step: TFuncSeriesStep
       read FStep write SetStep default DEF_SPLINE_STEP;
-    property Styles;
     property ToolTargets default [nptPoint, nptCustom];
     property XErrorBars;
     property YErrorBars;
@@ -199,12 +203,10 @@ type
   TCubicSplineSeries = class(TBasicPointSeries)
   strict private
     FBadDataPen: TBadDataChartPen;
-    FCachedExtent: TDoubleRect;
     FOptions: TCubicSplineOptions;
     FSplineType: TCubicSplineType;
     FPen: TChartPen;
     FStep: TFuncSeriesStep;
-    FX, FY: array of ArbFloat;
     procedure SetPen(AValue: TChartPen);
     procedure SetStep(AValue: TFuncSeriesStep);
   strict private
@@ -212,23 +214,22 @@ type
     TSpline = class
     public
       FOwner: TCubicSplineSeries;
-      FCoeff: array of ArbFloat;
+      FCoeff, FX, FY: array of ArbFloat;
       FIntervals: TIntervalList;
       FIsUnorderedX: Boolean;
-      FSourceStartIndex: Integer;
-      FFirstCacheIndex, FLastCacheIndex: Integer;
+      FStartIndex: Integer;
       constructor Create(AOwner: TCubicSplineSeries);
       destructor Destroy; override;
       function Calculate(AX: Double): Double;
       function IsFewPoints: Boolean; inline;
-      function PrepareCoeffs(ASource: TCustomChartSource;
-        var ASourceIndex, ACacheIndex: Integer): Boolean;
+      function PrepareCoeffs(
+        ASource: TCustomChartSource; var AIndex: Integer): Boolean;
+      procedure PrepareIntervals;
     end;
 
   var
     FSplines: array of TSpline;
     procedure FreeSplines;
-    function GetSplineXRange(ASpline: TSpline; out AXMin, AXMax: Double): Boolean;
     function IsUnorderedVisible: Boolean; inline;
     procedure PrepareCoeffs;
     procedure SetBadDataPen(AValue: TBadDataChartPen);
@@ -243,6 +244,7 @@ type
     function Calculate(AX: Double): Double;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     procedure Draw(ADrawer: IChartDrawer); override;
     function Extent: TDoubleRect; override;
     function GetNearestPoint(
@@ -252,8 +254,6 @@ type
     property Active default true;
     property AxisIndexX;
     property AxisIndexY;
-    property MarkPositions;
-    property Marks;
     property Pointer;
     property ShowInLegend;
     property Source;
@@ -277,30 +277,31 @@ type
     property YErrorBars;
   end;
 
-  TFitSeries = class;
-
   TFitParamsState = (fpsUnknown, fpsInvalid, fpsValid);
-  TFitFuncIndex = 0..MaxInt;
+
+  TCalcGoodnessOfFitEvent = procedure (Sender: TObject; var x,y: ArbFloat;
+    n: Integer; out AResult: Double) of object;
+
+  TFitFuncIndex = 1..MaxInt;
+
   TFitFuncEvent = procedure(AIndex: TFitFuncIndex; AFitFunc: TFitFunc) of object;
-  TFitEquationTextEvent = procedure (ASeries: TFitSeries; AEquationText: IFitEquationText) of object;
 
   TFitSeries = class(TBasicPointSeries)
   strict private
-    FAutoFit: Boolean;
     FDrawFitRangeOnly: Boolean;
-    FUseCombinedExtentY: Boolean;
     FFitEquation: TFitEquation;
     FFitParams: TFitParamArray; // raw values, not transformed!
     FFitRange: TChartRange;
     FFixedParams: String;
     FOnFitComplete: TNotifyEvent;
-    FOnFitEquationText: TFitEquationTextEvent;
     FPen: TChartPen;
     FState: TFitParamsState;
     FStep: TFuncSeriesStep;
     FErrCode: TFitErrCode;
     FFitStatistics: TFitStatistics;
     FConfidenceLevel: Double;
+    FGoodnessOfFit: Double;
+    FOnCalcGoodnessOfFit: TCalcGoodnessOfFitEvent;
     function GetParam(AIndex: Integer): Double;
     function GetParamCount: Integer;
     function GetParamError(AIndex: Integer): Double;
@@ -315,7 +316,6 @@ type
     procedure SetParamCount(AValue: Integer);
     procedure SetPen(AValue: TChartPen);
     procedure SetStep(AValue: TFuncSeriesStep);
-    procedure SetUseCombinedExtentY(AValue: Boolean);
     {$IF FPC_FullVersion >= 30004}
     procedure GetInterval(const Ax: Double; out AY: Double; IsUpper, IsPrediction: Boolean);
     function GetParam_pValue(AIndex: Integer): Double;
@@ -326,22 +326,19 @@ type
     function TransformY(AY: Double): Extended; inline;
   protected
     procedure AfterAdd; override;
+    function CalcGoodnessOfFit(var x,y: ArbFloat; n: Integer): Double; virtual; deprecated;
+//    procedure GetFixedParams(out AList: TFitParamArray);
     procedure GetLegendItems(AItems: TChartLegendItems); override;
-    procedure InvalidateFitResults; virtual;
-    procedure Loaded; override;
     function PrepareFitParams: boolean;
-    function PrepareIntervals: TIntervalList; virtual;
+    function PrepareIntervals: TIntervalList;
     procedure SourceChanged(ASender: TObject); override;
   public
-    procedure Assign(ASource: TPersistent); override;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   public
     function Calculate(AX: Double): Double; virtual;
     procedure Draw(ADrawer: IChartDrawer); override;
-    function ErrorMsg: String;
     procedure ExecFit; virtual;
-    function Extent: TDoubleRect; override;
     function EquationText: IFitEquationText;
     function FitParams: TDoubleDynArray;
     {$IF FPC_FullVersion >= 30004}
@@ -367,8 +364,8 @@ type
     property ConfidenceLevel: Double read FConfidenceLevel write FConfidenceLevel;
     property ErrCode: TFitErrCode read FErrCode;
     property State: TFitParamsState read FState;
+    property GoodnessOfFit: Double read FGoodnessOfFit; deprecated 'Use Statistics instead';
   published
-    property AutoFit: Boolean read FAutoFit write FAutoFit default true;
     property AxisIndexX;
     property AxisIndexY;
     property DrawFitRangeOnly: Boolean
@@ -378,8 +375,6 @@ type
     property FitRange: TChartRange read FFitRange write SetFitRange;
     property FixedParams: String read FFixedParams write SetFixedParams
       stored IsFixedParamsStored;
-    property MarkPositions;
-    property Marks;
     property ParamCount: Integer
       read GetParamCount write SetParamCount default DEF_FIT_PARAM_COUNT;
     property Pen: TChartPen read FPen write SetPen;
@@ -387,15 +382,13 @@ type
     property Source;
     property Step: TFuncSeriesStep read FStep write SetStep default DEF_FIT_STEP;
     property ToolTargets default [nptPoint, nptCustom];
-    property UseCombinedExtentY: Boolean
-      read FUseCombinedExtentY write SetUseCombinedExtentY default false;
     property XErrorBars;
     property YErrorBars;
+    property OnCalcGoodnessOfFit: TCalcGoodnessOfFitEvent
+      read FOnCalcGoodnessOfFit write FOnCalcGoodnessOfFit; deprecated 'Use Statistics instead';
     property OnCustomDrawPointer;
     property OnFitComplete: TNotifyEvent
       read FOnFitComplete write FOnFitComplete;
-    property OnFitEquationText: TFitEquationTextEvent
-      read FOnFitEquationText write FOnFitEquationText;
     property OnGetPointerStyle;
   end;
 
@@ -417,7 +410,7 @@ type
     FStepY: TFuncSeriesStep;
     FUseImage: TUseImage;
     FColorExtentMin, FColorExtentMax: Double;
-    FBuiltinColorSource: TListChartSource;
+    FBuiltinColorSource: TCustomChartSource;
     FBuiltinPalette: TColormapPalette;
     FPaletteMax: Double;
     FPaletteMin: Double;
@@ -437,12 +430,9 @@ type
   protected
     FMinZ, FMaxZ: Double;
     procedure BuildPalette(APalette: TColorMapPalette);
-    procedure CheckColorSource(ASource: TCustomChartSource);
-    procedure ColorSourceChanged(ASender: TObject); virtual;
     procedure GetLegendItems(AItems: TChartLegendItems); override;
     procedure GetZRange(ARect: TRect; dx, dy: Integer);
     procedure UpdateColorExtent;
-    class procedure GetXYCountNeeded(out AXCount, AYCount: Cardinal); virtual;
 
   public
     procedure Assign(ASource: TPersistent); override;
@@ -501,13 +491,11 @@ implementation
 uses
   {$IF FPC_FullVersion >= 30101}ipf{$ELSE}ipf_fix{$ENDIF},
   GraphType, GraphUtil, IntfGraphics, Math, spe, StrUtils, SysUtils,
-  TAChartStrConsts, TAGeometry, TAGraph, TAMath;
+  TAChartStrConsts, TAGeometry, TAGraph, TAMath, TASources;
 
 const
   DEF_PARAM_MIN = 0.0;
   DEF_PARAM_MAX = 1.0;
-
-  SIndexOutOfRange = '[%s.%s] Index out of range.';
 
 type
   TFitSeriesRange = class(TChartRange)
@@ -528,6 +516,8 @@ type
       AColor1, AColor2: TColor; AFramePen: TChartPen; const AText: String);
     procedure Draw(ADrawer: IChartDrawer; const ARect: TRect); override;
   end;
+
+  TParametricFunc = function (A: Double): TDoublePoint of object;
 
 function ParamsToEquation(
   AEquation: TFitEquation; const AParams: array of Double;
@@ -589,8 +579,8 @@ end;
 
 procedure TFitSeriesRange.StyleChanged(ASender: TObject);
 begin
-  FSeries.InvalidateFitResults;
-//  if FSeries.AutoFit then FSeries.ExecFit;
+  FSeries.SourceChanged(nil); // reset FState to fpsUnknown
+  FSeries.ExecFit;
   inherited;
 end;
 
@@ -600,7 +590,7 @@ end;
 procedure TCustomFuncSeries.Assign(ASource: TPersistent);
 begin
   if ASource is TCustomFuncSeries then
-    with TCustomFuncSeries(ASource) do begin
+    with TFuncSeries(ASource) do begin
       Self.FDomainExclusions.Assign(FDomainExclusions);
       Self.FExtentAutoY := FExtentAutoY;
       Self.Pen := FPen;
@@ -628,9 +618,6 @@ end;
 
 procedure TCustomFuncSeries.Draw(ADrawer: IChartDrawer);
 begin
-  if IsEmpty or (not Active) then exit;
-  if not RequestValidChartScaling then exit;
-
   ADrawer.SetBrushParams(bsClear, clTAColor);
   ADrawer.Pen := Pen;
   with TDrawFuncHelper.Create(Self, DomainExclusions, @DoCalculate, Step) do
@@ -648,13 +635,10 @@ begin
   inherited GetBounds(ABounds);
   if not Extent.UseXMin or not Extent.UseXMax or not ExtentAutoY then
     exit;
-  if IsEmpty or (not Active) then exit;
-  if not RequestValidChartScaling then exit;
-
+  ymin := SafeInfinity;
+  ymax := NegInfinity;
   with TDrawFuncHelper.Create(Self, DomainExclusions, @DoCalculate, Step) do
     try
-      ymin := SafeInfinity;
-      ymax := NegInfinity;
       CalcAxisExtentY(ABounds.a.X, ABounds.b.X, ymin, ymax);
       if not Extent.UseYMin or (ymin > Extent.YMin) then
         ABounds.a.Y := ymin;
@@ -674,14 +658,6 @@ function TCustomFuncSeries.GetNearestPoint(
   const AParams: TNearestPointParams;
   out AResults: TNearestPointResults): Boolean;
 begin
-  // As in TBasicPointSeries.GetNearestPoint()
-  AResults.FDist := Sqr(AParams.FRadius) + 1;
-  AResults.FIndex := -1;
-  AResults.FXIndex := 0;
-  AResults.FYIndex := 0;
-  if IsEmpty then exit(false);
-  if not RequestValidChartScaling then exit(false);
-
   with TDrawFuncHelper.Create(Self, DomainExclusions, @DoCalculate, Step) do
     try
       Result := GetNearestPoint(AParams, AResults);
@@ -723,42 +699,51 @@ begin
   inherited Assign(ASource);
 end;
 
+function TFuncSeries.DoCalcIdentity(AX: Double): Double;
+begin
+  Result := AX;
+end;
+
 function TFuncSeries.DoCalculate(AX: Double): Double;
 begin
-  OnCalculate(AX, Result);
+  OnCalculate(AX, Result)
 end;
 
 procedure TFuncSeries.Draw(ADrawer: IChartDrawer);
 var
-  R: TRect;
+  calc: TTransformFunc;
 begin
-  if (not Active) then exit;
-
-  if csDesigning in ComponentState then begin
-    with ParentChart do begin
-      R.TopLeft := GraphToImage(CurrentExtent.a);
-      R.BottomRight := GraphToImage(CurrentExtent.b);
-      NormalizeRect(R);
-    end;
-    ADrawer.SetBrushParams(bsClear, clTAColor);
-    ADrawer.Pen := Pen;
-    ADrawer.Line(R.Left, R.Bottom, R.Right, R.Top);
+  if Assigned(OnCalculate) then
+    calc := @DoCalculate
+  else if csDesigning in ComponentState then
+    calc := @DoCalcIdentity
+  else
     exit;
-  end;
-
-  inherited;
+  ADrawer.SetBrushParams(bsClear, clTAColor);
+  ADrawer.Pen := Pen;
+  with TDrawFuncHelper.Create(Self, DomainExclusions, calc, Step) do
+    try
+      DrawFunction(ADrawer);
+    finally
+      Free;
+    end;
 end;
 
 procedure TFuncSeries.GetBounds(var ABounds: TDoubleRect);
 begin
+  if (csDesigning in ComponentState) then
+    exit;
   inherited GetBounds(ABounds);
-  if not (csDesigning in ComponentState) or
-     not Extent.UseXMin or not Extent.UseXMax or not ExtentAutoY then exit;
+end;
 
-  // When designing, an oblique line is drawn (see TFuncSeries.Draw),
-  // so bounds should be adjusted when ExtentAutoY is True
-  ABounds.a.Y := ABounds.a.X;
-  ABounds.b.Y := ABounds.b.X;
+function TFuncSeries.GetNearestPoint(
+  const AParams: TNearestPointParams;
+  out AResults: TNearestPointResults): Boolean;
+begin
+  AResults.FIndex := -1;
+  if not Assigned(OnCalculate) then
+    exit(false);
+  Result := inherited;
 end;
 
 function TFuncSeries.IsEmpty: Boolean;
@@ -805,39 +790,37 @@ begin
   inherited;
 end;
 
+function TParametricCurveSeries.DoCalcIdentity(AT: Double): TDoublePoint;
+begin
+  Result := DoublePoint(AT, AT);
+end;
+
 function TParametricCurveSeries.DoCalculate(AT: Double): TDoublePoint;
 begin
   OnCalculate(AT, Result.X, Result.Y);
 end;
 
 procedure TParametricCurveSeries.Draw(ADrawer: IChartDrawer);
+var
+  calc: TParametricFunc;
 
   function PointAt(AT: Double): TPoint;
   begin
-    Result := ParentChart.GraphToImage(AxisToGraph(DoCalculate(AT)))
+    Result := ParentChart.GraphToImage(AxisToGraph(calc(AT)))
   end;
 
 var
-  R: TRect;
   t, ts, ms: Double;
   p, pp: TPoint;
 begin
-  if (not Active) then exit;
-
+  if Assigned(OnCalculate) then
+    calc := @DoCalculate
+  else if csDesigning in ComponentState then
+    calc := @DoCalcIdentity
+  else
+    exit;
   ADrawer.SetBrushParams(bsClear, clTAColor);
   ADrawer.Pen := Pen;
-
-  if csDesigning in ComponentState then begin
-    with ParentChart do begin
-      R.TopLeft := GraphToImage(LogicalExtent.a);
-      R.BottomRight := GraphToImage(LogicalExtent.b);
-      NormalizeRect(R);
-    end;
-    ADrawer.Ellipse(R.Left, R.Bottom, R.Right, R.Top);
-    exit;
-  end;
-
-  if IsEmpty then exit;
 
   t := ParamMin;
   pp := PointAt(ParamMin);
@@ -1052,8 +1035,8 @@ procedure TBSplineSeries.Draw(ADrawer: IChartDrawer);
 var
   p: array of TDoublePoint;
   startIndex: Integer;
-  splineStart: Integer;
-  splineEnd: Integer;
+  splineStart: Integer = 0;
+  splineEnd: Integer = -2;
 
   function SplinePoint(APos: Double): TPoint;
   var
@@ -1102,88 +1085,40 @@ var
     end;
   end;
 
-  procedure DrawSpline(AStyleIndex: Integer);
-  var
-    j: Integer;
-  begin
-    ADrawer.SetBrushParams(bsClear, clTAColor);
-    ADrawer.Pen := Pen;
-    if Styles <> nil then
-      Styles.Apply(ADrawer, AStyleIndex, true);
-      // "true" avoids painting the gaps of non-solid lines in brush color
-    splineStart := 0;
-    splineEnd := -2;
-    while NextNumberSeq(FGraphPoints, splineStart, splineEnd) do begin
-      ADrawer.MoveTo(ParentChart.GraphToImage(FGraphPoints[splineStart]));
-      for j := splineStart to splineEnd + Degree - 1 do begin
-        startIndex := j;
-        SplineSegment(0.0, 1.0, SplinePoint(0.0), SplinePoint(1.0));
-      end;
-    end;
-  end;
-
-var
-  i: Integer;
 begin
-  if IsEmpty or (not Active) then exit;
-
-  SetLength(p, Degree + 1);
+  if IsEmpty then exit;
 
   InternalPrepareGraphPoints;
-  DrawSpline(0);
-  DrawErrorBars(ADrawer);
-  DrawLabels(ADrawer, 0);
-  DrawPointers(ADrawer, 0, true);
 
-  for i := 1 to Source.YCount-1 do begin
-    UpdateGraphPoints(i-1, false);
-    DrawSpline(i);
-    // error bars supported only for YLevel = 0 -- no DrawErrorBars here.
-    DrawLabels(ADrawer, i);
-    DrawPointers(ADrawer, i, true);
+  SetLength(p, Degree + 1);
+  ADrawer.SetBrushParams(bsClear, clTAColor);
+  ADrawer.Pen := Pen;
+  while NextNumberSeq(FGraphPoints, splineStart, splineEnd) do begin
+    ADrawer.MoveTo(ParentChart.GraphToImage(FGraphPoints[splineStart]));
+    for startIndex := splineStart to splineEnd + Degree - 1 do
+      SplineSegment(0.0, 1.0, SplinePoint(0.0), SplinePoint(1.0));
   end;
+  DrawErrorBars(ADrawer);
+  DrawLabels(ADrawer);
+  DrawPointers(ADrawer);
 end;
 
 procedure TBSplineSeries.GetLegendItems(AItems: TChartLegendItems);
 var
+  cp: TChartPen;
   p: TSeriesPointer;
-  li: TLegendItemLinePointer;
-  s: TChartStyle;
-  i: Integer;
-  lBrush: TBrush;
-  lPen: TPen;
 begin
   if FPen.Visible and (FPen.Style <> psClear) then
-    lPen := FPen
+    cp := FPen
   else
-    lPen := nil;
+    cp := nil;
 
   if FPointer.Visible then
     p := FPointer
   else
     p := nil;
 
-  case Legend.Multiplicity of
-    lmSingle:
-      AItems.Add(TLegendItemLinePointer.Create(lPen, p, LegendTextSingle));
-    lmPoint:
-      for i := 0 to Count - 1 do begin
-        li := TLegendItemLinePointer.Create(lPen, p, LegendTextPoint(i));
-        li.Color := GetColor(i);
-        AItems.Add(li);
-      end;
-    lmStyle:
-      if Styles <> nil then begin
-        if Assigned(p) then lBrush := p.Brush else lBrush := nil;
-        for s in Styles.Styles do
-          AItems.Add(TLegendItemLinePointer.CreateWithBrush(
-            IfThen((lPen <> nil) and s.UsePen, s.Pen, lPen) as TPen,
-            IfThen(s.UseBrush, s.Brush, lBrush) as TBrush,
-            p,
-            LegendTextStyle(s)
-          ));
-        end;
-  end;
+  AItems.Add(TLegendItemLinePointer.Create(cp, p, LegendTextSingle));
 end;
 
 function TBSplineSeries.GetNearestPoint(
@@ -1253,9 +1188,9 @@ begin
   if IsFewPoints then exit(SafeNaN);
   case FOwner.SplineType of
     cstNatural:
-      Result := ipfspn(High(FCoeff), FOwner.FX[FFirstCacheIndex], FOwner.FY[FFirstCacheIndex], FCoeff[0], AX, ok);
+      Result := ipfspn(High(FCoeff), FX[0], FY[0], FCoeff[0], AX, ok);
     cstHermiteMonotone:
-      Result := ipfsph(High(FCoeff), FOwner.FX[FFirstCacheIndex], FOwner.FY[FFirstCacheIndex], FCoeff[0], AX, ok);
+      Result := ipfsph(High(FCoeff), FX[0], FY[0], FCoeff[0], AX, ok);
   end;
   if ok > 1 then
     Result :=  SafeNaN;
@@ -1275,56 +1210,62 @@ end;
 
 function TCubicSplineSeries.TSpline.IsFewPoints: Boolean;
 begin
-  Result := (FLastCacheIndex <= FFirstCacheIndex);   // less than 2 points
+  Result := Length(FX) < 2;
 end;
 
-function TCubicSplineSeries.TSpline.PrepareCoeffs(ASource: TCustomChartSource;
-  var ASourceIndex, ACacheIndex: Integer): Boolean;
+function TCubicSplineSeries.TSpline.PrepareCoeffs(
+  ASource: TCustomChartSource; var AIndex: Integer): Boolean;
 var
   n, ok: Integer;
 begin
+  n := ASource.Count - AIndex;
+  SetLength(FX, n);
+  SetLength(FY, n);
+  SetLength(FCoeff, n);
   FIsUnorderedX := false;
-  if ASource.XCount > 0 then
-    while (ASourceIndex < ASource.Count) and IsNan(ASource[ASourceIndex]^.Point) do
-      ASourceIndex += 1;
-  FSourceStartIndex := ASourceIndex;
-  FFirstCacheIndex := ACacheIndex;
-  if ASource.XCount > 0 then
-    while (ASourceIndex < ASource.Count) and not IsNan(ASource[ASourceIndex]^.Point) do begin
-      with ASource[ASourceIndex]^ do
-        if (ACacheIndex > FFirstCacheIndex) and (FOwner.FX[ACacheIndex - 1] >= X) then
-          FIsUnorderedX := true
-        else begin
-          FOwner.FX[ACacheIndex] := X;
-          FOwner.FY[ACacheIndex] := Y;
-          ACacheIndex += 1;
-        end;
-      ASourceIndex += 1;
-    end
-  else
-    while ASourceIndex < ASource.Count do begin
-      with ASource[ASourceIndex]^ do begin
-        FOwner.FX[ACacheIndex] := ASourceIndex;
-        FOwner.FY[ACacheIndex] := Y;
-        ACacheIndex += 1;
+  while (AIndex < ASource.Count) and IsNan(ASource[AIndex]^.Point) do
+    AIndex += 1;
+  FStartIndex := AIndex;
+  n := 0;
+  while (AIndex < ASource.Count) and not IsNan(ASource[AIndex]^.Point) do begin
+    with ASource[AIndex]^ do
+      if (n > 0) and (FX[n - 1] >= X) then
+        FIsUnorderedX := true
+      else begin
+        FX[n] := X;
+        FY[n] := Y;
+        n += 1;
       end;
-      ASourceIndex += 1;
-    end;
-  FLastCacheIndex := ACacheIndex - 1;
-  if FLastCacheIndex < FFirstCacheIndex then exit(false);  // No points
+    AIndex += 1;
+  end;
+  SetLength(FX, n);
+  SetLength(FY, n);
+  SetLength(FCoeff, n);
+  if n = 0 then exit(false);
   if IsFewPoints then exit(true);
   ok := 0;
-  n := ACacheIndex - FFirstCacheIndex;
-  SetLength(FCoeff, n);
   case FOwner.SplineType of
     cstNatural:
-      ipfisn(n - 1, FOwner.FX[FFirstCacheIndex], FOwner.FY[FFirstCacheIndex], FCoeff[0], ok);
+      ipfisn(n - 1, FX[0], FY[0], FCoeff[0], ok);
     cstHermiteMonotone:
-      ipfish(hstMonotone, n - 1, FOwner.FX[FFirstCacheIndex], FOwner.FY[FFirstCacheIndex], FCoeff[0], ok);
+      ipfish(hstMonotone, n - 1, FX[0], FY[0], FCoeff[0], ok);
   end;
-  Result := (ok = 1);
+  Result := ok = 1;
 end;
 
+procedure TCubicSplineSeries.TSpline.PrepareIntervals;
+begin
+  FIntervals := TIntervalList.Create;
+  try
+    if not (csoExtrapolateLeft in FOwner.Options) then
+      FIntervals.AddRange(NegInfinity, FX[0]);
+    if not (csoExtrapolateRight in FOwner.Options) then
+      FIntervals.AddRange(FX[High(FX)], SafeInfinity);
+  except
+    FreeAndNil(FIntervals);
+    raise;
+  end;
+end;
 
 { TCubicSplineSeries }
 
@@ -1332,12 +1273,7 @@ procedure TCubicSplineSeries.Assign(ASource: TPersistent);
 begin
   if ASource is TCubicSplineSeries then
     with TCubicSplineSeries(ASource) do begin
-      if (Self.FOptions <> FOptions) or (Self.FSplineType <> FSplineType) then
-        Self.FreeSplines;
-      Self.BadDataPen.Assign(FBadDataPen);
-      Self.FOptions := FOptions;
-      Self.FPen.Assign(FPen);
-      Self.FSplineType := FSplineType;
+      Self.Pen := FPen;
       Self.FStep := FStep;
     end;
   inherited Assign(ASource);
@@ -1368,7 +1304,7 @@ begin
   FPen.OnChange := @StyleChanged;
   FPointer := TSeriesPointer.Create(ParentChart);
   FStep := DEF_SPLINE_STEP;
-  FCachedExtent := EmptyExtent;
+  FUseReticule := true;
 end;
 
 destructor TCubicSplineSeries.Destroy;
@@ -1382,11 +1318,7 @@ end;
 procedure TCubicSplineSeries.Draw(ADrawer: IChartDrawer);
 
   procedure DrawSpline(ASpline: TSpline);
-  var
-    xmin, xmax: Double;
   begin
-    if not GetSplineXRange(ASpline, xmin, xmax) then
-      exit;
     ADrawer.SetBrushParams(bsClear, clTAColor);
     if ASpline.FIsUnorderedX then begin
       if not IsUnorderedVisible then exit;
@@ -1396,7 +1328,7 @@ procedure TCubicSplineSeries.Draw(ADrawer: IChartDrawer);
       if not Pen.EffVisible then exit;
       ADrawer.Pen := Pen;
     end;
-    with TPointsDrawFuncHelper.Create(Self, xmin, xmax, ASpline.FSourceStartIndex, @ASpline.Calculate, Step) do
+    with TDrawFuncHelper.Create(Self, ASpline.FIntervals, @ASpline.Calculate, Step) do
       try
         DrawFunction(ADrawer);
       finally
@@ -1407,9 +1339,7 @@ procedure TCubicSplineSeries.Draw(ADrawer: IChartDrawer);
 var
   s: TSpline;
 begin
-  if IsEmpty or (not Active) then exit;
-  if not RequestValidChartScaling then exit;
-
+  if IsEmpty then exit;
   if FSplines = nil then
     PrepareCoeffs;
 
@@ -1419,8 +1349,8 @@ begin
       DrawSpline(s);
 
   DrawErrorBars(ADrawer);
-  DrawLabels(ADrawer, 0);
-  DrawPointers(ADrawer, 0, true);
+  DrawLabels(ADrawer);
+  DrawPointers(ADrawer);
 end;
 
 function TCubicSplineSeries.Extent: TDoubleRect;
@@ -1431,24 +1361,17 @@ var
   extChg: Boolean = false;
   s: TSpline;
 begin
-  Result := Source.BasicExtent;
+  Result := inherited Extent;
   if SplineType = cstHermiteMonotone then
     exit;
-
-  if (FCachedExtent <> EmptyExtent) then begin
-    Result := FCachedExtent;
-    exit;
-  end;
-
   if FSplines = nil then
     PrepareCoeffs;
-  if FSplines = nil then
-    exit;
+  if FSplines = nil then exit;
   for s in FSplines do begin
     if s.IsFewPoints then continue;
     minv := Result.a.Y;
     maxv := Result.b.Y;
-    ipfsmm(High(s.FCoeff), FX[s.FFirstCacheIndex], FY[s.FFirstCacheIndex], s.FCoeff[0], minv, maxv, r);
+    ipfsmm(High(s.FCoeff), s.FX[0], s.FY[0], s.FCoeff[0], minv, maxv, r);
     extY.FStart := Min(minv, extY.FStart);
     extY.FEnd := Max(maxv, extY.FEnd);
     extChg := true;
@@ -1457,7 +1380,6 @@ begin
     Result.a.Y := extY.FStart;
     Result.b.Y := extY.FEnd;
   end;
-  FCachedExtent := Result;
 end;
 
 procedure TCubicSplineSeries.FreeSplines;
@@ -1467,7 +1389,6 @@ begin
   for s in FSplines do
     s.Free;
   FSplines := nil;
-  FCachedExtent := EmptyExtent;
 end;
 
 procedure TCubicSplineSeries.GetLegendItems(AItems: TChartLegendItems);
@@ -1494,21 +1415,14 @@ function TCubicSplineSeries.GetNearestPoint(
 var
   s: TSpline;
   r: TNearestPointResults;
-  xmin, xmax: Double;
 begin
   Result := inherited GetNearestPoint(AParams, AResults);
   if (not Result) and (nptCustom in ToolTargets) and (nptCustom in AParams.FTargets)
-  then begin
-    if IsEmpty then exit;
-    if not RequestValidChartScaling then exit;
-
+  then
     for s in FSplines do begin
       if s.IsFewPoints or (s.FIsUnorderedX and not IsUnorderedVisible) then
         continue;
-
-      if not GetSplineXRange(s, xmin, xmax) then
-        continue;
-      with TPointsDrawFuncHelper.Create(Self, xmin, xmax, s.FSourceStartIndex, @s.Calculate, Step) do
+      with TDrawFuncHelper.Create(Self, s.FIntervals, @s.Calculate, Step) do
         try
           if not GetNearestPoint(AParams, r) or
              Result and (AResults.FDist <= r.FDist)
@@ -1521,30 +1435,6 @@ begin
           Free;
         end;
     end;
-  end;
-end;
-
-function TCubicSplineSeries.GetSplineXRange(ASpline: TSpline;
-  out AXMin, AXMax: Double): Boolean;
-var
-  ext: TDoubleRect;
-begin
-  ext := FChart.CurrentExtent;
-
-  if (csoExtrapolateLeft in FOptions) and (ASpline = FSplines[0]) then
-    AXmin := ext.a.x
-  else
-    AXmin := Max(ext.a.x, AxisToGraphX(FX[ASpline.FFirstCacheIndex]));
-
-  if AXmin > ext.b.x then
-    exit(false);
-
-  if (csoExtrapolateRight in FOptions) and (ASpline = FSplines[High(FSplines)]) then
-    AXmax := ext.b.x
-  else
-    AXmax := Min(ext.b.x, AxisToGraphX(FX[ASpline.FLastCacheIndex]));
-
-  Result := AXMin <= AXMax;
 end;
 
 function TCubicSplineSeries.IsUnorderedVisible: Boolean;
@@ -1555,31 +1445,18 @@ end;
 procedure TCubicSplineSeries.PrepareCoeffs;
 var
   i: Integer = 0;
-  j: Integer = 0;
-  sCount: Integer = 0;
   s: TSpline;
 begin
   FreeSplines;
-  SetLength(FX, Source.Count);
-  SetLength(FY, Source.Count);
-  SetLength(FSplines, Source.Count);
-  try
-    while i < Source.Count do begin
-      s := TSpline.Create(self);
-      try
-        if s.PrepareCoeffs(Source, i, j) then begin
-          FSplines[sCount] := s;
-          s := nil;
-          sCount += 1;
-        end;
-      finally
-        s.Free;
-      end;
-    end;
-    SetLength(FX, j);
-    SetLength(FY, j);
-  finally
-    SetLength(FSplines, sCount);
+  while i < Source.Count do begin
+    s := TSpline.Create(self);
+    if s.PrepareCoeffs(Source, i) then begin
+      s.PrepareIntervals;
+      SetLength(FSplines, Length(FSplines) + 1);
+      FSplines[High(FSplines)] := s;
+    end
+    else
+      s.Free;
   end;
 end;
 
@@ -1634,6 +1511,15 @@ begin
   FFitRange.SetOwner(ParentChart);
 end;
 
+{ Returns the R-squared parameter as a simple measure for the goodness-of-fit.
+  This function is obsolete since Laz v1.9 and has been replaced by the more
+  comprehensive property "FitStatistics".}
+function TFitSeries.CalcGoodnessOfFit(var x,y: ArbFloat; n: Integer): Double;
+begin
+  Unused(x, y, n);
+  Result := FFitStatistics.R2;
+end;
+
 function TFitSeries.Calculate(AX: Double): Double;
 var
   i: Integer;
@@ -1669,51 +1555,26 @@ procedure TFitSeries.CalcXRange(out AXMin, AXMax: Double);
 var
   ext: TDoubleRect;
 begin
-  if Source.XCount > 0 then begin
-    with Source.BasicExtent do begin
-      ext.a := AxisToGraph(a);
-      ext.b := AxisToGraph(b);
-    end;
-    NormalizeRect(ext);
-    if IsRotated then begin
-      AXMin := GraphToAxisY(ext.a.Y);
-      AXMax := GraphToAxisY(ext.b.Y);
-    end else begin
-      AXMin := GraphToAxisX(ext.a.X);
-      AXMax := GraphToAxisX(ext.b.X);
-    end;
-    EnsureOrder(AXMin, AXMax);
-    FFitRange.Intersect(AXMin, AXMax);
-  end else begin
-    AXMin := 0;
-    AXMax := Source.Count - 1;
+  with Extent do begin
+    ext.a := AxisToGraph(a);
+    ext.b := AxisToGraph(b);
   end;
-end;
-
-procedure TFitSeries.Assign(ASource: TPersistent);
-begin
-  if ASource is TFitSeries then
-    with TFitSeries(ASource) do begin
-      Self.FAutoFit := FAutoFit;
-      Self.FConfidenceLevel := FConfidenceLevel;
-      Self.FDrawFitRangeOnly := FDrawFitRangeOnly;
-      Self.FUseCombinedExtentY := FUseCombinedExtentY;
-      Self.FFitEquation := FFitEquation;
-      Self.FFitRange.Assign(FFitRange);
-      Self.FFixedParams := FFixedParams;
-      Self.ParamCount := GetParamCount;
-      Self.Pen := FPen;
-      Self.FStep := FStep;
-    end;
-  inherited Assign(ASource);
+  NormalizeRect(ext);
+  if IsRotated then begin
+    AXMin := GraphToAxisY(ext.a.Y);
+    AXMax := GraphToAxisY(ext.b.Y);
+  end else begin
+    AXMin := GraphToAxisX(ext.a.X);
+    AXMax := GraphToAxisX(ext.b.X);
+  end;
+  EnsureOrder(AXMin, AXMax);
+  FFitRange.Intersect(AXMin, AXMax);
 end;
 
 constructor TFitSeries.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   ToolTargets := [nptPoint, nptCustom];
-  FAutoFit := true;
-  FUseCombinedExtentY := false;
   FFitEquation := fePolynomial;
   FFitRange := TFitSeriesRange.Create(Self);
   FDrawFitRangeOnly := true;
@@ -1722,8 +1583,8 @@ begin
   FPen.OnChange := @StyleChanged;
   FStep := DEF_FIT_STEP;
   FConfidenceLevel := 0.95;
-  SetParamCount(DEF_FIT_PARAM_COUNT); // Parabolic fit as default.
-  InvalidateFitResults;
+  ParamCount := DEF_FIT_PARAM_COUNT; // Parabolic fit as default.
+//  FGoodnessOfFit := NaN;
 end;
 
 destructor TFitSeries.Destroy;
@@ -1738,25 +1599,23 @@ procedure TFitSeries.Draw(ADrawer: IChartDrawer);
 var
   de : TIntervalList;
 begin
-  if IsEmpty or (not Active) then exit;
-  if not RequestValidChartScaling then exit;
-
-  if FAutoFit then ExecFit;
+  if IsEmpty then exit;
+  ExecFit;
+  if State <> fpsValid then exit;
   ADrawer.SetBrushParams(bsClear, clTAColor);
   ADrawer.Pen := Pen;
   de := PrepareIntervals;
   try
     PrepareGraphPoints(FChart.CurrentExtent, true);
-    if (FState = fpsValid) and (FErrCode = fitOK) then
-      with TDrawFuncHelper.Create(Self, de, @Calculate, Step) do
-        try
-          DrawFunction(ADrawer);
-        finally
-          Free;
-        end;
+    with TDrawFuncHelper.Create(Self, de, @Calculate, Step) do
+      try
+        DrawFunction(ADrawer);
+      finally
+        Free;
+      end;
+    DrawLabels(ADrawer);
     DrawErrorBars(ADrawer);
-    DrawLabels(ADrawer, 0);
-    DrawPointers(ADrawer, 0, true);
+    DrawPointers(ADrawer);
   finally
     de.Free;
   end;
@@ -1767,37 +1626,16 @@ var
   basis: Array of string;
   i: Integer;
 begin
-  if State = fpsValid then begin
-    Result := TFitEquationText.Create;
-    Result.TextFormat(Legend.TextFormat).
-           NumFormat('%.2f').
-           Equation(FitEquation).
-           Params(FitParams);
-    if FitEquation = feCustom then begin
-      SetLength(basis, ParamCount);
-      for i:=0 to High(FFitParams) do
-        basis[i] := FFitParams[i].CustomFuncName;
-      Result.BasisFuncs(basis);
-    end;
-    if Assigned(FOnFitEquationText) then
-      FOnFitEquationText(Self, Result);
-  end else
-    Result := TFitEmptyEquationText.Create;
-end;
-
-function TFitSeries.ErrorMsg: String;
-begin
-  case ErrCode of
-    fitOK                   : Result := '';
-    fitDimError             : Result := rsErrFitDimError;
-    fitMoreParamsThanValues : Result := rsErrFitMoreParamsThanValues;
-    fitNoFitParams          : Result := rsErrFitNoFitParams;
-    fitSingular             : Result := rsErrFitSingular;
-    fitNoBaseFunctions      : Result := rsErrFitNoBaseFunctions;
+  if State = fpsValid then
+    Result := TFitEquationText.Create
   else
-    raise EChartError.CreateFmt('[%s.ErrorMsg] No message text assigned to error code #%d.',
-      [NameOrClassName(self), ord(ErrCode)]);
+    Result := TFitEmptyEquationText.Create;
+  if FitEquation = feCustom then begin
+    SetLength(basis, ParamCount-1);
+    for i:=1 to High(FFitParams) do
+      basis[i-1] := FFitParams[i].FuncName;
   end;
+  Result.TextFormat(Marks.TextFormat).Equation(FitEquation).Params(FitParams).BasisFuncs(basis);
 end;
 
 procedure TFitSeries.ExecFit;
@@ -1806,10 +1644,7 @@ var
 
   function IsValidPoint(AX, AY: Double): Boolean; inline;
   begin
-    if Source.XCount > 0 then
-      Result := not IsNaN(AX) and not IsNaN(AY) and InRange(AX, xmin, xmax)
-    else
-      Result := not IsNaN(AY);
+    Result := not IsNaN(AX) and not IsNaN(AY) and InRange(AX, xmin, xmax);
   end;
 
   procedure TryFit;
@@ -1839,10 +1674,7 @@ var
     for i := 0 to ns - 1 do
       with Source.Item[i]^ do
         if IsValidPoint(X, Y) then begin
-          if Source.XCount > 0 then
-            xv[j] := TransformX(X)
-          else
-            xv[j] := TransformX(i);
+          xv[j] := TransformX(X);
           yv[j] := TransformY(Y);
           if hasErrorBars and Source.GetYErrorBarLimits(i, yp, yn) then
             dy[j] := abs(TransformY(yp) - TransformY(yn)) / 2;
@@ -1851,7 +1683,7 @@ var
 
     // Prepare fit parameters
     if not PrepareFitParams then begin
-      FErrCode := fitNoBaseFunctions;
+      fitRes.ErrCode := fitNoBaseFunctions;
       exit;
     end;
 
@@ -1878,10 +1710,7 @@ var
   end;
 
 begin
-  if (State <> fpsUnknown) or not Active or IsEmpty or (FChart = nil) or
-     ([csLoading, csDestroying] * ComponentState <> [])
-  then
-    exit;
+  if State <> fpsUnknown then exit;
   FState := fpsInvalid;
   try
     TryFit;
@@ -1889,31 +1718,6 @@ begin
     if Assigned(FOnFitComplete) then
       FOnFitComplete(Self);
     UpdateParentChart;
-  end;
-end;
-
-function TFitSeries.Extent: TDoubleRect;
-var
-  de : TIntervalList;
-begin
-  Result := Source.BasicExtent;
-  if not FUseCombinedExtentY then exit;
-  if IsEmpty or (not Active) then exit;
-  if not RequestValidChartScaling then exit;
-
-  if FAutoFit then ExecFit;
-  if (FState = fpsValid) and (FErrCode = fitOK) then begin
-    de := PrepareIntervals;
-    try
-      with TDrawFuncHelper.Create(Self, de, @Calculate, Step) do
-        try
-          CalcAxisExtentY(Result.a.X, Result.b.X, Result.a.Y, Result.b.Y);
-        finally
-          Free;
-        end;
-    finally
-      de.Free;
-    end;
   end;
 end;
 
@@ -1931,15 +1735,6 @@ procedure TFitSeries.GetConfidenceLimits(AIndex: Integer; out ALower, AUpper: Do
 var
   val, sig, t: Double;
 begin
-  if not InRange(AIndex, 0, ParamCount - 1) then
-    raise EChartError.CreateFmt(SIndexOutOfRange, [NameOrClassName(self), 'GetConfidenceLimits']);
-
-  if FState <> fpsValid then begin
-    ALower := NaN;
-    AUpper := NaN;
-    exit;
-  end;
-
   val := GetParam_RawValue(AIndex);
   sig := GetParam_RawError(AIndex);
   t := FitStatistics.tValue;
@@ -1958,11 +1753,6 @@ var
   dy: Double;
   Offs: Double;
 begin
-  if FState <> fpsValid then begin
-    aY := NaN;
-    exit;
-  end;
-
   offs := IfThen(IsPrediction, 1, 0);
   with FitStatistics do begin
     x := TransformX(AX);
@@ -2025,7 +1815,7 @@ begin
   if Legend.Format = '' then
     t := Title
   else
-    t := Format(Legend.Format, [Title, Index, EquationText.Get]);
+    t := Format(Legend.Format, [Title, Index, EquationText.NumFormat('%f').Get]);
   AItems.Add(TLegendItemLinePointer.Create(cp, p, t));
 end;
 
@@ -2037,9 +1827,6 @@ begin
   Result := inherited GetNearestPoint(AParams, AResults);
   if (not Result) and (nptCustom in ToolTargets) and (nptCustom in AParams.FTargets)
   then begin
-    if IsEmpty then exit;
-    if not RequestValidChartScaling then exit;
-
     ExecFit;
     if State <> fpsValid then exit(false);
     de := PrepareIntervals;
@@ -2060,13 +1847,7 @@ end;
 function TFitSeries.GetParam(AIndex: Integer): Double;
 begin
   if not InRange(AIndex, 0, ParamCount - 1) then
-    raise EChartError.CreateFmt(SIndexOutOfRange, [NameOrClassName(Self), 'GetParam']);
-
-  if FState <> fpsValid then begin
-    Result := NaN;
-    exit;
-  end;
-
+    raise EChartError.Create('TFitSeries.GetParam index out of range');
   if (FFitEquation in [feExp, fePower]) and (AIndex = 0) then
     Result := exp(FFitParams[AIndex].Value)
   else
@@ -2082,19 +1863,14 @@ function TFitSeries.GetParamError(AIndex: Integer): Double;
 var
   val, sig: Double;
 begin
-  if not InRange(AIndex, 0, ParamCount - 1) then
-    raise EChartError.CreateFmt(SIndexOutOfRange, [NameOrClassName(self), 'GetParamError']);
-
-  Result := NaN;
-  if FState <> fpsValid then
-    exit;
+  val := GetParam_RawValue(AIndex);
   sig := GetParam_RawError(AIndex);
-  Result := sig;
-  if not IsNaN(sig) and (FFitEquation in [feExp, fePower]) and (AIndex = 0) then
-  begin
-    val := GetParam_RawValue(AIndex);
-    Result := (exp(val + sig) - exp(val - sig)) / 2;
-  end;
+  if IsNaN(sig) then
+    Result := NaN
+  else if (FFitEquation in [feExp, fePower]) and (AIndex = 0) then
+    Result := (exp(val + sig) - exp(val - sig)) / 2
+  else
+    Result := sig;
 end;
 
 {$IF FPC_FullVersion >= 30004}
@@ -2102,9 +1878,6 @@ function TFitSeries.GetParam_pValue(AIndex: Integer): Double;
 var
   t: Double;
 begin
-  if not InRange(AIndex, 0, ParamCount - 1) then
-    raise EChartError.CreateFmt(SIndexOutOfRange, [NameOrClassName(self), 'GetParam_pValue']);
-
   t := GetParam_tValue(AIndex);
   if IsNaN(t) then
     Result := NaN
@@ -2117,12 +1890,11 @@ function TFitSeries.GetParam_RawError(AIndex: Integer): Double;
 var
   sig2: Double;
 begin
-  Result := NaN;
-  if (FState = fpsValid) and Assigned(FFitStatistics) then begin
-    sig2 := FFitStatistics.VarCovar[AIndex, AIndex];
-    if not IsNaN(sig2) then
-      Result := sqrt(sig2);
-  end;
+  sig2 := FFitStatistics.VarCovar[AIndex, AIndex];
+  if IsNaN(sig2) then
+    Result := NaN
+  else
+    Result := sqrt(sig2);
 end;
 
 function TFitSeries.GetParam_RawValue(AIndex: Integer): Double;
@@ -2134,9 +1906,6 @@ function TFitSeries.GetParam_tValue(AIndex: Integer): Double;
 var
   sig: Double;
 begin
-  if not InRange(AIndex, 0, ParamCount - 1) then
-    raise EChartError.CreateFmt(SIndexOutOfRange, [NameOrClassName(self), 'GetParam_tValue']);
-
   sig := GetParam_RawError(AIndex);
   if IsNaN(sig) then
     Result := NaN
@@ -2144,24 +1913,9 @@ begin
     Result := GetParam_RawValue(AIndex) / sig;
 end;
 
-procedure TFitSeries.InvalidateFitResults;
-var
-  i: Integer;
-begin
-  FState := fpsUnknown;
-  FreeAndNil(FFitStatistics);
-  for i:=0 to High(FFitParams) do FFitParams[i].Value := NaN;
-end;
-
 function TFitSeries.IsFixedParamsStored: Boolean;
 begin
   Result := FFixedParams <> '';
-end;
-
-procedure TFitSeries.Loaded;
-begin
-  inherited;
-  if FAutoFit and (FFitEquation <> feCustom) then ExecFit;
 end;
 
 { FFixedParams contains several items separated by semicolon or bar ('|'). Any
@@ -2176,11 +1930,10 @@ end;
   .Fixed = true. Variable parameters are stored in the outpust list as
   .Value = NaN, and .Fixed = false.
 
-  By default, the fit base functions (.Func) are set to a polynomial because
-  all built-in fitting types are of this kind.
-
-  In case of custom fitting, the fit base functions become equal to the
-  function .CustomFunc defined separately by the method SetFitBasisFunc().
+  By default, the fit base functions (.Func) are set to a polygon because
+  all implemented fitting types are of this kind.
+  However, if handlers are assigned to the event OnGetFitBaseFunc then these
+  functions are used instead.
 }
 function TFitSeries.PrepareFitParams: Boolean;
 var
@@ -2195,11 +1948,8 @@ begin
     FFitParams[i].Value := NaN;
     if FFitEquation <> feCustom then
       FFitParams[i].Func := @FitBaseFunc_Poly
-    else begin
-      if FFitParams[i].CustomFunc = nil then
-        exit;
-      FFitParams[i].Func := FFitParams[i].CustomFunc;
-    end;
+    else if FFitParams[i].Func = nil then
+      exit;
   end;
 
   if FFixedParams <> '' then begin
@@ -2233,8 +1983,8 @@ begin
   try
     CalcXRange(xmin, xmax);
     if DrawFitRangeOnly then begin
-      Result.AddRange(NegInfinity, xmin, [ioOpenStart, ioOpenEnd]);
-      Result.AddRange(xmax, SafeInfinity, [ioOpenStart, ioOpenEnd]);
+      Result.AddRange(NegInfinity, xmin);
+      Result.AddRange(xmax, SafeInfinity);
     end;
   except
     Result.Free;
@@ -2253,34 +2003,24 @@ procedure TFitSeries.SetFitEquation(AValue: TFitEquation);
 begin
   if FFitEquation = AValue then exit;
   FFitEquation := AValue;
-  if not (FFitEquation in [fePolynomial, feCustom]) then
-    SetLength(FFitParams, 2);
-  InvalidateFitResults;
+  SetLength(
+    FFitParams, IfThen(FFitEquation in [fePolynomial, feCustom], DEF_FIT_PARAM_COUNT, 2));
+  FState := fpsUnknown;
   UpdateParentChart;
 end;
 
 procedure TFitSeries.SetFitBasisFunc(AIndex: TFitFuncIndex; AFitFunc: TFitFunc;
   AFitFuncName: String);
 begin
-  if not InRange(AIndex, 0, ParamCount - 1) then
-    raise EChartError.CreateFmt(SIndexOutOfRange, [NameOrClassName(self), 'SetFitBasisFunc']);
-
-  FFitParams[AIndex].CustomFuncName := AFitFuncName;  // e.g. 'sin(x)';
-  if FFitParams[AIndex].CustomFunc = AFitFunc then
-    exit;
-
-  FFitParams[AIndex].CustomFunc := AFitFunc;
-  if FFitEquation = feCustom then begin
-    InvalidateFitResults;
-    UpdateParentChart;
-  end;
+  FFitParams[AIndex].Func := AFitFunc;
+  FFitParams[AIndex].FuncName := AFitFuncName;  // e.g. 'sin(x)';
 end;
 
 procedure TFitSeries.SetFitRange(AValue: TChartRange);
 begin
   if FFitRange = AValue then exit;
   FFitRange := AValue;
-  InvalidateFitResults;
+  FState := fpsUnknown;
   UpdateParentChart;
 end;
 
@@ -2288,7 +2028,7 @@ procedure TFitSeries.SetFixedParams(AValue: String);
 begin
   if FFixedParams = AValue then exit;
   FFixedParams := AValue;
-  InvalidateFitResults;
+  FState := fpsUnknown;
   UpdateParentChart;
 end;
 
@@ -2296,10 +2036,8 @@ procedure TFitSeries.SetParamCount(AValue: Integer);
 begin
   if (AValue = ParamCount) or not (FFitEquation in [fePolynomial, feCustom]) then
     exit;
-  if AValue <= 0 then
-    raise EChartError.Create(rsErrIllegalFitParamCount);
   SetLength(FFitParams, AValue);
-  InvalidateFitResults;
+  FState := fpsUnknown;
   UpdateParentChart;
 end;
 
@@ -2317,18 +2055,10 @@ begin
   UpdateParentChart;
 end;
 
-procedure TFitSeries.SetUseCombinedExtentY(AValue: Boolean);
-begin
-  if FUseCombinedExtentY = AValue then exit;
-  FUseCombinedExtentY := AValue;
-  UpdateParentChart;
-end;
-
 procedure TFitSeries.SourceChanged(ASender: TObject);
 begin
   inherited;
-  InvalidateFitResults;
-  if FAutoFit then ExecFit;
+  FState := fpsUnknown;
 end;
 
 { The exponential and power fitting equations can be transformed to a
@@ -2378,7 +2108,7 @@ var
   cmax, cmin, factor: Double;
   ex: TDoubleRect;
 begin
-  with FBuiltinColorSource do begin
+  with FBuiltinColorSource as TListChartSource do begin
     BeginUpdate;
     try
       Clear;
@@ -2419,42 +2149,35 @@ begin
             Add(255, 0, '', clWhite);
           end;
       else
-        raise EChartError.CreateFmt('[%s.BuildPalette] Palette not supported', [NameOrClassName(Self)]);
+        raise Exception.Create('Palette not supported');
       end;
 
       if FPaletteMin < FPaletteMax then begin
         cmin := FPaletteMin;
         cmax := FPaletteMax;
-       end else
+      end else
       if FPaletteMax < FPaletteMin then begin
         cmin := FPaletteMax;
         cmax := FPaletteMin;
       end else
         exit;
 
-      ex := Extent;
-      if (ex.a.x = ex.b.x) then
-        exit;
-      factor := (cmax - cmin) / (ex.b.x - ex.a.x);
-      for i:=0 to Count-1 do
-        Item[i]^.X := (Item[i]^.X - ex.a.x) * factor + cmin;
+      with FBuiltInColorSource do begin
+        ex := Extent;
+        if (ex.a.x = ex.b.x) then
+          exit;
+        factor := (cmax - cmin) / (ex.b.x - ex.a.x);
+        for i:=0 to Count-1 do
+          Item[i]^.X := (Item[i]^.X - ex.a.x) * factor + cmin;
+      end;
+
+      if FColorSource = nil then
+        UpdateColorExtent;
+
     finally
       EndUpdate;
     end;
   end;
-end;
-
-procedure TCustomColorMapSeries.CheckColorSource(ASource: TCustomChartSource);
-var
-  nx, ny: Cardinal;
-begin
-  if ASource = nil then
-    exit;
-  GetXYCountNeeded(nx, ny);
-  if ASource.XCount < nx then
-    raise EXCountError.CreateFmt(rsSourceCountError, [ClassName, nx, 'x']);
-  if ASource.YCount < ny then
-    raise EYCountError.CreateFmt(rsSourceCountError, [ClassName, ny, 'y']);
 end;
 
 function TCustomColorMapSeries.ColorByValue(AValue: Double): TColor;
@@ -2486,15 +2209,10 @@ end;
 constructor TCustomColorMapSeries.Create(AOwner: TComponent);
 const
   BUILTIN_SOURCE_NAME = 'BuiltinColors';
-var
-  nx, ny: Cardinal;
 begin
   inherited Create(AOwner);
-  FColorSourceListener := TListener.Create(@FColorSource, @ColorSourceChanged);
-  GetXYCountNeeded(nx, ny);
-  FBuiltinColorSource := TBuiltinListChartSource.Create(self, nx, ny);
-  FBuiltinColorSource.XCount := nx;
-  FBuiltinColorSource.YCount := ny;
+  FColorSourceListener := TListener.Create(@FColorSource, @StyleChanged);
+  FBuiltinColorSource := TListChartSource.Create(self);
   FBuiltinColorSource.Name := BUILTIN_SOURCE_NAME;
   FBuiltinColorSource.Broadcaster.Subscribe(FColorSourceListener);
   FBrush := TBrush.Create;
@@ -2506,9 +2224,9 @@ end;
 
 destructor TCustomColorMapSeries.Destroy;
 begin
-  FreeAndNil(FColorSourceListener);
-  FreeAndNil(FBuiltinColorSource);
   FreeAndNil(FBrush);
+  FreeAndNil(FBuiltinColorSource);
+  FreeAndNil(FColorSourceListener);
   inherited Destroy;
 end;
 
@@ -2529,7 +2247,7 @@ var
   scaled_stepX: Integer;
   scaled_stepY: Integer;
 begin
-  if (not (csDesigning in ComponentState) and IsEmpty) or (not Active) then exit;
+  if not (csDesigning in ComponentState) and IsEmpty then exit;
 
   ext := ParentChart.CurrentExtent;
   bounds := EmptyExtent;
@@ -2696,12 +2414,6 @@ begin
   end;
 end;
 
-class procedure TCustomColorMapSeries.GetXYCountNeeded(out AXCount, AYCount: Cardinal);
-begin
-  AXCount := 1;
-  AYCount := 0;
-end;
-
 procedure TCustomColorMapSeries.GetZRange(ARect: TRect; dx, dy: Integer);
 var
   gp: TDoublePoint;
@@ -2770,20 +2482,18 @@ procedure TCustomColorMapSeries.SetBuiltinPalette(AValue: TColorMapPalette);
 begin
   FBuiltinPalette := AValue;
   BuildPalette(FBuiltinPalette);
+  UpdateParentChart;
 end;
 
 procedure TCustomColorMapSeries.SetColorSource(AValue: TCustomChartSource);
 begin
-  if AValue = FBuiltinColorSource then
-    AValue := nil;
-  if FColorSource = AValue then
-    exit;
-  CheckColorSource(AValue);
+  if FColorSource = AValue then exit;
   if FColorSourceListener.IsListening then
     ColorSource.Broadcaster.Unsubscribe(FColorSourceListener);
   FColorSource := AValue;
   ColorSource.Broadcaster.Subscribe(FColorSourceListener);
-  ColorSourceChanged(Self);
+  UpdateColorExtent;
+  UpdateParentChart;
 end;
 
 procedure TCustomColorMapSeries.SetInterpolate(AValue: Boolean);
@@ -2798,6 +2508,7 @@ begin
   if AValue = FPaletteMax then exit;
   FPaletteMax := AValue;
   BuildPalette(FBuiltinPalette);
+  UpdateParentChart;
 end;
 
 procedure TCustomColorMapSeries.SetPaletteMin(AValue: Double);
@@ -2805,6 +2516,7 @@ begin
   if AValue = FPaletteMin then exit;
   FPaletteMin := AValue;
   BuildPalette(FBuiltinPalette);
+  UpdateParentChart;
 end;
 
 procedure TCustomColorMapSeries.SetStepX(AValue: TFuncSeriesStep);
@@ -2826,19 +2538,6 @@ begin
   if FUseImage = AValue then exit;
   FUseImage := AValue;
   UpdateParentChart;
-end;
-
-procedure TCustomColorMapSeries.ColorSourceChanged(ASender: TObject);
-begin
-  if (ASender <> FBuiltinColorSource) and (ASender is TCustomChartSource) then
-    try
-      CheckColorSource(TCustomChartSource(ASender));
-    except
-      ColorSource := nil; // revert to built-in source
-      raise;
-    end;
-  UpdateColorExtent;
-  StyleChanged(ASender);
 end;
 
 procedure TCustomColorMapSeries.UpdateColorExtent;
@@ -2864,10 +2563,10 @@ end;
 
 function TColorMapSeries.FunctionValue(AX, AY: Double): Double;
 begin
-  if Assigned(OnCalculate) then
-    OnCalculate(AX, AY, Result)
+  if (csDesigning in ComponentState) or not Assigned(FOnCalculate) then
+    Result := 0
   else
-    Result := 0;
+    OnCalculate(AX, AY, Result);
 end;
 
 function TColorMapSeries.IsEmpty: Boolean;

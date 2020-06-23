@@ -5,6 +5,7 @@ Used by:
 - LazLoggerDummy
 *)
 
+
 procedure DebuglnStack(const s: string);
 begin
   {$IFnDEF LazLoggerDummy}
@@ -74,13 +75,6 @@ begin
   {$ENDIF}
 end;
 
-procedure DebugLnEnter();
-begin
-  {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnEnter();
-  {$ENDIF}
-end;
-
 procedure DebugLnEnter(const s: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
@@ -110,13 +104,6 @@ procedure DebugLnEnter(const s1, s2: string; const s3: string; const s4: string;
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
   DebugLogger.DebugLnEnter(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
-  {$ENDIF}
-end;
-
-procedure DebugLnExit();
-begin
-  {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnExit();
   {$ENDIF}
 end;
 
@@ -152,152 +139,138 @@ begin
   {$ENDIF}
 end;
 
-procedure DebuglnStack(LogEnabled: TLazLoggerLogEnabled; const s: string);
+procedure DebuglnStack(LogGroup: PLazLoggerLogGroup; const s: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebuglnStack(LogEnabled, s);
+  DebugLogger.DebuglnStack(LogGroup, s);
   {$ENDIF}
 end;
 
-procedure DbgOut(LogEnabled: TLazLoggerLogEnabled; const s: string);
+procedure DbgOut(LogGroup: PLazLoggerLogGroup; const s: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DbgOut(LogEnabled, s);
+  DebugLogger.DbgOut(LogGroup, s);
   {$ENDIF}
 end;
 
-procedure DbgOut(LogEnabled: TLazLoggerLogEnabled; Args: array of const);
+procedure DbgOut(LogGroup: PLazLoggerLogGroup; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DbgOut(LogEnabled, Args);
+  DebugLogger.DbgOut(LogGroup, Args);
   {$ENDIF}
 end;
 
-procedure DbgOut(LogEnabled: TLazLoggerLogEnabled; const S: String; Args: array of const);
+procedure DbgOut(LogGroup: PLazLoggerLogGroup; const S: String; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DbgOut(LogEnabled, s, Args);
+  DebugLogger.DbgOut(LogGroup, s, Args);
   {$ENDIF}
 end;
 
-procedure DbgOut(LogEnabled: TLazLoggerLogEnabled; const s1, s2: string; const s3: string;
+procedure DbgOut(LogGroup: PLazLoggerLogGroup; const s1, s2: string; const s3: string;
   const s4: string; const s5: string; const s6: string; const s7: string; const s8: string;
   const s9: string; const s10: string; const s11: string; const s12: string;
   const s13: string; const s14: string; const s15: string; const s16: string;
   const s17: string; const s18: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DbgOut(LogEnabled, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
+  DebugLogger.DbgOut(LogGroup, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
   {$ENDIF}
 end;
 
-procedure DebugLn(LogEnabled: TLazLoggerLogEnabled; const s: string);
+procedure DebugLn(LogGroup: PLazLoggerLogGroup; const s: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLn(LogEnabled, s);
+  DebugLogger.DebugLn(LogGroup, s);
   {$ENDIF}
 end;
 
-procedure DebugLn(LogEnabled: TLazLoggerLogEnabled; Args: array of const);
+procedure DebugLn(LogGroup: PLazLoggerLogGroup; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLn(LogEnabled, Args);
+  DebugLogger.DebugLn(LogGroup, Args);
   {$ENDIF}
 end;
 
-procedure DebugLn(LogEnabled: TLazLoggerLogEnabled; const S: String; Args: array of const);
+procedure DebugLn(LogGroup: PLazLoggerLogGroup; const S: String; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLn(LogEnabled, s, Args);
+  DebugLogger.DebugLn(LogGroup, s, Args);
   {$ENDIF}
 end;
 
-procedure DebugLn(LogEnabled: TLazLoggerLogEnabled; const s1, s2: string; const s3: string;
+procedure DebugLn(LogGroup: PLazLoggerLogGroup; const s1, s2: string; const s3: string;
   const s4: string; const s5: string; const s6: string; const s7: string; const s8: string;
   const s9: string; const s10: string; const s11: string; const s12: string;
   const s13: string; const s14: string; const s15: string; const s16: string;
   const s17: string; const s18: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLn(LogEnabled, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
+  DebugLogger.DebugLn(LogGroup, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
   {$ENDIF}
 end;
 
-procedure DebugLnEnter(LogEnabled: TLazLoggerLogEnabled);
+procedure DebugLnEnter(LogGroup: PLazLoggerLogGroup; const s: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnEnter(LogEnabled);
+  DebugLogger.DebugLnEnter(LogGroup, s);
   {$ENDIF}
 end;
 
-procedure DebugLnEnter(LogEnabled: TLazLoggerLogEnabled; const s: string);
+procedure DebugLnEnter(LogGroup: PLazLoggerLogGroup; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnEnter(LogEnabled, s);
+  DebugLogger.DebugLnEnter(LogGroup, Args);
   {$ENDIF}
 end;
 
-procedure DebugLnEnter(LogEnabled: TLazLoggerLogEnabled; Args: array of const);
+procedure DebugLnEnter(LogGroup: PLazLoggerLogGroup; s: string; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnEnter(LogEnabled, Args);
+  DebugLogger.DebugLnEnter(LogGroup, s, Args);
   {$ENDIF}
 end;
 
-procedure DebugLnEnter(LogEnabled: TLazLoggerLogEnabled; s: string; Args: array of const);
-begin
-  {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnEnter(LogEnabled, s, Args);
-  {$ENDIF}
-end;
-
-procedure DebugLnEnter(LogEnabled: TLazLoggerLogEnabled; const s1, s2: string; const s3: string;
+procedure DebugLnEnter(LogGroup: PLazLoggerLogGroup; const s1, s2: string; const s3: string;
   const s4: string; const s5: string; const s6: string; const s7: string; const s8: string;
   const s9: string; const s10: string; const s11: string; const s12: string;
   const s13: string; const s14: string; const s15: string; const s16: string;
   const s17: string; const s18: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnEnter(LogEnabled, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
+  DebugLogger.DebugLnEnter(LogGroup, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
   {$ENDIF}
 end;
 
-procedure DebugLnExit(LogEnabled: TLazLoggerLogEnabled);
+procedure DebugLnExit(LogGroup: PLazLoggerLogGroup; const s: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnExit(LogEnabled);
+  DebugLogger.DebugLnExit(LogGroup, s);
   {$ENDIF}
 end;
 
-procedure DebugLnExit(LogEnabled: TLazLoggerLogEnabled; const s: string);
+procedure DebugLnExit(LogGroup: PLazLoggerLogGroup; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnExit(LogEnabled, s);
+  DebugLogger.DebugLnExit(LogGroup, Args);
   {$ENDIF}
 end;
 
-procedure DebugLnExit(LogEnabled: TLazLoggerLogEnabled; Args: array of const);
+procedure DebugLnExit(LogGroup: PLazLoggerLogGroup; s: string; Args: array of const);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnExit(LogEnabled, Args);
+  DebugLogger.DebugLnExit(LogGroup, s, Args);
   {$ENDIF}
 end;
 
-procedure DebugLnExit(LogEnabled: TLazLoggerLogEnabled; s: string; Args: array of const);
-begin
-  {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnExit(LogEnabled, s, Args);
-  {$ENDIF}
-end;
-
-procedure DebugLnExit(LogEnabled: TLazLoggerLogEnabled; const s1, s2: string; const s3: string;
+procedure DebugLnExit(LogGroup: PLazLoggerLogGroup; const s1, s2: string; const s3: string;
   const s4: string; const s5: string; const s6: string; const s7: string; const s8: string;
   const s9: string; const s10: string; const s11: string; const s12: string;
   const s13: string; const s14: string; const s15: string; const s16: string;
   const s17: string; const s18: string);
 begin
   {$IFnDEF USED_BY_LAZLOGGER_DUMMY}
-  DebugLogger.DebugLnExit(LogEnabled, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
+  DebugLogger.DebugLnExit(LogGroup, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18);
   {$ENDIF}
 end;
 
@@ -614,62 +587,4 @@ begin
   DebugLogger.DumpExceptionBackTrace;
   {$ENDIF}
 end;
-
-{$IFDEF USED_BY_LAZLOGGER_DUMMY}
-  operator := (g: PLazLoggerLogGroup): TLazLoggerLogEnabled;
-  begin
-    Result := Default(TLazLoggerLogEnabled);
-  end;
-
-  operator := (g: Boolean): TLazLoggerLogEnabled;
-  begin
-    Result := Default(TLazLoggerLogEnabled);
-  end;
-
-  operator and(g1, g2: TLazLoggerLogEnabled): TLazLoggerLogEnabled;
-  begin
-    Result := Default(TLazLoggerLogEnabled);
-  end;
-
-  operator or(g1, g2: TLazLoggerLogEnabled): TLazLoggerLogEnabled;
-  begin
-    Result := Default(TLazLoggerLogEnabled);
-  end;
-{$ELSE}
-  operator := (g: PLazLoggerLogGroup): TLazLoggerLogEnabled;
-  begin
-    Result.Enabled := (g = nil) or (g^.Enabled);
-    Result.Group := g;
-  end;
-
-  operator := (g: Boolean): TLazLoggerLogEnabled;
-  begin
-    Result.Enabled := g;
-    Result.Group := nil;
-  end;
-
-  operator and(g1, g2: TLazLoggerLogEnabled): TLazLoggerLogEnabled;
-  begin
-    Result.Enabled := g1.Enabled and g2.Enabled;
-    if (g1.Group = nil) and g1.Enabled then
-      Result.Group := g2.Group
-    else
-    if (g2.Group = nil) and g2.Enabled then
-      Result.Group := g1.Group
-    else
-      Result.Group := nil;
-  end;
-
-  operator or(g1, g2: TLazLoggerLogEnabled): TLazLoggerLogEnabled;
-  begin
-    Result.Enabled := g1.Enabled or g2.Enabled;
-    if (g1.Group = nil) then
-      Result.Group := g2.Group
-    else
-    if (g2.Group = nil) then
-      Result.Group := g1.Group
-    else
-      Result.Group := nil;
-  end;
-{$ENDIF}
 

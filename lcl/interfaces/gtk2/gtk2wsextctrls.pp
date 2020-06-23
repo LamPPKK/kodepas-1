@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: gtk2wsextctrls.pp 59221 2018-10-01 15:16:18Z mattias $}
 {
  *****************************************************************************
  *                             Gtk2WSExtCtrls.pp                             * 
@@ -145,7 +145,6 @@ type
     class function CreateHandle(const AWinControl: TWinControl; const AParams: TCreateParams): TLCLIntfHandle; override;
     class function GetDefaultColor(const {%H-}AControl: TControl; const ADefaultColorType: TDefaultColorType): TColor; override;
     class procedure SetColor(const AWinControl: TWinControl); override;
-    class procedure SetBorderStyle(const AWinControl: TWinControl; const ABorderStyle: TBorderStyle); override;
   end;
 
   { TGtk2WSPanel }
@@ -188,6 +187,7 @@ var
   Frame, WidgetClient: PGtkWidget;
   WidgetInfo: PWidgetInfo;
   Allocation: TGTKAllocation;
+  bwidth: gint;
   Style: PGtkRCStyle;
   BorderStyle: TBorderStyle;
 begin
@@ -195,9 +195,15 @@ begin
   BorderStyle:=TCustomControl(AWinControl).BorderStyle;
   gtk_frame_set_shadow_type(PGtkFrame(Frame),BorderStyleShadowMap[BorderStyle]);
 
+  case BorderStyle of
+  bsSingle:
+    bwidth:=1;
+  else
+    bwidth:=0
+  end;
   Style := gtk_widget_get_modifier_style(Frame);
-  Style^.xthickness := BorderShadowWidth[BorderStyle];
-  Style^.ythickness := BorderShadowWidth[BorderStyle];
+  Style^.xthickness := bwidth;
+  Style^.ythickness := bwidth;
   gtk_widget_modify_style(Frame, Style);
 
   {$IFDEF DebugLCLComponents}
@@ -265,21 +271,6 @@ begin
                                GTK_STATE_PRELIGHT,GTK_STATE_SELECTED]);
 
   UpdateWidgetStyleOfControl(AWinControl);
-end;
-
-class procedure TGtk2WSCustomPanel.SetBorderStyle(
-  const AWinControl: TWinControl; const ABorderStyle: TBorderStyle);
-var
-  Frame: PGtkWidget;
-  Style: PGtkRCStyle;
-begin
-  Frame := PGtkWidget(AWinControl.Handle);
-  gtk_frame_set_shadow_type(PGtkFrame(Frame), BorderStyleShadowMap[ABorderStyle]);
-
-  Style := gtk_widget_get_modifier_style(Frame);
-  Style^.xthickness := BorderShadowWidth[ABorderStyle];
-  Style^.ythickness := BorderShadowWidth[ABorderStyle];
-  gtk_widget_modify_style(Frame, Style);
 end;
 
 

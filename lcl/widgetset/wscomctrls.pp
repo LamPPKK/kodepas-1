@@ -240,7 +240,6 @@ type
     class procedure SetOrientation(const ATrackBar: TCustomTrackBar; const AOrientation: TTrackBarOrientation); virtual;
     class procedure SetPosition(const ATrackBar: TCustomTrackBar; const NewPosition: integer); virtual;
     class procedure SetTick(const ATrackBar: TCustomTrackBar; const ATick: integer); virtual;
-    class procedure SetTickStyle(const ATrackBar: TCustomTrackBar; const ATickStyle: TTickStyle); virtual;
   end;
   TWSTrackBarClass = class of TWSTrackBar;
 
@@ -843,11 +842,6 @@ class procedure TWSTrackBar.SetTick(const ATrackBar: TCustomTrackBar; const ATic
 begin
 end;
 
-class procedure TWSTrackBar.SetTickStyle(const ATrackBar: TCustomTrackBar; const ATickStyle: TTickStyle);
-begin
-  RecreateWnd(ATrackBar);
-end;
-
 { WidgetSetRegistration }
 
 procedure RegisterStatusBar;
@@ -882,6 +876,11 @@ const
 begin
   if Done then exit;
   WSRegisterPageControl;
+  RegisterPropertyToSkip(TPageControl, 'Style', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TPageControl, 'HotTrack', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TPageControl, 'MultiLine', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TPageControl, 'TabWidth', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TPageControl, 'TabHeight', 'VCL compatibility property', '');
   RegisterPropertyToSkip(TPageControl, 'OnPageChanged', 'Was removed in Laz 0.9.31 due to incompatibilities with OnChange, which does the same thing.', '');
 //  if not WSRegisterPageControl then
 //    RegisterWSComponent(TPageControl, TWSPageControl);

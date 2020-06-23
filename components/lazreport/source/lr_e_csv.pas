@@ -73,6 +73,11 @@ begin
   BandTypes := [btMasterHeader,btMasterData,btColumnHeader];
 end;
 
+function CompareIntervals(Item1, Item2: Pointer): Integer;
+begin
+  result := {%H-}PtrInt(Item1)-{%H-}PtrInt(Item2);
+end;
+
 procedure TfrCSVExportFilter.OnEndPage;
 var
   i,n: Integer;

@@ -413,18 +413,13 @@ begin
     p:=StartPos;
     while (p<=l) and (pos(SearchPath[p],Delimiter)<1) do inc(p);
     CurPath:=TrimFilename(copy(SearchPath,StartPos,p-StartPos));
+    if CurPath<>'' then begin
+      if not FilenameIsAbsolute(CurPath) then
+        CurPath:=Base+CurPath;
+      Result:=CleanAndExpandFilename(AppendPathDelim(CurPath)+Filename);
+      if FileExistsUTF8(Result) then exit;
+    end;
     StartPos:=p+1;
-    if CurPath='' then continue;
-    if not FilenameIsAbsolute(CurPath) then
-      CurPath:=Base+CurPath;
-    Result:=CleanAndExpandFilename(AppendPathDelim(CurPath)+Filename);
-    if not FileExistsUTF8(Result) then
-      continue;
-    if (sffFile in Flags) and DirectoryExistsUTF8(Result) then
-      continue;
-    if (sffExecutable in Flags) and not FileIsExecutable(Result) then
-      continue;
-    exit;
   end;
   Result:='';
 end;
@@ -437,17 +432,13 @@ function SearchAllFilesInPath(const Filename, BasePath, SearchPath,
     i: Integer;
   begin
     NewFilename:=TrimFilename(NewFilename);
-    if Result<>nil then
+    if not FileExistsUTF8(NewFilename) then exit;
+    if Result=nil then begin
+      Result:=TStringList.Create;
+    end else begin
       for i:=0 to Result.Count-1 do
         if CompareFilenames(Result[i],NewFilename)=0 then exit;
-    if not FileExistsUTF8(NewFilename) then
-      exit;
-    if (sffFile in Flags) and DirectoryExistsUTF8(NewFilename) then
-      exit;
-    if (sffExecutable in Flags) and not FileIsExecutable(NewFilename) then
-      exit;
-    if Result=nil then
-      Result:=TStringList.Create;
+    end;
     Result.Add(NewFilename);
   end;
   
@@ -594,9 +585,7 @@ end;
 function FindDefaultExecutablePath(const Executable: string;
   const BaseDir: string): string;
 const
-  Flags : TSearchFileInPathFlags = [
-    {$IFDEF Unix}sffDontSearchInBasePath,{$ENDIF}
-    sffFile,sffExecutable];
+  Flags : TSearchFileInPathFlags = [{$IFDEF Unix}sffDontSearchInBasePath{$ENDIF}];
 var
   Env: string;
 begin
@@ -637,15 +626,12 @@ begin
 end;
 
 procedure FindAllFiles(AList: TStrings; const SearchPath: String;
-  SearchMask: String; SearchSubDirs: Boolean; DirAttr: Word;
-  MaskSeparator: char; PathSeparator: char);
+  SearchMask: String; SearchSubDirs: Boolean; DirAttr: Word);
 var
   Searcher: TListFileSearcher;
 begin
   Searcher := TListFileSearcher.Create(AList);
   Searcher.DirectoryAttribute := DirAttr;
-  Searcher.MaskSeparator := MaskSeparator;
-  Searcher.PathSeparator := PathSeparator;
   try
     Searcher.Search(SearchPath, SearchMask, SearchSubDirs);
   finally
@@ -654,11 +640,10 @@ begin
 end;
 
 function FindAllFiles(const SearchPath: String; SearchMask: String;
-  SearchSubDirs: Boolean; DirAttr: Word;
-  MaskSeparator: char; PathSeparator: char): TStringList;
+  SearchSubDirs: Boolean; DirAttr: Word): TStringList;
 begin
   Result := TStringList.Create;
-  FindAllFiles(Result, SearchPath, SearchMask, SearchSubDirs, DirAttr, MaskSeparator, PathSeparator);
+  FindAllFiles(Result, SearchPath, SearchMask, SearchSubDirs, DirAttr);
 end;
 
 { TListDirectoriesSearcher }
@@ -675,20 +660,19 @@ begin
 end;
 
 function FindAllDirectories(const SearchPath : string;
-  SearchSubDirs: Boolean; PathSeparator: char): TStringList;
+  SearchSubDirs: Boolean = True): TStringList;
 begin
   Result := TStringList.Create;
-  FindAllDirectories(Result, SearchPath, SearchSubDirs, PathSeparator);
+  FindAllDirectories(Result, SearchPath, SearchSubDirs);
 end;
 
 procedure FindAllDirectories(AList: TStrings; const SearchPath: String;
-  SearchSubDirs: Boolean; PathSeparator: char);
+  SearchSubDirs: Boolean = true);
 var
   Searcher :TFileSearcher;
 begin
   Assert(AList <> nil);
   Searcher := TListDirectoriesSearcher.Create(AList);
-  Searcher.PathSeparator := PathSeparator;
   try
     Searcher.Search(SearchPath, AllFilesMask, SearchSubDirs);
   finally
@@ -739,7 +723,6 @@ constructor TFileSearcher.Create;
 begin
   inherited Create;
   FMaskSeparator := ';';
-  FPathSeparator := ';';
   FFollowSymLink := True;
   FFileAttribute := faAnyFile;
   FDirectoryAttribute := faDirectory;
@@ -833,10 +816,10 @@ begin
   SearchDirectories:=TStringList.Create;
   try
     while ASearchPath<>'' do begin
-      p:=Pos(FPathSeparator,ASearchPath);
+      p:=Pos(';',ASearchPath);
       if p<1 then
         p:=length(ASearchPath)+1;
-      Dir:=ResolveDots(LeftStr(ASearchPath,p-1));
+      Dir:=TrimFilename(LeftStr(ASearchPath,p-1));
       Delete(ASearchPath,1,p);
       if Dir='' then continue;
       Dir:=ChompPathDelim(Dir);

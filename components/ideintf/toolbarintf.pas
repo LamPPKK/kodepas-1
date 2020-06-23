@@ -18,7 +18,7 @@ interface
 uses
   Classes, SysUtils,
   // LCL
-  Controls, ComCtrls, Menus, Forms, LCLType,
+  Controls, ComCtrls, Menus, Forms,
   // IdeIntf
   IDECommands, MenuIntf, IDEImagesIntf, SrcEditorIntf;
 
@@ -29,7 +29,6 @@ type
 
   TIDEButtonCommand = class(TIDESpecialCommand)
   private
-    FTag: PtrInt;
     FToolButtonClass: TIDEToolButtonClass;
     FToolButtons: TIDEToolButtons;
   protected
@@ -47,7 +46,6 @@ type
     constructor Create(const TheName: string); override;
     destructor Destroy; override;
   public
-    property Tag: PtrInt read FTag write FTag;
     property ToolButtonClass: TIDEToolButtonClass read FToolButtonClass write FToolButtonClass;
     property ToolButtons: TIDEToolButtons read FToolButtons;
   end;
@@ -66,41 +64,35 @@ type
     property Item: TIDEButtonCommand read FItem write FItem;
   end;
 
-  {%region *** Classes for toolbuttons with arrow *** }
+  { TIDEToolButtonWithArrow }
 
-  TIDEToolButton_WithArrow_Class = class of TIDEToolButton_WithArrow;
-  TIDEToolButton_ButtonDrop_Class = class of TIDEToolButton_ButtonDrop;
-  TIDEToolButton_DropDown_Class = class of TIDEToolButton_DropDown;
-
-  { TIDEToolButton_WithArrow }    // [  ][▼], [ ▼]
-
-  TIDEToolButton_WithArrow = class(TIDEToolButton)
-  private
-    function GetSection: TIDEMenuSection;
+  TIDEToolButtonWithArrow = class(TIDEToolButton)
   protected
+    procedure AddMenuItem(ACommand: TIDEMenuCommand); virtual;
+    procedure AddMenuItems(ACommands: array of TIDEMenuCommand);
+    procedure DoOnMenuItemClick(Sender: TObject);
     procedure DoOnMenuPopup(Sender: TObject);
     procedure RefreshMenu; virtual;
-    property Section: TIDEMenuSection read GetSection;
   public
     constructor Create(AOwner: TComponent); override;
   end;
 
-  { TIDEToolButton_DropDown }    // [  ][▼]
+  { TIDEToolButton_ButtonDrop }
 
-  TIDEToolButton_DropDown = class(TIDEToolButton_WithArrow)
-  public
-    procedure DoOnAdded; override;
-  end;
-
-  { TIDEToolButton_ButtonDrop }    // [ ▼]
-
-  TIDEToolButton_ButtonDrop = class(TIDEToolButton_WithArrow)
+  TIDEToolButton_ButtonDrop = class(TIDEToolButtonWithArrow)
   protected
-    procedure PopUpAloneMenu(Sender: TObject);
+    procedure PopUpAloneMenu;
   public
     procedure DoOnAdded; override;
   end;
-  {%endregion}
+
+  { TIDEToolButton_DropDown }
+
+  TIDEToolButton_DropDown = class(TIDEToolButtonWithArrow)
+  public
+    procedure DoOnAdded; override;
+  end;
+
 
   TIDEToolButtonCategory = class
   private
@@ -179,12 +171,6 @@ function RegisterIDEButtonCommand(const aCategory: TIDEToolButtonCategory; const
   const aCommand: TIDECommand): TIDEButtonCommand;
 function RegisterIDEButtonCommand(const aCommand: TIDECommand): TIDEButtonCommand;
 
-function GetCommand_DropDown(ACommand: Word; AMenuSection: TIDEMenuSection;
-    AButtonClass: TIDEToolButton_DropDown_Class=nil): TIDECommand;
-function GetCommand_ButtonDrop(ACommand: Word; AMenuSection: TIDEMenuSection;
-    AButtonClass: TIDEToolButton_ButtonDrop_Class=nil): TIDECommand;
-
-
 implementation
 
 function RegisterIDEButtonCategory(const aName, aDescription: string): TIDEToolButtonCategory;
@@ -203,42 +189,9 @@ begin
   Result := IDEToolButtonCategories.AddButton(aCommand);
 end;
 
-{%region *** Functions and classes for toolbuttons with arrow *** }
+{ TIDEToolButtonWithArrow }
 
-function GetCommand_BtnWithArrow(ACommand: Word; AMenuSection: TIDEMenuSection;  // not in Interface
-           AButtonClass: TIDEToolButton_WithArrow_Class): TIDECommand;
-var
-  ButtonCommand: TIDEButtonCommand;
-begin
-  Result:=IDECommandList.FindIDECommand(ACommand);
-  if Result=nil then
-    Exit(nil);
-  ButtonCommand:=RegisterIDEButtonCommand(Result);
-  ButtonCommand.ToolButtonClass:=AButtonClass;
-  if AButtonClass.InheritsFrom(TIDEToolButton_ButtonDrop) then
-    ButtonCommand.ImageIndex:=AMenuSection.ImageIndex;
-  ButtonCommand.Tag:=PtrInt(AMenuSection);
-end;
-
-function GetCommand_DropDown(ACommand: Word; AMenuSection: TIDEMenuSection;
-    AButtonClass: TIDEToolButton_DropDown_Class=nil): TIDECommand;
-begin
-  if AButtonClass=nil then
-    AButtonClass:=TIDEToolButton_DropDown;
-  Result:=GetCommand_BtnWithArrow(ACommand, AMenuSection, AButtonClass);
-end;
-
-function GetCommand_ButtonDrop(ACommand: Word; AMenuSection: TIDEMenuSection;
-    AButtonClass: TIDEToolButton_ButtonDrop_Class=nil): TIDECommand;
-begin
-  if AButtonClass=nil then
-    AButtonClass:=TIDEToolButton_ButtonDrop;
-  Result:=GetCommand_BtnWithArrow(ACommand, AMenuSection, AButtonClass);
-end;
-
-{ TIDEToolButton_WithArrow }
-
-constructor TIDEToolButton_WithArrow.Create(AOwner: TComponent);
+constructor TIDEToolButtonWithArrow.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   DropdownMenu := TPopupMenu.Create(Self);
@@ -246,28 +199,74 @@ begin
   DropdownMenu.OnPopup := @DoOnMenuPopup;
 end;
 
-function TIDEToolButton_WithArrow.GetSection: TIDEMenuSection;
+procedure TIDEToolButtonWithArrow.AddMenuItem(ACommand: TIDEMenuCommand);
+var
+  Itm: TMenuItem;
 begin
-  Result:=nil;
-  if (Item<>nil) then
-    Result:=TIDEMenuSection(Item.Tag);
+  Itm := TMenuItem.Create(DropdownMenu);
+  Itm.Caption := ACommand.Caption;
+  Itm.ShortCut := ACommand.Command.AsShortCut;
+  Itm.ImageIndex := ACommand.ImageIndex;
+  Itm.Enabled := ACommand.Enabled;
+  Itm.OnClick := @DoOnMenuItemClick;
+  Itm.Tag := PtrInt(ACommand);
+  DropdownMenu.Items.Add(Itm);
 end;
 
-procedure TIDEToolButton_WithArrow.DoOnMenuPopup(Sender: TObject);
+procedure TIDEToolButtonWithArrow.AddMenuItems(ACommands: array of TIDEMenuCommand);
+var
+  Cmd: TIDEMenuCommand;
+begin
+  for Cmd in ACommands do
+    AddMenuItem(Cmd);
+end;
+
+procedure TIDEToolButtonWithArrow.DoOnMenuPopup(Sender: TObject);
 begin
   DropdownMenu.Items.Clear;
   RefreshMenu;
 end;
 
-procedure TIDEToolButton_WithArrow.RefreshMenu;
+procedure TIDEToolButtonWithArrow.RefreshMenu;
 begin
-  if Section=nil then
+  { Override this method in descendants.
+    DropdownMenu fully regenerates for every showing on OnPopup event.
+    So, RefreshMenu calling happens:
+    - On click to arrow (Style=tbsDropDown)
+    - On click to button (Style=tbsButtonDrop)
+    - On popup alone menu in static methods (on shortcuts)
+        of TIDEToolButton_ButtonDrop descendants (Style is not matter)
+    At calling time:
+    - Instance of DropdownMenu exists
+    - DropdownMenu is empty }
+end;
+
+procedure TIDEToolButtonWithArrow.DoOnMenuItemClick(Sender: TObject);
+var
+  Cmd: TIDEMenuCommand;
+begin
+  Cmd:=TIDEMenuCommand((Sender as TMenuItem).Tag);
+  Cmd.DoOnClick;  // Sender in handler should be a command but not a menu item
+end;
+
+{ TIDEToolButton_ButtonDrop }
+
+procedure TIDEToolButton_ButtonDrop.DoOnAdded;
+begin
+  Style := tbsButtonDrop;  // not in constructor
+end;
+
+procedure TIDEToolButton_ButtonDrop.PopUpAloneMenu;
+var
+  ActiveEditor: TSourceEditorInterface;
+  ScreenXY: TPoint;
+begin
+  ActiveEditor := SourceEditorManagerIntf.ActiveEditor;
+  if ActiveEditor=nil then
     Exit;
-  if Section.MenuItem=nil then
-    Section.GetRoot.CreateMenuItem;  // this forces creating menu (it is necessary
-                                     // for TPopupMenu before first popup)
-  if Section.MenuItem<>nil then
-    DropdownMenu.Items.Assign(Section.MenuItem);
+  ScreenXY := ActiveEditor.EditorControl.ClientToScreen(Point(0, 0));
+
+  DropdownMenu.PopUp(ScreenXY.X, ScreenXY.Y);
 end;
 
 { TIDEToolButton_DropDown }
@@ -277,29 +276,6 @@ begin
   Style := tbsDropDown;  // not in constructor
 end;
 
-{ TIDEToolButton_ButtonDrop }
-
-procedure TIDEToolButton_ButtonDrop.DoOnAdded;
-begin
-  Style := tbsButtonDrop;  // not in constructor
-  if (Item<>nil) then
-    if (Item.Command<>nil) then
-      Item.Command.OnExecute:=@PopUpAloneMenu;
-end;
-
-procedure TIDEToolButton_ButtonDrop.PopUpAloneMenu(Sender: TObject);
-var
-  ActiveEditor: TSourceEditorInterface;
-  ScreenXY: TPoint;
-begin
-  ActiveEditor := SourceEditorManagerIntf.ActiveEditor;
-  if ActiveEditor=nil then
-    Exit;
-  ScreenXY := ActiveEditor.EditorControl.ClientToScreen(Point(0, 0));
-  DropdownMenu.PopUp(ScreenXY.X, ScreenXY.Y);
-end;
-{%endregion}
-
 { TIDEToolButtonsEnumerator }
 
 constructor TIDEToolButtonsEnumerator.Create(AButtons: TIDEToolButtons);
@@ -308,7 +284,6 @@ begin
   FList := AButtons;
   FPosition := -1;
 end;
-
 
 function TIDEToolButtonsEnumerator.GetCurrent: TIDEToolButton;
 begin

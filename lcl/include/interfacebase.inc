@@ -1,5 +1,5 @@
 {%MainUnit ../interfacebase.pp}
-{ $Id$
+{ $Id: interfacebase.inc 58108 2018-06-04 01:03:43Z ondrej $
 ******************************************************************************
                                   TWidgetSet
 
@@ -90,8 +90,7 @@ begin
     lcModalWindow,
     lcReceivesLMClearCutCopyPasteReliably,
     lcSendsUTF8KeyPress,
-    lcEmulatedMDI,
-    lcNativeTaskDialog: Result := LCL_CAPABILITY_YES;
+    lcEmulatedMDI: Result := LCL_CAPABILITY_YES;
   else
     Result := LCL_CAPABILITY_NO;
   end;

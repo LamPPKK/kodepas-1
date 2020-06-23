@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, TAGraph, TAChartImageList, TASources,
-  TAFuncSeries, Forms, Controls, Graphics, Dialogs, ComCtrls, StdCtrls;
+  TAFuncSeries, Forms, Controls, Graphics, Dialogs, ComCtrls;
 
 type
 
@@ -17,7 +17,7 @@ type
     Chart1FuncSeries1: TFuncSeries;
     Chart1FuncSeries2: TFuncSeries;
     ChartImageList: TChartImageList;
-    Label1: TLabel;
+    ToolbarImages: TImageList;
     ListView1: TListView;
     RandomChartSource1: TRandomChartSource;
     StatusBar1: TStatusBar;
@@ -28,6 +28,7 @@ type
     procedure Chart1FuncSeries1Calculate(const AX: Double; out AY: Double);
     procedure Chart1FuncSeries2Calculate(const AX: Double; out AY: Double);
     procedure ChartImageListPopulate(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure tbAddClick(Sender: TObject);
     procedure tbQuitClick(Sender: TObject);
   end;
@@ -61,6 +62,13 @@ begin
       'Now %d images in image list. ' +
       'Among them %d series images starting at index %d',
       [Count, SeriesCount, FirstSeriesIndex]);
+end;
+
+procedure TfrmMain.FormCreate(Sender: TObject);
+begin
+  ChartImageList.Chart := nil;
+  ChartImageList.AddImages(ToolbarImages);
+  ChartImageList.Chart := Chart1;
 end;
 
 procedure TfrmMain.tbAddClick(Sender: TObject);

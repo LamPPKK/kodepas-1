@@ -28,7 +28,6 @@ uses
 
 const
   lrMaxBandsInReport       = 256; //temp fix. in future need remove this limit
-  lrSnapDistance: Integer  = 10;
 
 const
 // object flags
@@ -71,7 +70,6 @@ const
   fmtBoolean               = 4;
   
 type
-  TfrSetOfTyp = set of byte;
   TfrDrawMode = (drAll, drCalcHeight, drAfterCalcHeight, drPart);
   TfrBandType = (btReportTitle, btReportSummary,
                  btPageHeader, btPageFooter,
@@ -354,7 +352,6 @@ type
     procedure SetBounds(aLeft, aTop, aWidth, aHeight: Integer);
 
     function PointInView(aX,aY : Integer) : Boolean; virtual;
-    function FindAlignSide(const vert:boolean; const value: Integer; out found: Integer): boolean; virtual;
     procedure Invalidate;
 
     property Canvas : TCanvas read fCanvas write fCanvas;
@@ -3284,29 +3281,6 @@ begin
   Result:=((aX>Rc.Left) and (aX<Rc.Right) and (aY>Rc.Top) and (aY<Rc.Bottom));
 end;
 
-function TfrView.FindAlignSide(const vert: boolean; const value: Integer;
-  out found: Integer): boolean;
-begin
-  result := false;
-  if vert then
-  begin
-    found := y;
-    if abs(value-found)<=lrSnapDistance then exit(true);
-    found := y+dy;
-    if abs(value-found)<=lrSnapDistance then exit(true);
-    found := y+dy div 2;
-    if abs(value-found)<=lrSnapDistance then exit(true);
-  end else
-  begin
-    found := x;
-    if abs(value-found)<=lrSnapDistance then exit(true);
-    found := x+dx;
-    if abs(value-found)<=lrSnapDistance then exit(true);
-    found := x+dx div 2;
-    if abs(value-found)<=lrSnapDistance then exit(true);
-  end;
-end;
-
 procedure TfrView.Invalidate;
 begin
   if Assigned(Canvas) and (fUpdate=0) then
@@ -3730,8 +3704,6 @@ begin
 end;
 
 procedure TfrCustomMemoView.AssignFont(aCanvas: TCanvas);
-var
-  fs: Integer;
 begin
   {$IFDEF DebugLR}
   DebugLnEnter('AssignFont (%s) INIT: Self.Font.Size=%d aCanvas.Font.Size=%d',
@@ -3743,13 +3715,7 @@ begin
     aCanvas.Font.Name := 'default';
   //Font := Self.Font;
   if not IsPrinting and (ScaleY<>0) then
-  begin
-    if Self.Font.Size = 0 then
-      fs := Round((-GetFontData(Self.Font.Handle).Height * 72 / Self.Font.PixelsPerInch))
-    else
-      fs := Self.Font.Size;
-    ACanvas.Font.Height := -Round(fs * Self.Font.PixelsPerInch / 72 * ScaleY);
-  end;
+    ACanvas.Font.Height := -Round(Self.Font.Size * 96 / 72 * ScaleY);
   {$IFDEF DebugLR}
   DebugLnExit('AssignFont (%s) DONE: Self.Font.Size=%d aCanvas.Font.Size=%d',
     [self.Font.Name,Self.Font.Size,ACanvas.Font.Size]);
@@ -4022,11 +3988,7 @@ var
 begin
   WCanvas := TempBmp.Canvas;
   WCanvas.Font.Assign(Font);
-  if WCanvas.Font.Size = 0 then
-    size := Round((-GetFontData(WCanvas.Font.Handle).Height * 72 / WCanvas.Font.PixelsPerInch))
-  else
-    size := WCanvas.Font.Size;
-  WCanvas.Font.Height := -Round(size * WCanvas.Font.PixelsPerInch / 72);
+  WCanvas.Font.Height := -Round(Font.Size * 96 / 72);
   {$IFDEF DebugLR}
   DebugLnEnter('TfrMemoView.WrapMemo INI Font.PPI=%d Font.Size=%d Canvas.Font.PPI=%d WCanvas.Font.Size=%d',
     [Font.PixelsPerInch, Font.Size,Canvas.Font.PixelsPerInch,WCanvas.Font.Size]);
@@ -4174,11 +4136,7 @@ var
     // calc our reference at 100% and then scale it
     // NOTE: this should not be r((Self.Font.Size*96/72 + LineSpacing)*ScaleY)
     //       as our base at 100% is rounded.
-    if Self.Font.Size = 0 then
-      i := Round((-GetFontData(Self.Font.Handle).Height * 72 / Self.Font.PixelsPerInch))
-    else
-      i := Self.Font.Size;
-    thf := Round(i*96/72 + LineSpacing)* ScaleY;
+    thf := Round(Self.Font.Size*96/72 + LineSpacing)* ScaleY;
     // Corrects font height, that's the total line height minus the scaled linespacing
     Canvas.Font.Height := -Round(thf - LineSpc);
     {$IFDEF DebugLR}
@@ -4253,11 +4211,7 @@ var
           x:=x+dx-VHeight;
       end;
       curx := x + InternalGapX;
-      if Canvas.Font.Height = 0 then
-        i := GetFontData(Canvas.Font.Reference.Handle).Height
-      else
-        i := Canvas.Font.Height;
-      th := -i + Round(LineSpacing * ScaleY);
+      th := -Canvas.Font.Height + Round(LineSpacing * ScaleY);
       CurStrNo := 0;
       for i := 0 to Memo1.Count - 1 do
         OutLine(Memo1[i]);
@@ -4338,11 +4292,7 @@ begin
   {$ENDIF}
   CalcRect := Rect(0, 0, dx, dy);
   Canvas.Font.Assign(Font);
-  if Font.Size = 0 then
-    n := Round((-GetFontData(Font.Handle).Height * 72 / Font.PixelsPerInch))
-  else
-    n := Font.Size;
-  Canvas.Font.Height := -Round(n * 96 / 72);
+  Canvas.Font.Height := -Round(Font.Size * 96 / 72);
   {$IFDEF DebugLR}
   DebugLn('Canvas.Font.PPI=%d Canvas.Font.Size=%d',[Canvas.Font.PixelsPerInch,Canvas.Font.Size]);
   {$ENDIF}
@@ -10168,7 +10118,7 @@ begin
           begin
             Result := TimeToStr(v);
             if Result='' then
-              Result := FormatDateTime('hh:nn:ss', v, [fdoInterval]);
+              Result := FormatDateTime('hh:nn:ss', v);
           end
           else
             Result := v;
@@ -10194,14 +10144,14 @@ begin
           Result := ''  // date is null
         else
         if f2 = 4 then
-          Result := SysToUTF8(FormatDateTime(AFormatStr, v, [fdoInterval]))
+          Result := SysToUTF8(FormatDateTime(AFormatStr, v))
         else
-          Result := FormatDateTime(frDateFormats[f2], v, [fdoInterval]);
+          Result := FormatDateTime(frDateFormats[f2], v);
       fmtTime:
          if f2 = 4 then
-           Result := FormatDateTime(AFormatStr, v, [fdoInterval])
+           Result := FormatDateTime(AFormatStr, v)
          else
-           Result := FormatDateTime(frTimeFormats[f2], v, [fdoInterval]);
+           Result := FormatDateTime(frTimeFormats[f2], v);
       fmtBoolean :
          begin
            if f2 = 4 then
@@ -12621,7 +12571,7 @@ begin
     0: dk := dkAvg;                                           //Add('AVG');               {0}
     1: dk := dkCount;                                         //Add('COUNT');             {1}
     2: val := DayOf(frParser.Calc(p1));                       //Add('DAYOF');             {2}
-    3: val := FormatDateTime(frParser.Calc(p1), frParser.Calc(p2), [fdoInterval]); //Add('FORMATDATETIME');    {3}
+    3: val := FormatDateTime(frParser.Calc(p1), frParser.Calc(p2)); //Add('FORMATDATETIME');    {3}
     4: val := FormatFloat(frParser.Calc(p1), lrVarToFloatDef(frParser.Calc(p2))); //Add('FORMATFLOAT');       {4}
     5: val := FormatMaskText(frParser.Calc(p1) + ';0; ', frParser.Calc(p2));  //Add('FORMATTEXT');        {5}
     6:begin                                                   //Add('INPUT');             {6}

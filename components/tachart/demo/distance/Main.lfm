@@ -44,24 +44,23 @@ object Form1: TForm1
       end
       object Panel1: TPanel
         Left = 4
-        Height = 99
-        Top = 400
+        Height = 92
+        Top = 407
         Width = 797
         Align = alBottom
-        AutoSize = True
         BorderSpacing.Left = 4
         BorderSpacing.Top = 8
         BorderSpacing.Right = 8
         BorderSpacing.Bottom = 8
         BevelOuter = bvNone
-        ClientHeight = 99
+        ClientHeight = 92
         ClientWidth = 797
         TabOrder = 2
         object rgSnapMode: TRadioGroup
           AnchorSideLeft.Control = Panel1
           AnchorSideTop.Control = Panel1
           Left = 0
-          Height = 99
+          Height = 89
           Top = 0
           Width = 103
           AutoFill = True
@@ -69,14 +68,13 @@ object Form1: TForm1
           Caption = 'Snapping mode'
           ChildSizing.LeftRightSpacing = 6
           ChildSizing.TopBottomSpacing = 6
-          ChildSizing.VerticalSpacing = 5
           ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
           ChildSizing.EnlargeVertical = crsHomogenousChildResize
           ChildSizing.ShrinkHorizontal = crsScaleChilds
           ChildSizing.ShrinkVertical = crsScaleChilds
           ChildSizing.Layout = cclLeftToRightThenTopToBottom
           ChildSizing.ControlsPerLine = 1
-          ClientHeight = 79
+          ClientHeight = 69
           ClientWidth = 99
           ItemIndex = 0
           Items.Strings = (
@@ -92,7 +90,7 @@ object Form1: TForm1
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = Panel1
           Left = 217
-          Height = 99
+          Height = 89
           Top = 0
           Width = 98
           AutoFill = True
@@ -101,14 +99,13 @@ object Form1: TForm1
           Caption = 'Drawing mode'
           ChildSizing.LeftRightSpacing = 6
           ChildSizing.TopBottomSpacing = 6
-          ChildSizing.VerticalSpacing = 5
           ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
           ChildSizing.EnlargeVertical = crsHomogenousChildResize
           ChildSizing.ShrinkHorizontal = crsScaleChilds
           ChildSizing.ShrinkVertical = crsScaleChilds
           ChildSizing.Layout = cclLeftToRightThenTopToBottom
           ChildSizing.ControlsPerLine = 1
-          ClientHeight = 79
+          ClientHeight = 69
           ClientWidth = 94
           ItemIndex = 1
           Items.Strings = (
@@ -125,8 +122,9 @@ object Form1: TForm1
           AnchorSideTop.Side = asrBottom
           Left = 439
           Height = 19
-          Top = 23
+          Top = 27
           Width = 82
+          BorderSpacing.Top = 4
           Caption = 'Rotate label'
           Checked = True
           OnClick = cbRotateLabelClick
@@ -237,8 +235,9 @@ object Form1: TForm1
           AnchorSideTop.Side = asrBottom
           Left = 439
           Height = 19
-          Top = 61
+          Top = 73
           Width = 114
+          BorderSpacing.Top = 4
           Caption = 'Hide at mouse up'
           OnClick = cbHideClick
           TabOrder = 5
@@ -248,7 +247,7 @@ object Form1: TForm1
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = Panel1
           Left = 111
-          Height = 99
+          Height = 89
           Top = 0
           Width = 98
           AutoFill = True
@@ -257,14 +256,13 @@ object Form1: TForm1
           Caption = 'Measure mode'
           ChildSizing.LeftRightSpacing = 6
           ChildSizing.TopBottomSpacing = 6
-          ChildSizing.VerticalSpacing = 5
           ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
           ChildSizing.EnlargeVertical = crsHomogenousChildResize
           ChildSizing.ShrinkHorizontal = crsScaleChilds
           ChildSizing.ShrinkVertical = crsScaleChilds
           ChildSizing.Layout = cclLeftToRightThenTopToBottom
           ChildSizing.ControlsPerLine = 1
-          ClientHeight = 79
+          ClientHeight = 69
           ClientWidth = 94
           ItemIndex = 0
           Items.Strings = (
@@ -282,8 +280,8 @@ object Form1: TForm1
           AnchorSideBottom.Control = cbHide
           AnchorSideBottom.Side = asrBottom
           Left = 561
-          Height = 48
-          Top = 32
+          Height = 42
+          Top = 50
           Width = 128
           Anchors = [akTop, akLeft, akRight, akBottom]
           Lines.Strings = (
@@ -298,7 +296,7 @@ object Form1: TForm1
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = Panel1
           Left = 323
-          Height = 99
+          Height = 89
           Top = 0
           Width = 108
           AutoFill = True
@@ -307,14 +305,13 @@ object Form1: TForm1
           Caption = 'Data point mode'
           ChildSizing.LeftRightSpacing = 6
           ChildSizing.TopBottomSpacing = 6
-          ChildSizing.VerticalSpacing = 5
           ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
           ChildSizing.EnlargeVertical = crsHomogenousChildResize
           ChildSizing.ShrinkHorizontal = crsScaleChilds
           ChildSizing.ShrinkVertical = crsScaleChilds
           ChildSizing.Layout = cclLeftToRightThenTopToBottom
           ChildSizing.ControlsPerLine = 1
-          ClientHeight = 79
+          ClientHeight = 69
           ClientWidth = 104
           ItemIndex = 0
           Items.Strings = (
@@ -331,28 +328,17 @@ object Form1: TForm1
           AnchorSideTop.Side = asrBottom
           Left = 439
           Height = 19
-          Top = 42
+          Top = 50
           Width = 67
+          BorderSpacing.Top = 4
           Caption = 'Flip label'
           OnClick = cbFlipLabelClick
           TabOrder = 9
         end
-        object cbClipping: TCheckBox
-          AnchorSideLeft.Control = cbShowLabel
-          AnchorSideTop.Control = cbHide
-          AnchorSideTop.Side = asrBottom
-          Left = 439
-          Height = 19
-          Top = 80
-          Width = 65
-          Caption = 'Clipping'
-          OnChange = cbClippingChange
-          TabOrder = 10
-        end
       end
       object Chart1: TChart
         Left = 0
-        Height = 392
+        Height = 399
         Top = 0
         Width = 809
         AutoFocus = True

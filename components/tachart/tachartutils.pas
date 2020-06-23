@@ -43,7 +43,6 @@ const
 type
   EChartError = class(Exception);
   EChartIntervalError = class(EChartError);
-  EBroadcasterError = class(EChartError);
   EListenerError = class(EChartError);
   EDrawDataError = class(EChartError);
 
@@ -101,9 +100,6 @@ type
     smsLabelPercentTotal, { Cars 12 % of 1234 }
     smsXValue);        { 21/6/1996 }
 
-  TIntervalOption = (ioOpenStart, ioOpenEnd);
-  TIntervalOptions = set of TIntervalOption;
-
   TDoubleInterval = record
     FStart, FEnd: Double;
   end;
@@ -130,18 +126,19 @@ type
     procedure Changed;
     function GetInterval(AIndex: Integer): TDoubleInterval;
     function GetIntervalCount: Integer;
+    procedure SetEpsilon(AValue: Double);
     procedure SetOnChange(AValue: TNotifyEvent);
   public
     procedure Assign(ASource: TIntervalList);
     constructor Create;
   public
     procedure AddPoint(APoint: Double); inline;
-    procedure AddRange(AStart, AEnd: Double; ALimits: TIntervalOptions = []);
+    procedure AddRange(AStart, AEnd: Double);
     procedure Clear;
     function Intersect(
       var ALeft, ARight: Double; var AHint: Integer): Boolean;
   public
-    property Epsilon: Double read FEpsilon write FEpsilon;
+    property Epsilon: Double read FEpsilon write SetEpsilon;
     property Interval[AIndex: Integer]: TDoubleInterval read GetInterval;
     property IntervalCount: Integer read GetIntervalCount;
     property OnChange: TNotifyEvent read FOnChange write SetOnChange;
@@ -326,12 +323,7 @@ const
     ((cotNone, cotSecond), (cotFirst, cotBoth));
   ORIENTATION_UNITS_PER_DEG = 10;
 
-var
-  DefSeparatorSettings: TFormatSettings;
-
 function BoundsSize(ALeft, ATop: Integer; ASize: TSize): TRect; inline;
-
-function ChopString(const AString: String; const AMaxLen: Integer): String;
 
 function Deg16ToRad(ADeg16: Integer): Double; inline;
 function DoubleInterval(AStart, AEnd: Double): TDoubleInterval; inline;
@@ -349,7 +341,6 @@ function InterpolateRGB(AColor1, AColor2: Integer; ACoeff: Double): Integer;
 function IntToColorHex(AColor: Integer): String; inline;
 function IsEquivalent(const A1, A2: Double): Boolean; inline;
 function IsNan(const APoint: TDoublePoint): Boolean; overload; inline;
-function NameOrClassName(AComponent: TComponent): String; inline;
 function NumberOr(ANum: Double; ADefault: Double = 0.0): Double; inline;
 
 function OrientToRad(AOrient: Integer): Double; inline;
@@ -394,14 +385,6 @@ uses
 function BoundsSize(ALeft, ATop: Integer; ASize: TSize): TRect; inline;
 begin
   Result := Bounds(ALeft, ATop, ASize.cx, ASize.cy);
-end;
-
-function ChopString(const AString: String; const AMaxLen: Integer): String;
-begin
-  if (Length(AString) > AMaxlen) and (AMaxLen > 3) then
-    Result := copy(AString, 1, AMaxLen - 3) + '...'
-  else
-    Result := AString;
 end;
 
 function Deg16ToRad(ADeg16: Integer): Double;
@@ -495,33 +478,13 @@ begin
 end;
 
 function IsEquivalent(const A1, A2: Double): Boolean;
-{$IF SizeOf(Double) = SizeOf(QWord)}
-var
-  Q1 : QWord absolute A1;
-  Q2 : QWord absolute A2;
 begin
-  Result := Q1 = Q2;
+  Result := CompareDWord(A1, A2, SizeOf(A1) div SizeOf(DWord)) = 0;
 end;
-{$ELSE}
-begin
-  Result := CompareByte(A1, A2, SizeOf(A1)) = 0;
-end;
-{$ENDIF}
 
 function IsNan(const APoint: TDoublePoint): Boolean;
 begin
   Result := IsNan(APoint.X) or IsNan(APoint.Y);
-end;
-
-function NameOrClassName(AComponent: TComponent): String;
-begin
-  if AComponent = nil then
-    Result := '<nil>'
-  else
-  if AComponent.Name = '' then
-    Result := AComponent.ClassName
-  else
-    Result := AComponent.Name;
 end;
 
 function NumberOr(ANum: Double; ADefault: Double): Double;
@@ -559,6 +522,9 @@ begin
     SetOrdProp(AObject, p, p^.Default);
   end;
 end;
+
+var
+  DefSeparatorSettings: TFormatSettings;
 
 function Split(AString: String; ADest: TStrings; ADelimiter: Char): TStrings;
 begin
@@ -715,33 +681,22 @@ begin
   AddRange(APoint, APoint);
 end;
 
-procedure TIntervalList.AddRange(AStart, AEnd: Double; ALimits: TIntervalOptions = []);
+procedure TIntervalList.AddRange(AStart, AEnd: Double);
 var
   i: Integer;
   j: Integer;
   k: Integer;
 begin
-  if not (ioOpenStart in ALimits) then AStart -= FEpsilon;
-  if not (ioOpenEnd in ALimits) then AEnd += FEpsilon;
-  if AStart > AEnd then exit;
-
-  // In most cases we will be adding ranges in the ascending order,
-  // so the code here is optimized for this case
-
-  // Find index of the first interval, having its FEnd >= AStart
-  i := High(FIntervals) + 1;
-  while (i > 0) and (FIntervals[i-1].FEnd >= AStart) do
-    i -= 1;
+  i := 0;
+  while (i <= High(FIntervals)) and (FIntervals[i].FEnd < AStart) do
+    i += 1;
   if i <= High(FIntervals) then
     AStart := Min(AStart, FIntervals[i].FStart);
-
-  // Find index of the last interval, having its FStart <= AEnd
   j := High(FIntervals);
   while (j >= 0) and (FIntervals[j].FStart > AEnd) do
     j -= 1;
   if j >= 0 then
     AEnd := Max(AEnd, FIntervals[j].FEnd);
-
   if i < j then begin
     for k := j + 1 to High(FIntervals) do
       FIntervals[i + k - j] := FIntervals[j];
@@ -791,24 +746,40 @@ end;
 
 function TIntervalList.Intersect(
   var ALeft, ARight: Double; var AHint: Integer): Boolean;
+var
+  fi, li: Integer;
 begin
   Result := false;
-  if (Length(FIntervals) = 0) or (ALeft > ARight) then exit;
+  if Length(FIntervals) = 0 then exit;
 
-  AHint := EnsureRange(AHint, 0, High(FIntervals));
-  while (AHint > 0) and (FIntervals[AHint].FStart > ALeft) do
+  AHint := Min(High(FIntervals), AHint);
+  while (AHint > 0) and (FIntervals[AHint].FStart > ARight) do
     Dec(AHint);
 
   while
-    (AHint <= High(FIntervals)) and (FIntervals[AHint].FStart < ARight)
+    (AHint <= High(FIntervals)) and (FIntervals[AHint].FStart <= ARight)
   do begin
-    if FIntervals[AHint].FEnd > ALeft then begin
-      ALeft := FIntervals[AHint].FStart;
-      ARight := FIntervals[AHint].FEnd;
-      exit(true);
+    if FIntervals[AHint].FEnd >= ALeft then begin
+      if not Result then fi := AHint;
+      li := AHint;
+      Result := true;
     end;
     Inc(AHint);
   end;
+
+  if Result then begin
+    ALeft := FIntervals[fi].FStart - Epsilon;
+    ARight := FIntervals[li].FEnd + Epsilon;
+  end;
+end;
+
+procedure TIntervalList.SetEpsilon(AValue: Double);
+begin
+  if FEpsilon = AValue then exit;
+  if AValue <= 0 then
+    raise EChartIntervalError.Create('Epsilon <= 0');
+  FEpsilon := AValue;
+  Changed;
 end;
 
 procedure TIntervalList.SetOnChange(AValue: TNotifyEvent);
@@ -854,47 +825,11 @@ end;
 
 procedure TBroadcaster.Broadcast(ASender: TObject);
 var
-  ListCopy: array of Pointer;
-  Exceptions: TStringList;
-  Aborted: Boolean;
-  i: Integer;
+  p: Pointer;
 begin
   if Locked then exit;
-  if Count = 0 then exit;
-
-  // Listeners can remove themselves when being notified, which
-  // changes the list - so we must use a copy of the list when
-  // notifying, to avoid omissions in notifying
-  SetLength(ListCopy, Count);
-  for i := 0 to High(ListCopy) do
-    ListCopy[i] := List^[i];
-
-  Exceptions := nil;
-  Aborted := False;
-  try
-    for i := 0 to High(ListCopy) do
-    try
-      TListener(ListCopy[i]).Notify(ASender);
-    except
-      on E: Exception do
-        if E is EAbort then
-          Aborted := true
-        else begin
-          if not Assigned(Exceptions) then begin
-            Exceptions := TStringList.Create;
-            Exceptions.Duplicates := dupIgnore;
-            Exceptions.Sorted := true; // required by dupIgnore
-          end;
-          Exceptions.Add(E.Message);
-        end;
-    end;
-    if Assigned(Exceptions) then
-      raise EBroadcasterError.Create(Trim(Exceptions.Text));
-    if Aborted then
-      Abort;
-  finally
-    Exceptions.Free;
-  end;
+  for p in Self do
+    TListener(p).Notify(ASender);
 end;
 
 destructor TBroadcaster.Destroy;

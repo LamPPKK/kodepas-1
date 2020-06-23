@@ -209,7 +209,6 @@ type
     FTree: TAVLTree; // sorted tree of TLazPackage
     FUpdateLock: integer;
     FLockedChangeStamp: int64;
-    FHasCompiledFpmakePackages: Boolean;
     FVerbosity: TPkgVerbosityFlags;
     FFindFileCache: TLazPackageGraphFileCache;
     function CreateDefaultPackage: TLazPackage;
@@ -406,7 +405,7 @@ type
                             ShowAbort: boolean;
                             BuildItem: TLazPkgGraphBuildItem = nil): TModalResult;
     function CompilePackageUsingFPMake(APackageName: string; Flags: TPkgCompileFlags;
-                                       ShowAbort: boolean;
+                                       {%H-}ShowAbort: boolean;
                                        BuildItem: TLazPkgGraphBuildItem = nil): TModalResult;
     function ConvertPackageRSTFiles(APackage: TLazPackage): TModalResult;
     function WriteMakefileCompiled(APackage: TLazPackage;
@@ -947,20 +946,20 @@ begin
   try
     AFilename:=PkgLink.GetEffectiveFilename;
     if pvPkgSearch in Verbosity then
-      debugln(['Info: (kode) Open dependency: trying "'+Dependency.PackageName+'" in '+dbgs(PkgLink.Origin)+' links: "'+PkgLink.GetEffectiveFilename+'" ...']);
+      debugln(['Info: (lazarus) Open dependency: trying "'+Dependency.PackageName+'" in '+dbgs(PkgLink.Origin)+' links: "'+PkgLink.GetEffectiveFilename+'" ...']);
     //debugln(['TLazPackageGraph.OpenDependencyWithPackageLink AFilename=',AFilename,' ',PkgLink.Origin=ploGlobal]);
     if not FileExistsUTF8(AFilename) then begin
-      DebugLn('Note: (kode) Invalid Package Link: file "'+AFilename+'" does not exist.');
+      DebugLn('Note: (lazarus) Invalid Package Link: file "'+AFilename+'" does not exist.');
       PkgLink.LPKFileDateValid:=false;
       exit(mrCancel);
     end;
     if DirectoryExistsUTF8(AFilename) then begin
-      DebugLn('Note: (kode) Invalid Package Link: file "'+AFilename+'" is a directory.');
+      DebugLn('Note: (lazarus) Invalid Package Link: file "'+AFilename+'" is a directory.');
       PkgLink.LPKFileDateValid:=false;
       exit(mrCancel);
     end;
     if pvPkgSearch in Verbosity then
-      debugln(['Info: (kode) Open dependency: package file found: "'+AFilename+'". Parsing lpk ...']);
+      debugln(['Info: (lazarus) Open dependency: package file found: "'+AFilename+'". Parsing lpk ...']);
     try
       PkgLink.LPKFileDate:=FileDateToDateTimeDef(FileAgeUTF8(AFilename));
       PkgLink.LPKFileDateValid:=true;
@@ -975,21 +974,21 @@ begin
       NewPackage.LPKSource:=Code;
     except
       on E: Exception do begin
-        DebugLn('Error: (kode) unable to read file "'+AFilename+'" ',E.Message);
+        DebugLn('Error: (lazarus) unable to read file "'+AFilename+'" ',E.Message);
         exit(mrCancel);
       end;
     end;
     if not NewPackage.IsMakingSense then begin
-      DebugLn('Error: (kode) invalid package file "'+AFilename+'".');
+      DebugLn('Error: (lazarus) invalid package file "'+AFilename+'".');
       exit(mrCancel);
     end;
     if SysUtils.CompareText(PkgLink.Name,NewPackage.Name)<>0 then begin
-      DebugLn('Error: (kode) package file "'+AFilename+'" and name "'+NewPackage.Name+'" mismatch.');
+      DebugLn('Error: (lazarus) package file "'+AFilename+'" and name "'+NewPackage.Name+'" mismatch.');
       exit(mrCancel);
     end;
     // ok
     if pvPkgSearch in Verbosity then
-      debugln('Info: (kode) Open dependency ['+Dependency.PackageName+']: Success: "'+NewPackage.Filename+'"');
+      debugln('Info: (lazarus) Open dependency ['+Dependency.PackageName+']: Success: "'+NewPackage.Filename+'"');
     Result:=mrOk;
     Dependency.RequiredPackage:=NewPackage;
     Dependency.LoadPackageResult:=lprSuccess;
@@ -1021,7 +1020,7 @@ begin
   if Assigned(IDEMessagesWindow) then
     IDEMessagesWindow.AddCustomMessage(TheUrgency,Msg,Filename)
   else
-    DebugLn([MessageLineUrgencyNames[TheUrgency],': (kode) ',Msg,' Filename="',Filename,'"']);
+    DebugLn([MessageLineUrgencyNames[TheUrgency],': (lazarus) ',Msg,' Filename="',Filename,'"']);
 end;
 
 function TLazPackageGraph.OutputDirectoryIsWritable(APackage: TLazPackage;
@@ -1041,7 +1040,7 @@ begin
                  [Directory, LineEnding, APackage.IDAsString]),
           mtError,[mbCancel]);
       end;
-      debugln(['Error: (kode) unable to create package output directory "',Directory,'" of package "',APackage.IDAsString,'"']);
+      debugln(['Error: (lazarus) unable to create package output directory "',Directory,'" of package "',APackage.IDAsString,'"']);
       exit;
     end;
     Result:=true;
@@ -1162,7 +1161,6 @@ begin
   if FUpdateLock=1 then begin
     fChanged:=Change;
     FLockedChangeStamp:=0;
-    FHasCompiledFpmakePackages := False;
     if Assigned(OnBeginUpdate) then OnBeginUpdate(Self);
   end else
     fChanged:=fChanged or Change;
@@ -1326,11 +1324,11 @@ begin
   if PkgID.StringToID(TheID) then begin
     APackage:=FindPackageWithIDMask(PkgID);
     if APackage=nil then begin
-      DebugLn('Warning: (kode) unknown macro package id "',TheID,'"');
+      DebugLn('Warning: (lazarus) unknown macro package id "',TheID,'"');
     end;
   end else begin
     APackage:=nil;
-    DebugLn('Warning: (kode) invalid macro package id "',TheID,'"');
+    DebugLn('Warning: (lazarus) invalid macro package id "',TheID,'"');
   end;
   PkgID.Free;
   Result:=APackage<>nil;
@@ -1522,7 +1520,7 @@ function TLazPackageGraph.FindDependencyRecursively(
         Result:=CurDependency;
         exit;
       end;
-      if (CurDependency.DependencyType=pdtLazarus) and (CurDependency.LoadPackageResult=lprSuccess) then begin
+      if CurDependency.LoadPackageResult=lprSuccess then begin
         RequiredPackage:=CurDependency.RequiredPackage;
         if (not (lpfVisited in RequiredPackage.Flags)) then begin
           RequiredPackage.Flags:=RequiredPackage.Flags+[lpfVisited];
@@ -1583,7 +1581,7 @@ function TLazPackageGraph.FindRuntimePkgOnlyRecursively(
     RequiredPackage: TLazPackage;
   begin
     while CurDependency<>nil do begin
-      if (CurDependency.LoadPackageResult=lprSuccess) and (CurDependency.DependencyType=pdtLazarus) then begin
+      if CurDependency.LoadPackageResult=lprSuccess then begin
         RequiredPackage:=CurDependency.RequiredPackage;
         if (not (lpfVisited in RequiredPackage.Flags)) then begin
           if RequiredPackage.PackageType=lptRunTimeOnly then
@@ -1967,7 +1965,7 @@ begin
   // append message
   if Msg<>'' then
     ErrorMsg:=ErrorMsg+LineEnding+LineEnding+Msg;
-  debugln(['Error: (kode) register failed: ',dbgstr(ErrorMsg)]);
+  debugln(['Error: (lazarus) register failed: ',dbgstr(ErrorMsg)]);
 
   if AbortRegistration or QuietRegistration then exit;
 
@@ -2007,7 +2005,7 @@ begin
   if MsgResult<>mrOk then begin
     Data.ErrorMessage:='SavePackageCompiledState failed';
     PkgCompileTool.ErrorMessage:=Data.ErrorMessage;
-    DebugLn(['Error: (kode) failed to write package .compiled file: ',APackage.IDAsString,' File=',aPackage.GetStateFilename]);
+    DebugLn(['Error: (lazarus) failed to write package .compiled file: ',APackage.IDAsString,' File=',aPackage.GetStateFilename]);
     exit;
   end;
   Data.ErrorMessage:=PkgCompileTool.ErrorMessage;
@@ -2020,7 +2018,7 @@ begin
     if MsgResult<>mrOk then begin
       Data.ErrorMessage:='ConvertPackageRSTFiles failed';
       PkgCompileTool.ErrorMessage:=Data.ErrorMessage;
-      DebugLn('Error: (kode) failed to update .po files: ',APackage.IDAsString);
+      DebugLn('Error: (lazarus) failed to update .po files: ',APackage.IDAsString);
       IDEMessagesWindow.AddCustomMessage(mluError,
         Format(lisUpdatingPoFilesFailedForPackage, [APackage.IDAsString]));
       exit;
@@ -2165,7 +2163,7 @@ var
   i: Integer;
 begin
   if pvPkgSearch in Verbosity then
-    debugln(['Info: (kode) replacing package "'+OldPackage.Filename+'" with "'+NewPackage.Filename+'"']);
+    debugln(['Info: (lazarus) replacing package "'+OldPackage.Filename+'" with "'+NewPackage.Filename+'"']);
   BeginUpdate(true);
   // save flags
   OldInstalled:=OldPackage.Installed;
@@ -2383,10 +2381,12 @@ end;
 
 procedure TLazPackageGraph.MarkNeededPackages;
 var
-  StackPtr, i: Integer;
-  Pkg, RequiredPackage: TLazPackage;
-  Dependency: TPkgDependency;
+  i: Integer;
+  Pkg: TLazPackage;
   PkgStack: PLazPackage;
+  StackPtr: Integer;
+  RequiredPackage: TLazPackage;
+  Dependency: TPkgDependency;
 begin
   if Count=0 then exit;
   // create stack
@@ -2435,9 +2435,7 @@ function TLazPackageGraph.FindBrokenDependencyPath(APackage: TLazPackage;
     RequiredPackage: TLazPackage;
   begin
     while Dependency<>nil do begin
-      if Dependency.DependencyType=pdtFPMake then begin
-        // FPMake dependency have no RequiredPackage -> ignore
-      end else if Dependency.LoadPackageResult=lprSuccess then begin
+      if Dependency.LoadPackageResult=lprSuccess then begin
         // dependency ok
         if Dependency.DependencyType=pdtLazarus then begin
           RequiredPackage:=Dependency.RequiredPackage;
@@ -2484,14 +2482,14 @@ function TLazPackageGraph.FindAllBrokenDependencies(APackage: TLazPackage;
     RequiredPackage: TLazPackage;
   begin
     while Dependency<>nil do begin
-      if Dependency.DependencyType=pdtFPMake then begin
-        // FPMake dependency have no RequiredPackage -> ignore
-      end else if Dependency.LoadPackageResult=lprSuccess then begin
+      if Dependency.LoadPackageResult=lprSuccess then begin
         // dependency ok
-        RequiredPackage:=Dependency.RequiredPackage;
-        if not (lpfVisited in RequiredPackage.Flags) then begin
-          RequiredPackage.Flags:=RequiredPackage.Flags+[lpfVisited];
-          FindBroken(RequiredPackage.FirstRequiredDependency,DepList);
+        if Dependency.DependencyType=pdtLazarus then begin
+          RequiredPackage:=Dependency.RequiredPackage;
+          if not (lpfVisited in RequiredPackage.Flags) then begin
+            RequiredPackage.Flags:=RequiredPackage.Flags+[lpfVisited];
+            FindBroken(RequiredPackage.FirstRequiredDependency,DepList);
+          end;
         end;
       end else begin
         // broken dependency found
@@ -2582,14 +2580,14 @@ function TLazPackageGraph.FindPath(StartPackage: TLazPackage;
       if SysUtils.CompareText(Dependency.PackageName,EndPackageName)=0 then begin
         // path found
         PathList:=TFPList.Create;
-        if (Dependency.DependencyType=pdtLazarus) and (Dependency.LoadPackageResult=lprSuccess) then begin
+        if Dependency.LoadPackageResult=lprSuccess then begin
           PathList.Add(Dependency.RequiredPackage);
         end else begin
           PathList.Add(Dependency);
         end;
         exit;
       end;
-      if (Dependency.DependencyType=pdtLazarus) and (Dependency.LoadPackageResult=lprSuccess) then begin
+      if Dependency.LoadPackageResult=lprSuccess then begin
         // dependency ok
         RequiredPackage:=Dependency.RequiredPackage;
         if not (lpfVisited in RequiredPackage.Flags) then begin
@@ -2635,7 +2633,6 @@ var
     if (Pkg=nil) then exit;
     Pkg.Flags:=Pkg.Flags+[lpfVisited];
     if (Pkg.FirstRequiredDependency=nil)
-    or (Pkg.GetActiveBuildMethod=bmFPMake) // Packages compiled by FPMake almost always change units in the default fpc-search path. Checking of changed dependencies should be done using the mechanisms of fppkg.
     or Pkg.IsVirtual or (Pkg.AutoUpdate<>pupAsNeeded) then exit;
     // this package is compiled automatically and has dependencies
     OutputDir:=ChompPathDelim(Pkg.GetOutputDirectory);
@@ -2751,14 +2748,15 @@ function TLazPackageGraph.FindNotInstalledRegisterUnits(
   begin
     while Dependency<>nil do begin
       if (Dependency.DependencyType=pdtLazarus)
-          and (Dependency.LoadPackageResult=lprSuccess) then begin
+          and (Dependency.LoadPackageResult=lprSuccess) then
+      begin
         // dependency ok
         RequiredPackage:=Dependency.RequiredPackage;
         if not (lpfVisited in RequiredPackage.Flags) then begin
           if (RequiredPackage.Installed=pitNope)
-              and (RequiredPackage.PackageType in [lptDesignTime,lptRunAndDesignTime])
-          then begin
-            // package not installed and can be installed
+              and (RequiredPackage.PackageType in [lptDesignTime,lptRunAndDesignTime]) then
+          begin
+            // designtime package not installed
             for i:=0 to RequiredPackage.FileCount-1 do begin
               APkgFile:=RequiredPackage.Files[i];
               if APkgFile.HasRegisterProc then begin
@@ -3262,7 +3260,7 @@ begin
     except
       on E: EXMLReadError do begin
         // invalid XML
-        debugln(['Warning: (kode) package "',APackage.IDAsString,'": syntax error in ',StateFile,' => need clean build.']);
+        debugln(['Warning: (lazarus) package "',APackage.IDAsString,'": syntax error in ',StateFile,' => need clean build.']);
         stats^.Complete:=false;
         stats^.CompilerFilename:='';
         stats^.StateFileName:=StateFile;
@@ -3351,8 +3349,8 @@ begin
         continue;
       end;
       if FileAgeCached(Filename)>StateFileAge then begin
-        if ConsoleVerbosity>=0 then
-          debugln(['Hint: (kode) global unit "',Filename,'" is newer than state file of package ',ID]);
+        if ConsoleVerbosity>=-1 then
+          debugln(['Hint: (lazarus) global unit "',Filename,'" is newer than state file of package ',ID]);
         Note+='Global unit "'+Filename+'" is newer than state file of '+ID+':'+LineEnding
           +'  Unit age='+FileAgeToStr(FileAgeCached(Filename))+LineEnding
           +'  State file age='+FileAgeToStr(StateFileAge)+LineEnding;
@@ -3417,12 +3415,12 @@ begin
           Result:=mrYes;
           o:=RequiredPackage.GetOutputDirType;
           if not RequiredPackage.LastCompile[o].StateFileLoaded then begin
-            DebugLn('Hint: (kode) Missing state file for ',RequiredPackage.IDAsString,': ',RequiredPackage.GetStateFilename);
+            DebugLn('Hint: (lazarus) Missing state file for ',RequiredPackage.IDAsString,': ',RequiredPackage.GetStateFilename);
             Note+='Package '+RequiredPackage.IDAsString+' has no state file "'+RequiredPackage.GetStateFilename+'".'+LineEnding;
             exit;
           end;
           if StateFileAge<RequiredPackage.LastCompile[o].StateFileDate then begin
-            DebugLn('Hint: (kode) State file of ',RequiredPackage.IDAsString,' is newer than state file of ',GetOwnerID);
+            DebugLn('Hint: (lazarus) State file of ',RequiredPackage.IDAsString,' is newer than state file of ',GetOwnerID);
             Note+='State file of '+RequiredPackage.IDAsString+' is newer than state file of '+GetOwnerID+LineEnding
               +'  '+RequiredPackage.IDAsString+'='+FileAgeToStr(RequiredPackage.LastCompile[o].StateFileDate)+LineEnding
               +'  '+GetOwnerID+'='+FileAgeToStr(StateFileAge)+LineEnding;
@@ -3437,7 +3435,7 @@ begin
             if FilenameIsAbsolute(OtherStateFile)
             and FileExistsCached(OtherStateFile)
             and (FileAgeCached(OtherStateFile)>StateFileAge) then begin
-              DebugLn('Hint: (kode) State file of ',RequiredPackage.IDAsString,' "',OtherStateFile,'" (',
+              DebugLn('Hint: (lazarus) State file of ',RequiredPackage.IDAsString,' "',OtherStateFile,'" (',
                   FileAgeToStr(FileAgeCached(OtherStateFile)),')'
                 ,' is newer than state file ',GetOwnerID,'(',FileAgeToStr(StateFileAge),')');
               Note+='State file of used package is newer than state file:'+LineEnding
@@ -3496,7 +3494,7 @@ begin
       // the normal output directory is writable => keep using it
       exit;
     end;
-    debugln(['Hint: (kode) normal output directory of package ',APackage.IDAsString,' is not writable: "',OutputDir,'"']);
+    debugln(['Hint: (lazarus) normal output directory of package ',APackage.IDAsString,' is not writable: "',OutputDir,'"']);
     // the normal output directory is not writable
     // => try the fallback directory
     NewOutputDir:=GetFallbackOutputDir(APackage);
@@ -3532,7 +3530,7 @@ begin
                NeedBuildAllFlag,ConfigChanged,DependenciesChanged,Note);
     if DefResult=mrNo then begin
       // switching back to the not writable output directory requires no compile
-      debugln(['Hint: (kode) switching back to the normal output directory: "',APackage.GetOutputDirectory,'" Package ',APackage.IDAsString]);
+      debugln(['Hint: (lazarus) switching back to the normal output directory: "',APackage.GetOutputDirectory,'" Package ',APackage.IDAsString]);
       Note+='Switching back to not writable output directory.'+LineEnding;
       exit(mrNo);
     end;
@@ -3592,7 +3590,7 @@ begin
   if Result<>mrOk then exit; // read error and user aborted
   if not Stats^.StateFileLoaded then begin
     // package was not compiled via Lazarus nor via Makefile/fpmake
-    DebugLn('Hint: (kode) Missing state file of ',APackage.IDAsString,': ',StateFilename);
+    DebugLn('Hint: (lazarus) Missing state file of ',APackage.IDAsString,': ',StateFilename);
     Note+='Missing state file "'+StateFilename+'".'+LineEnding;
     NeedBuildAllFlag:=true;
     ConfigChanged:=true;
@@ -3625,7 +3623,7 @@ begin
   if Stats^.ViaMakefile then begin
     // the package was compiled via Makefile/fpmake
     if ConsoleVerbosity>=1 then
-      debugln(['Hint: (kode) package ',APackage.IDAsString,' was compiled via "make" with parameters "',LastParams,'"']);
+      debugln(['Hint: (lazarus) package ',APackage.IDAsString,' was compiled via "make" with parameters "',LastParams,'"']);
 
     CurPaths:=nil;
     LastPaths:=nil;
@@ -3638,7 +3636,7 @@ begin
       OldValue:=LastPaths.Values['Reduced'];
       NewValue:=CurPaths.Values['Reduced'];
       if NewValue<>OldValue then begin
-        DebugLn('Hint: (kode) Compiler custom params changed for ',APackage.IDAsString);
+        DebugLn('Hint: (lazarus) Compiler custom params changed for ',APackage.IDAsString);
         DebugLn('  Old="',OldValue,'"');
         DebugLn('  Now="',NewValue,'"');
         DebugLn('  State file="',Stats^.StateFileName,'"');
@@ -3653,7 +3651,7 @@ begin
       OldValue:=TrimSearchPath(LastPaths.Values['UnitPath'],APackage.Directory,true);
       NewValue:=TrimSearchPath(CurPaths.Values['UnitPath'],APackage.Directory,true);
       if NewValue<>OldValue then begin
-        DebugLn('Hint: (kode) Compiler unit paths changed for ',APackage.IDAsString);
+        DebugLn('Hint: (lazarus) Compiler unit paths changed for ',APackage.IDAsString);
         DebugLn('  Old="',OldValue,'"');
         DebugLn('  Now="',NewValue,'"');
         DebugLn('  State file="',Stats^.StateFileName,'"');
@@ -3668,7 +3666,7 @@ begin
       OldValue:=TrimSearchPath(LastPaths.Values['IncPath'],APackage.Directory,true);
       NewValue:=TrimSearchPath(CurPaths.Values['IncPath'],APackage.Directory,true);
       if NewValue<>OldValue then begin
-        DebugLn('Hint: (kode) Compiler include paths changed for ',APackage.IDAsString);
+        DebugLn('Hint: (lazarus) Compiler include paths changed for ',APackage.IDAsString);
         DebugLn('  Old="',OldValue,'"');
         DebugLn('  Now="',NewValue,'"');
         DebugLn('  State file="',Stats^.StateFileName,'"');
@@ -3688,7 +3686,7 @@ begin
     ReducedLastParams:=RemoveFPCVerbosityParams(LastParams);
     if ReducedParams<>ReducedLastParams then begin
       // package was compiled by Lazarus
-      DebugLn('Hint: (kode) Compiler params changed for ',APackage.IDAsString);
+      DebugLn('Hint: (lazarus) Compiler params changed for ',APackage.IDAsString);
       DebugLn('  Old="',dbgstr(ReducedLastParams),'"');
       DebugLn('  Now="',dbgstr(ReducedParams),'"');
       DebugLn('  State file="',Stats^.StateFileName,'"');
@@ -3702,7 +3700,7 @@ begin
   end;
   if (not Stats^.ViaMakefile)
   and (CompilerFilename<>Stats^.CompilerFilename) then begin
-    DebugLn('Hint: (kode) Compiler filename changed for ',APackage.IDAsString);
+    DebugLn('Hint: (lazarus) Compiler filename changed for ',APackage.IDAsString);
     DebugLn('  Old="',Stats^.CompilerFilename,'"');
     DebugLn('  Now="',CompilerFilename,'"');
     DebugLn('  State file="',Stats^.StateFileName,'"');
@@ -3713,7 +3711,7 @@ begin
     exit(mrYes);
   end;
   if not FileExistsCached(CompilerFilename) then begin
-    DebugLn('Hint: (kode) Compiler filename not found for ',APackage.IDAsString);
+    DebugLn('Hint: (lazarus) Compiler filename not found for ',APackage.IDAsString);
     DebugLn('  File="',CompilerFilename,'"');
     DebugLn('  State file="',Stats^.StateFileName,'"');
     Note+='Compiler file "'+CompilerFilename+'" not found.'+LineEnding
@@ -3722,7 +3720,7 @@ begin
   end;
   if (not Stats^.ViaMakefile)
   and (FileAgeCached(CompilerFilename)<>Stats^.CompilerFileDate) then begin
-    DebugLn('Hint: (kode) Compiler file changed for ',APackage.IDAsString);
+    DebugLn('Hint: (lazarus) Compiler file changed for ',APackage.IDAsString);
     DebugLn('  File="',CompilerFilename,'"');
     DebugLn('  State file="',Stats^.StateFileName,'"');
     Note+='Compiler file "'+CompilerFilename+'" changed:'+LineEnding
@@ -3736,12 +3734,12 @@ begin
   if (SrcFilename<>'') then
   begin
     if not FileExistsCached(SrcFilename) then begin
-      DebugLn('Hint: (kode) source file missing of ',APackage.IDAsString,': ',SrcFilename);
+      DebugLn('Hint: (lazarus) source file missing of ',APackage.IDAsString,': ',SrcFilename);
       Note+='Source file "'+SrcFilename+'" missing.'+LineEnding;
       exit(mrYes);
     end;
     if StateFileAge<FileAgeCached(SrcFilename) then begin
-      DebugLn('Hint: (kode) source file outdated of ',APackage.IDAsString,': ',SrcFilename);
+      DebugLn('Hint: (lazarus) source file outdated of ',APackage.IDAsString,': ',SrcFilename);
       Note+='Source file "'+SrcFilename+'" outdated:'+LineEnding
         +'  Source file age='+FileAgeToStr(FileAgeCached(SrcFilename))+LineEnding
         +'  State file="'+Stats^.StateFileName+'"'+LineEnding
@@ -3752,7 +3750,7 @@ begin
     if Stats^.MainPPUExists then begin
       SrcPPUFile:=APackage.GetSrcPPUFilename;
       if not FileExistsCached(SrcPPUFile) then begin
-        DebugLn('Hint: (kode) main ppu file missing of ',APackage.IDAsString,': ',SrcPPUFile);
+        DebugLn('Hint: (lazarus) main ppu file missing of ',APackage.IDAsString,': ',SrcPPUFile);
         Note+='Main ppu file "'+SrcPPUFile+'" missing.'+LineEnding;
         exit(mrYes);
       end;
@@ -3767,7 +3765,7 @@ begin
   NeedBuildAllFlag:=false;
 
   if not Stats^.Complete then begin
-    DebugLn('Hint: (kode) Last compile was incomplete for ',APackage.IDAsString);
+    DebugLn('Hint: (lazarus) Last compile was incomplete for ',APackage.IDAsString);
     DebugLn('  State file="',Stats^.StateFileName,'"');
     Note+='Last compile was incomplete.'+LineEnding
        +'  State file="'+Stats^.StateFileName+'"'+LineEnding;
@@ -3787,7 +3785,7 @@ begin
 
   // check package files
   if StateFileAge<FileAgeCached(APackage.Filename) then begin
-    DebugLn('Hint: (kode) State file older than lpk ',APackage.IDAsString);
+    DebugLn('Hint: (lazarus) State file older than lpk ',APackage.IDAsString);
     DebugLn('  State file="',Stats^.StateFileName,'"');
     Note+='State file older than lpk:'+LineEnding
       +'  State file age='+FileAgeToStr(StateFileAge)+LineEnding
@@ -3801,7 +3799,7 @@ begin
     AFilename:=CurFile.GetFullFilename;
     if FileExistsCached(AFilename)
     and (StateFileAge<FileAgeCached(AFilename)) then begin
-      DebugLn('Hint: (kode) Source file has changed ',APackage.IDAsString,' ',CurFile.Filename);
+      DebugLn('Hint: (lazarus) Source file has changed ',APackage.IDAsString,' ',CurFile.Filename);
       DebugLn('  State file="',Stats^.StateFileName,'"');
       Note+='State file older than source "'+AFilename+'"'+LineEnding
         +'  State file age='+FileAgeToStr(StateFileAge)+LineEnding
@@ -3813,7 +3811,7 @@ begin
       LFMFilename:=ChangeFileExt(AFilename,'.lfm');
       if FileExistsCached(LFMFilename)
       and (StateFileAge<FileAgeCached(LFMFilename)) then begin
-        DebugLn('Hint: (kode) LFM has changed ',APackage.IDAsString,' ',LFMFilename);
+        DebugLn('Hint: (lazarus) LFM has changed ',APackage.IDAsString,' ',LFMFilename);
         DebugLn('  State file="',Stats^.StateFileName,'"');
         Note+='State file older than resource "'+LFMFilename+'"'+LineEnding
           +'  State file age='+FileAgeToStr(StateFileAge)+LineEnding
@@ -3959,7 +3957,6 @@ begin
 
           // add dependencies between packages
           aDependency:=CurPkg.FirstRequiredDependency;
-          // ToDo: Add fpmake-dependencies!
           while aDependency<>nil do begin
             RequiredBuildItem:=PkgToBuildItem(aDependency.RequiredPackage);
             aDependency:=aDependency.NextRequiresDependency;
@@ -4023,7 +4020,7 @@ begin
       ToolGroup.Execute;
       ToolGroup.WaitForExit;
       if ToolGroup.ErrorMessage<>'' then begin
-        debugln(['Error: (kode) [TLazPackageGraph.CompileRequiredPackages] "',ToolGroup.ErrorMessage,'"']);
+        debugln(['Error: (lazarus) [TLazPackageGraph.CompileRequiredPackages] "',ToolGroup.ErrorMessage,'"']);
         exit(mrCancel);
       end;
     finally
@@ -4077,14 +4074,13 @@ var
   WorkingDir: String;
   ToolTitle: String;
   ExtToolData: TLazPkgGraphExtToolData;
-  BuildMethod: TBuildMethod;
 begin
   Result:=mrCancel;
 
   //DebugLn('TLazPackageGraph.CompilePackage A ',APackage.IDAsString,' Flags=',PkgCompileFlagsToString(Flags));
 
   if APackage.IsVirtual then begin
-    DebugLn(['Error: (kode) compile failed because virtual: ',APackage.Filename]);
+    DebugLn(['Error: (lazarus) compile failed because virtual: ',APackage.Filename]);
     exit;
   end;
 
@@ -4099,7 +4095,7 @@ begin
       Result:=CompileRequiredPackages(APackage,nil,
                             pcfSkipDesignTimePackages in Flags,CompilePolicy);
       if Result<>mrOk then begin
-        DebugLn(['Error: (kode) Compile required packages failed: ',APackage.IDAsString]);
+        DebugLn(['Error: (lazarus) Compile required packages failed: ',APackage.IDAsString]);
         exit;
       end;
     end;
@@ -4126,7 +4122,7 @@ begin
         exit;
       end;
       if Result<>mrYes then begin
-        DebugLn(['Error: (kode) [CheckIfPackageNeedsCompilation] failed: ',APackage.IDAsString]);
+        DebugLn(['Error: (lazarus) [CheckIfPackageNeedsCompilation] failed: ',APackage.IDAsString]);
         exit;
       end;
     end;
@@ -4143,21 +4139,21 @@ begin
 
       Result:=PreparePackageOutputDirectory(APackage,pcfCleanCompile in Flags);
       if Result<>mrOk then begin
-        DebugLn('Error: (kode) [TLazPackageGraph.CompilePackage] PreparePackageOutputDirectory failed: ',APackage.IDAsString);
+        DebugLn('Error: (lazarus) [TLazPackageGraph.CompilePackage] PreparePackageOutputDirectory failed: ',APackage.IDAsString);
         exit;
       end;
 
       // create package main source file
       Result:=SavePackageMainSource(APackage,Flags,ShowAbort);
       if Result<>mrOk then begin
-        DebugLn('Error: (kode) [TLazPackageGraph.CompilePackage] SavePackageMainSource failed: ',APackage.IDAsString);
+        DebugLn('Error: (lazarus) [TLazPackageGraph.CompilePackage] SavePackageMainSource failed: ',APackage.IDAsString);
         exit;
       end;
 
       // check ambiguous units
       Result:=CheckAmbiguousPackageUnits(APackage);
       if Result<>mrOk then begin
-        DebugLn('Error: (kode) [TLazPackageGraph.CompilePackage} CheckAmbiguousPackageUnits failed: ',APackage.IDAsString);
+        DebugLn('Error: (lazarus) [TLazPackageGraph.CompilePackage} CheckAmbiguousPackageUnits failed: ',APackage.IDAsString);
         exit;
       end;
 
@@ -4166,18 +4162,17 @@ begin
       or (APackage.CompilerOptions.CreateMakefileOnBuild)) then begin
         Result:=WriteMakeFile(APackage);
         if Result<>mrOk then begin
-          DebugLn('Error: (kode) [TLazPackageGraph.CompilePackage] DoWriteMakefile failed: ',APackage.IDAsString);
+          DebugLn('Error: (lazarus) [TLazPackageGraph.CompilePackage] DoWriteMakefile failed: ',APackage.IDAsString);
           exit;
         end;
       end;
 
       // create fpmake.pp
       if ((pcfCreateFpmakeFile in Flags)
-      or (APackage.GetActiveBuildMethod = bmFPMake)
-      or ((APackage.CompilerOptions.CreateMakefileOnBuild) and (APackage.BuildMethod in [bmBoth, bmFPMake]) and Assigned(FppkgInterface))) then begin
+      or (APackage.CompilerOptions.CreateMakefileOnBuild)) then begin
         Result:=WriteFpmake(APackage);
         if Result<>mrOk then begin
-          DebugLn('Error: (kode) [TLazPackageGraph.CompilePackage] DoWriteFpmakeFile failed: ',APackage.IDAsString);
+          DebugLn('Error: (lazarus) [TLazPackageGraph.CompilePackage] DoWriteFpmakeFile failed: ',APackage.IDAsString);
           exit;
         end;
       end;
@@ -4196,7 +4191,7 @@ begin
           Result:=APackage.CompilerOptions.ExecuteBefore.Execute(WorkingDir,
             ToolTitle,Note);
           if Result<>mrOk then begin
-            DebugLn(['Error: (kode) [TLazPackageGraph.CompilePackage] ExecuteBefore failed: ',APackage.IDAsString]);
+            DebugLn(['Error: (lazarus) [TLazPackageGraph.CompilePackage] ExecuteBefore failed: ',APackage.IDAsString]);
             exit;
           end;
         end;
@@ -4207,33 +4202,23 @@ begin
 
       if (not APackage.CompilerOptions.SkipCompiler)
       and (not (pcfDoNotCompilePackage in Flags)) then begin
-        BuildMethod:=APackage.GetActiveBuildMethod;
-        if BuildMethod=bmLazarus then begin
-          CompilerFilename:=APackage.GetCompilerFilename;
+        CompilerFilename:=APackage.GetCompilerFilename;
 
-          // change compiler parameters for compiling clean
-          CompilerParams:=GetPackageCompilerParams(APackage);
-          EffectiveCompilerParams:=CompilerParams;
-          if (pcfCleanCompile in Flags) or NeedBuildAllFlag then begin
-            if EffectiveCompilerParams<>'' then
-              EffectiveCompilerParams:='-B '+EffectiveCompilerParams
-            else
-              EffectiveCompilerParams:='-B';
-          end;
-
-          WarnSuspiciousCompilerOptions('Compile checks','package '+APackage.IDAsString+':',CompilerParams);
-        end else begin
-          CompilerFilename:='fppkg';
-          EffectiveCompilerParams:='install --skipbroken --broken';
-          // Do not recompile all broken fppkg packages on each package that is
-          // installed, but run 'fppkg fixbroken' once.
-          FHasCompiledFpmakePackages := True;
+        // change compiler parameters for compiling clean
+        CompilerParams:=GetPackageCompilerParams(APackage);
+        EffectiveCompilerParams:=CompilerParams;
+        if (pcfCleanCompile in Flags) or NeedBuildAllFlag then begin
+          if EffectiveCompilerParams<>'' then
+            EffectiveCompilerParams:='-B '+EffectiveCompilerParams
+          else
+            EffectiveCompilerParams:='-B';
         end;
 
-        ExtToolData:=TLazPkgGraphExtToolData.Create(IDEToolCompilePackage,
-          APackage.Name,APackage.Filename);
+        WarnSuspiciousCompilerOptions('Compile checks','package '+APackage.IDAsString+':',CompilerParams);
 
         PkgCompileTool:=ExternalToolList.Add(Format(lisPkgMangCompilePackage, [APackage.IDAsString]));
+        ExtToolData:=TLazPkgGraphExtToolData.Create(IDEToolCompilePackage,
+          APackage.Name,APackage.Filename);
         PkgCompileTool.Data:=ExtToolData;
         PkgCompileTool.FreeData:=true;
         if BuildItem<>nil then
@@ -4276,32 +4261,8 @@ begin
         end;
       end;
 
+      // run compilation tool 'After'
       if not (pcfDoNotCompilePackage in Flags) then begin
-        if FHasCompiledFpmakePackages and (BuildItem = nil) then begin
-          // Make sure all dependees of changed FPMake-packages are
-          // recompiled
-
-          PkgCompileTool := ExternalToolList.Add('Recompile and install broken Fppkg packages');
-          PkgCompileTool.Reference(Self,Classname);
-
-          FPCParser:=TFPCParser(PkgCompileTool.AddParsers(SubToolFPC));
-          FPCParser.HideHintsSenderNotUsed:=not APackage.CompilerOptions.ShowHintsForSenderNotUsed;
-          FPCParser.HideHintsUnitNotUsedInMainSource:=not APackage.CompilerOptions.ShowHintsForUnusedUnitsInMainSrc;
-          PkgCompileTool.Process.CurrentDirectory:=APackage.Directory;
-          PkgCompileTool.Process.Executable:='fppkg';
-          PkgCompileTool.CmdLineParams:='fixbroken';
-          PkgCompileTool.Hint:='Check for Fppkg packages that depend on just installed packages and recompile them';
-
-          PkgCompileTool.Execute();
-          PkgCompileTool.WaitForExit;
-          if PkgCompileTool.ErrorMessage<>'' then begin
-            DebugLn(['Error: (kode) [TLazPackageGraph.CompilePackage] Fppkg FixBroken failed']);
-            // Note: messages window already contains error message
-            exit(mrCancel);
-          end;
-        end;
-
-        // run compilation tool 'After'
         WorkingDir:=APackage.Directory;
         ToolTitle:='Package '+APackage.IDAsString+': '+lisExecutingCommandAfter;
         if BuildItem<>nil then
@@ -4314,7 +4275,7 @@ begin
           Result:=APackage.CompilerOptions.ExecuteAfter.Execute(WorkingDir,
                                        ToolTitle,Note);
           if Result<>mrOk then begin
-            DebugLn(['Error: (kode) [TLazPackageGraph.CompilePackage] ExecuteAfter failed: ',APackage.IDAsString]);
+            DebugLn(['Error: (lazarus) [TLazPackageGraph.CompilePackage] ExecuteAfter failed: ',APackage.IDAsString]);
             // Note: messages window already contains error message
             exit;
           end;
@@ -4339,7 +4300,6 @@ var
   EffectiveCompilerParams: String;
 begin
   Result:=mrCancel;
-  if ShowAbort then ;
 
   //DebugLn('TLazPackageGraph.CompilePackageAsFPMake A ',APackageName,' Flags=',PkgCompileFlagsToString(Flags));
   BeginUpdate(false);
@@ -4405,7 +4365,7 @@ begin
     Result:=ForceDirectoryInteractive(POOutputDirectory,[mbRetry,mbIgnore]);
     if Result<>mrOk then begin
       if Result=mrIgnore then Result:=mrOk;
-      DebugLn(['Note: (kode) [TLazPackageGraph.ConvertPackageRSTFiles] unable to create directory ',POOutputDirectory]);
+      DebugLn(['Note: (lazarus) [TLazPackageGraph.ConvertPackageRSTFiles] unable to create directory ',POOutputDirectory]);
       exit;
     end;
   end;
@@ -4413,13 +4373,13 @@ begin
   // find all .rst files in package output directory
   if not DirectoryIsWritableCached(POOutputDirectory) then begin
     // this package is read only
-    DebugLn(['Warning: (kode) [TLazPackageGraph.ConvertPackageRSTFiles] skipping read only directory '+POOutputDirectory]);
+    DebugLn(['Warning: (lazarus) [TLazPackageGraph.ConvertPackageRSTFiles] skipping read only directory '+POOutputDirectory]);
     exit(mrOK);
   end;
 
   PkgOutputDirectory:=AppendPathDelim(APackage.GetOutputDirectory);
   if not ConvertRSTFiles(PkgOutputDirectory,POOutputDirectory) then begin
-    DebugLn(['Error: (kode) [TLazPackageGraph.ConvertPackageRSTFiles] unable to update .po files PkgOutputDirectory=',PkgOutputDirectory,' RSTOutputDirectory=',POOutputDirectory]);
+    DebugLn(['Error: (lazarus) [TLazPackageGraph.ConvertPackageRSTFiles] unable to update .po files PkgOutputDirectory=',PkgOutputDirectory,' RSTOutputDirectory=',POOutputDirectory]);
     exit(mrCancel);
   end;
   Result:=mrOK;
@@ -4446,14 +4406,14 @@ begin
       // it is not needed because it is the location of the Makefile.compiled
       s:=s+' '+SwitchPathDelims(CreateRelativePath(APackage.GetSrcFilename,APackage.Directory),pdsUnix);
       if ConsoleVerbosity>1 then
-        debugln(['Hint: (kode) writing ',TargetCompiledFile,' IncPath="',IncPath,'" UnitPath="',UnitPath,'" Custom="',OtherOptions,'" Makefile.compiled="',TargetCompiledFile,'"']);
+        debugln(['Hint: (lazarus) writing ',TargetCompiledFile,' IncPath="',IncPath,'" UnitPath="',UnitPath,'" Custom="',OtherOptions,'" Makefile.compiled="',TargetCompiledFile,'"']);
       XMLConfig.SetValue('Params/Value',s);
       if XMLConfig.Modified then begin
         InvalidateFileStateCache;
         XMLConfig.Flush;
       end else begin
         if ConsoleVerbosity>1 then
-          debugln(['Hint: (kode) not writing ',TargetCompiledFile,', because nothing changed']);
+          debugln(['Hint: (lazarus) not writing ',TargetCompiledFile,', because nothing changed']);
       end;
     finally
       XMLConfig.Free;
@@ -4554,7 +4514,7 @@ begin
     // If the package directory is not writable, then the user does not want to
     // custom build
     // => silently skip
-    DebugLn(['Error: (kode) Skipping writing Makefile, because package directory is not writable: ',APackage.Directory]);
+    DebugLn(['Error: (lazarus) Skipping writing Makefile, because package directory is not writable: ',APackage.Directory]);
     Result:=mrOk;
     exit;
   end;
@@ -4602,14 +4562,14 @@ begin
   CustomOptions:=ConvertLazarusOptionsToMakefileOptions(CustomOptions);
   OtherOptions:=ConvertLazarusOptionsToMakefileOptions(OtherOptions);
   if ConsoleVerbosity>0 then
-    debugln(['Hint: (kode) [TLazPackageGraph.WriteMakeFile] Custom="',CustomOptions,'" Other="',OtherOptions,'"']);
+    debugln(['Hint: (lazarus) [TLazPackageGraph.WriteMakeFile] Custom="',CustomOptions,'" Other="',OtherOptions,'"']);
   if CustomOptions<>'' then
     if OtherOptions<>'' then
       OtherOptions:=OtherOptions+' '+CustomOptions
     else
       OtherOptions:=CustomOptions;
   if ConsoleVerbosity>0 then
-    debugln(['Hint: (kode) [TLazPackageGraph.WriteMakeFile] Other="',OtherOptions,'"']);
+    debugln(['Hint: (lazarus) [TLazPackageGraph.WriteMakeFile] Other="',OtherOptions,'"']);
 
   // ---- Makefile.compiled ----------------------------------------------------
 
@@ -4713,7 +4673,7 @@ begin
         // the package source is read only => ignore
         exit(mrOk);
       end;
-      debugln(['Error: (kode) [TLazPackageGraph.WriteMakeFile] unable to create file '+MakefileFPCFilename]);
+      debugln(['Error: (lazarus) [TLazPackageGraph.WriteMakeFile] unable to create file '+MakefileFPCFilename]);
       exit(mrCancel);
     end;
   end;
@@ -4731,7 +4691,7 @@ begin
       begin
         // the package source is read only => no problem
         if ConsoleVerbosity>0 then
-          debugln(['Note: (kode) [TLazPackageGraph.WriteMakeFile] not writing "',MakefileFPCFilename,'" because dir not writable, ignoring...']);
+          debugln(['Note: (lazarus) [TLazPackageGraph.WriteMakeFile] not writing "',MakefileFPCFilename,'" because dir not writable, ignoring...']);
         Result:=mrOk;
       end;
       exit;
@@ -4744,8 +4704,8 @@ begin
   if FileIsExecutableCached(Executable) then begin
     if (not NeedFPCMake)
     and (FileAgeUTF8(MakefileFPCFilename)<FileAgeCached(Executable)) then begin
-      if ConsoleVerbosity>=0 then
-        debugln(['Hint: (kode) [TLazPackageGraph.WriteMakeFile] "',Executable,'" is newer than "',MakefileFPCFilename,'"']);
+      if ConsoleVerbosity>=-1 then
+        debugln(['Hint: (lazarus) [TLazPackageGraph.WriteMakeFile] "',Executable,'" is newer than "',MakefileFPCFilename,'"']);
       NeedFPCMake:=true;// fpcmake is newer than Makefile.fpc
     end;
     if not NeedFPCMake then
@@ -4824,7 +4784,6 @@ var
   SrcFilename: String;
   FpmakeFPCFilename: String;
   UnitPath: String;
-  OriginalCode: String;
   CodeBuffer: TCodeBuffer;
   MainSrcFile: String;
   CustomOptions: String;
@@ -4842,7 +4801,7 @@ begin
     // If the package directory is not writable, then the user does not want to
     // custom build
     // => silently skip
-    DebugLn(['Note: (kode) Skipping writing fpmake.pp, because package directory is not writable: ',APackage.Directory]);
+    DebugLn(['Note: (lazarus) Skipping writing fpmake.pp, because package directory is not writable: ',APackage.Directory]);
     Result:=mrOk;
     exit;
   end;
@@ -4860,11 +4819,11 @@ begin
   CustomOptions:=APackage.CompilerOptions.GetCustomOptions(
                                                  coptParsedPlatformIndependent);
   if ConsoleVerbosity>0 then
-    debugln('Hint: (kode) Writing fpmake.pp: CustomOptions (orig): ',CustomOptions);
+    debugln('Hint: (lazarus) Writing fpmake.pp: CustomOptions (orig): ',CustomOptions);
   OtherOptions:=APackage.CompilerOptions.MakeOptionsString(
                               [ccloDoNotAppendOutFileOption,ccloNoMacroParams]);
   if ConsoleVerbosity>0 then
-    debugln('Hint: (kode) Writing fpmake.pp: OtherOptions (orig): ',OtherOptions);
+    debugln('Hint: (lazarus) Writing fpmake.pp: OtherOptions (orig): ',OtherOptions);
 
   // write compiled file
   Result:=WriteMakefileCompiled(APackage,FPmakeCompiledFilename,UnitPath,
@@ -4878,18 +4837,16 @@ begin
   MainSrcFile:=CreateRelativePath(SrcFilename,APackage.Directory);
   CustomOptions:=ConvertLazarusOptionsToFpmakeOptions(CustomOptions);
   if ConsoleVerbosity>0 then
-    debugln('Hint: (kode) Writing fpmake.pp: CustomOptions (fpmake format): ',CustomOptions);
+    debugln('Hint: (lazarus) Writing fpmake.pp: CustomOptions (fpmake format): ',CustomOptions);
 
   OtherOptions:=ConvertLazarusOptionsToFpmakeOptions(OtherOptions);
   if ConsoleVerbosity>0 then
-    debugln('Hint: (kode) Writing fpmake.pp: OtherOptions (fpmake format): ',OtherOptions);
+    debugln('Hint: (lazarus) Writing fpmake.pp: OtherOptions (fpmake format): ',OtherOptions);
 
   e:=LineEnding;
   s:='';
   s:=s+'{'+e;
   s:=s+'   File generated automatically by Lazarus Package Manager'+e;
-  if Assigned(FppkgInterface) then
-    s := s + '   Created with the Fppkgpackagemanager package installed'+e;
   s:=s+''+e;
   s:=s+'   fpmake.pp for '+APackage.IDAsString+e;
   s:=s+''+e;
@@ -4908,12 +4865,7 @@ begin
   s:=s+'var'+e;
   s:=s+'  P : TPackage;'+e;
   s:=s+'  T : TTarget;'+e;
-  s:=s+'  D : TDependency;'+e;
   s:=s+''+e;
-
-  if Assigned(FppkgInterface) then
-    s := s + FppkgInterface.ConstructFpMakeInterfaceSection(APackage);
-
   s:=s+'begin'+e;
   s:=s+'  with Installer do'+e;
   s:=s+'    begin'+e;
@@ -4928,7 +4880,7 @@ begin
   ARequirement := APackage.FirstRequiredDependency;
   while assigned(ARequirement) do
   begin
-    s:=s+'    D := P.Dependencies.Add('''+lowercase(ARequirement.PackageName)+''');'+e;
+    s:=s+'    P.Dependencies.Add('''+lowercase(ARequirement.PackageName)+''');'+e;
     ARequirement := ARequirement.NextRequiresDependency;
   end;
 
@@ -4937,31 +4889,23 @@ begin
   s := s + StringToFpmakeOptionGroup('    P.IncludePath.Add',IncPath);
   s := s + StringToFpmakeOptionGroup('    P.UnitPath.Add', UnitPath);
 
-  if Assigned(FppkgInterface) then
-    s := s + FppkgInterface.ConstructFpMakeImplementationSection(APackage);
-
   s:=s+'    T:=P.Targets.AddUnit('''+MainSrcFile+''');'+e;
-  if Assigned(FppkgInterface) then
-    s := s + FppkgInterface.ConstructFpMakeDependenciesFileSection(APackage)
-  else
-  begin
-    for i := 0 to APackage.FileCount-1 do
-      if (APackage.Files[i].FileType=pftUnit) then
-        s:=s+'    t.Dependencies.AddUnit('''+ExtractFileNameOnly(APackage.Files[i].Filename)+''');'+e;
+  for i := 0 to APackage.FileCount-1 do
+    if (APackage.Files[i].FileType=pftUnit) then
+      s:=s+'    t.Dependencies.AddUnit('''+ExtractFileNameOnly(APackage.Files[i].Filename)+''');'+e;
 
-    s:=s+''+e;
+  s:=s+''+e;
 
-    for i := 0 to APackage.FileCount-1 do
-      if (APackage.Files[i].FileType=pftUnit) then
+  for i := 0 to APackage.FileCount-1 do
+    if (APackage.Files[i].FileType=pftUnit) then
+    begin
+      if (pffAddToPkgUsesSection in APackage.Files[i].Flags) then
+        s:=s+'    T:=P.Targets.AddUnit('''+CreateRelativePath(APackage.Files[i].Filename,APackage.Directory)+''');'+e
+      else
       begin
-        if (pffAddToPkgUsesSection in APackage.Files[i].Flags) then
-          s:=s+'    T:=P.Targets.AddUnit('''+CreateRelativePath(APackage.Files[i].Filename,APackage.Directory)+''');'+e
-        else
-        begin
-          s:=s+'    P.Targets.AddImplicitUnit('''+CreateRelativePath(APackage.Files[i].Filename,APackage.Directory)+''');'+e;
-        end;
+        s:=s+'    P.Targets.AddImplicitUnit('''+CreateRelativePath(APackage.Files[i].Filename,APackage.Directory)+''');'+e;
       end;
-  end;
+    end;
 
   s:=s+''+e;
   s:=s+'    // copy the compiled file, so the IDE knows how the package was compiled'+e;
@@ -4988,14 +4932,12 @@ begin
         // the package source is read only => ignore
         exit(mrOk);
       end;
-      debugln(['Error: (kode) unable to create fpmake.pp file '+FpmakeFPCFilename]);
+      debugln(['Error: (lazarus) unable to create fpmake.pp file '+FpmakeFPCFilename]);
       exit(mrCancel);
     end;
   end;
 
-  OriginalCode:=CodeToolBoss.ExtractCodeWithoutComments(CodeBuffer);
-  CodeBuffer.Source:=s;
-  if OriginalCode=CodeToolBoss.ExtractCodeWithoutComments(CodeBuffer)
+  if ExtractCodeFromMakefile(CodeBuffer.Source)=ExtractCodeFromMakefile(s)
   then begin
     // nothing important has changed in fpmake.pp => do not write to disk
     Result:=mrOk;
@@ -5014,7 +4956,7 @@ begin
     exit;
   end;
   if ConsoleVerbosity>0 then
-    debugln(['Hint: (kode) wrote fpmake.pp: ',FpmakeFPCFilename]);
+    debugln(['Hint: (lazarus) wrote fpmake.pp: ',FpmakeFPCFilename]);
 
   Result:=mrOk;
 end;
@@ -5044,14 +4986,14 @@ begin
     // => use the fallback directory
     NewOutputDir:=GetFallbackOutputDir(APackage);
     if (NewOutputDir=OutputDir) or (NewOutputDir='') then begin
-      debugln(['Error: (kode) [TLazPackageGraph.PreparePackageOutputDirectory] failed to create writable directory: ',OutputDir]);
+      debugln(['Error: (lazarus) [TLazPackageGraph.PreparePackageOutputDirectory] failed to create writable directory: ',OutputDir]);
       exit(mrCancel);
     end;
     APackage.CompilerOptions.ParsedOpts.OutputDirectoryOverride:=NewOutputDir;
     OutputDir:=APackage.GetOutputDirectory;
     if not OutputDirectoryIsWritable(APackage,OutputDir,true) then
     begin
-      debugln(['Error: (kode) [TLazPackageGraph.PreparePackageOutputDirectory] failed to create writable directory: ',OutputDir]);
+      debugln(['Error: (lazarus) [TLazPackageGraph.PreparePackageOutputDirectory] failed to create writable directory: ',OutputDir]);
       Result:=mrCancel;
     end;
     DeleteAllFilesInOutputDir:=true;
@@ -5101,7 +5043,7 @@ begin
           for i:=0 to CleanFiles.Count-1 do begin
             OutputFileName:=AppendPathDelim(OutputDir)+CleanFiles[i];
             if ConsoleVerbosity>1 then
-              debugln(['Hint: (kode) cleaning up package output directory of '+APackage.IDAsString+': '+OutputFileName]);
+              debugln(['Hint: (lazarus) cleaning up package output directory of '+APackage.IDAsString+': '+OutputFileName]);
             Result:=DeleteFileInteractive(OutputFileName,[mbIgnore,mbAbort]);
             if Result in [mrCancel,mrAbort] then exit;
           end;
@@ -5116,12 +5058,12 @@ begin
         if not (CurFile.FileType in PkgFileUnitTypes) then continue;
         OutputFileName:=AppendPathDelim(OutputDir)+CurFile.Unit_Name+'.ppu';
         if ConsoleVerbosity>1 then
-          debugln(['Hint: (kode) cleaning up package output directory of '+APackage.IDAsString+': '+OutputFileName]);
+          debugln(['Hint: (lazarus) cleaning up package output directory of '+APackage.IDAsString+': '+OutputFileName]);
         Result:=DeleteFileInteractive(OutputFileName,[mbIgnore,mbAbort]);
         if Result in [mrCancel,mrAbort] then exit;
         OutputFileName:=ChangeFileExt(OutputFileName,'.o');
         if ConsoleVerbosity>1 then
-          debugln(['Hint: (kode) cleaning up package output directory of '+APackage.IDAsString+': '+OutputFileName]);
+          debugln(['Hint: (lazarus) cleaning up package output directory of '+APackage.IDAsString+': '+OutputFileName]);
         Result:=DeleteFileInteractive(OutputFileName,[mbIgnore,mbAbort]);
         if Result in [mrCancel,mrAbort] then exit;
       end;
@@ -5148,7 +5090,7 @@ begin
   GlobalMacroList.SubstituteStr(Dir);
   Dir:=TrimFilename(Dir);
   if ConsoleVerbosity>=0 then
-    debugln(['Hint: (kode) Fallback output directory of ',APackage.Name,': ',Dir]);
+    debugln(['Hint: (lazarus) Fallback output directory of ',APackage.Name,': ',Dir]);
   Result:=Dir;
 end;
 
@@ -5265,7 +5207,7 @@ begin
   // delete ambiguous files
   Result:=DeleteAmbiguousFiles(SrcFilename);
   if Result=mrAbort then begin
-    DebugLn('Error: (kode) [TLazPackageGraph.SavePackageMainSource} DoDeleteAmbiguousFiles failed');
+    DebugLn('Error: (lazarus) [TLazPackageGraph.SavePackageMainSource} DoDeleteAmbiguousFiles failed');
     exit;
   end;
 
@@ -5377,7 +5319,7 @@ begin
   Result:=LoadCodeBuffer(CodeBuffer,SrcFilename,[lbfQuiet,lbfCheckIfText,
                             lbfUpdateFromDisk,lbfCreateClearOnError],ShowAbort);
   if Result<>mrOk then begin
-    DebugLn('Error: (kode) [TLazPackageGraph.SavePackageMainSource] LoadCodeBuffer ',SrcFilename,' failed');
+    DebugLn('Error: (lazarus) [TLazPackageGraph.SavePackageMainSource] LoadCodeBuffer ',SrcFilename,' failed');
     exit;
   end;
   // ignore comments
@@ -5398,7 +5340,7 @@ begin
   // save source
   Result:=SaveStringToFile(SrcFilename,Src,[],lisPkgMangpackageMainSourceFile);
   if Result<>mrOk then begin
-    DebugLn('Error: (kode) [TLazPackageGraph.SavePackageMainSource] SaveStringToFile ',SrcFilename,' failed');
+    DebugLn('Error: (lazarus) [TLazPackageGraph.SavePackageMainSource] SaveStringToFile ',SrcFilename,' failed');
     exit;
   end;
 
@@ -5747,7 +5689,7 @@ var
 begin
   if Dependency.LoadPackageResult=lprUndefined then begin
     if pvPkgSearch in Verbosity then
-      debugln('Info: (kode) Open dependency '+Dependency.AsString(true,true)+' ...');
+      debugln('Info: (lazarus) Open dependency '+Dependency.AsString(true,true)+' ...');
     //debugln(['TLazPackageGraph.OpenDependency ',Dependency.PackageName,' ',Dependency.DefaultFilename,' Prefer=',Dependency.PreferDefaultFilename]);
     BeginUpdate(false);
     // search compatible package in opened packages
@@ -5758,7 +5700,7 @@ begin
       Dependency.RequiredPackage:=APackage;
       Dependency.LoadPackageResult:=lprSuccess;
       if pvPkgSearch in Verbosity then
-        debugln(['Info: (kode) Open dependency ['+Dependency.PackageName+']: Success: was already loaded']);
+        debugln(['Info: (lazarus) Open dependency ['+Dependency.PackageName+']: Success: was already loaded']);
     end;
     // load preferred package
     if (Dependency.DefaultFilename<>'') and Dependency.PreferDefaultFilename
@@ -5771,7 +5713,7 @@ begin
             and (CompareFilenames(PreferredFilename,Dependency.RequiredPackage.Filename)<>0)))
       then begin
         if pvPkgSearch in Verbosity then
-          debugln(['Info: (kode) Open dependency ['+Dependency.PackageName+']: trying resolved preferred filename: "'+PreferredFilename+'" ...']);
+          debugln(['Info: (lazarus) Open dependency ['+Dependency.PackageName+']: trying resolved preferred filename: "'+PreferredFilename+'" ...']);
         OpenFile(PreferredFilename);
       end;
     end;
@@ -5811,7 +5753,7 @@ begin
             AFilename:=Dependency.FindDefaultFilename;
             if AFilename<>'' then begin
               if pvPkgSearch in Verbosity then
-                debugln(['Info: (kode) Open dependency ['+Dependency.PackageName+']: trying resolved default filename: "'+PreferredFilename+'" ...']);
+                debugln(['Info: (lazarus) Open dependency ['+Dependency.PackageName+']: trying resolved default filename: "'+PreferredFilename+'" ...']);
               OpenFile(AFilename);
             end;
           end;
@@ -5821,7 +5763,7 @@ begin
             CurDir:=GetDependencyOwnerDirectory(Dependency);
             if (CurDir<>'') then begin
               if pvPkgSearch in Verbosity then
-                debugln(['Info: (kode) Open dependency ['+Dependency.PackageName+']: trying in owner directory "'+AppendPathDelim(CurDir)+'" ...']);
+                debugln(['Info: (lazarus) Open dependency ['+Dependency.PackageName+']: trying in owner directory "'+AppendPathDelim(CurDir)+'" ...']);
               AFilename:=CodeToolBoss.DirectoryCachePool.FindDiskFilename(
                            AppendPathDelim(CurDir)+Dependency.PackageName+'.lpk');
               if FileExistsCached(AFilename) then begin
@@ -5838,7 +5780,7 @@ begin
                 Dependency.RequiredPackage:=APackage;
                 Dependency.LoadPackageResult:=lprSuccess;
                 if pvPkgSearch in Verbosity then
-                  debugln(['Info: (kode) Open dependency ['+Dependency.PackageName+']: Success. Package "'+APackage.IDAsString+'" provides '+Dependency.AsString]);
+                  debugln(['Info: (lazarus) Open dependency ['+Dependency.PackageName+']: Success. Package "'+APackage.IDAsString+'" provides '+Dependency.AsString]);
                 break;
               end;
             end;
@@ -5853,24 +5795,24 @@ begin
       end else begin
         // there is already a package with this name, but wrong version open
         // -> unable to load this dependency due to conflict
-        debugln('Error: (kode) Open dependency found incompatible package: searched for '+Dependency.AsString(true)+', but found '+APackage.IDAsString);
+        debugln('Error: (lazarus) Open dependency found incompatible package: searched for '+Dependency.AsString(true)+', but found '+APackage.IDAsString);
         if IsStaticBasePackage(APackage.Name) then
         begin
-          debugln(['Note: (kode) LazarusDir="',EnvironmentOptions.GetParsedLazarusDirectory,'"']);
+          debugln(['Note: (lazarus) LazarusDir="',EnvironmentOptions.GetParsedLazarusDirectory,'"']);
           // wrong base package
           if (EnvironmentOptions.LazarusDirectory='')
           or (not DirPathExistsCached(EnvironmentOptions.GetParsedLazarusDirectory))
           then begin
             // the lazarus directory is not set
-            debugln(['Note: (kode) The Lazarus directory is not set. Pass parameter --lazarusdir.']);
+            debugln(['Note: (lazarus) The Lazarus directory is not set. Pass parameter --lazarusdir.']);
           end else if not DirPathExistsCached(LazPackageLinks.GetGlobalLinkDirectory)
           then begin
-            debugln(['Note: (kode) The lpl directory is missing. Check that the Lazarus (--lazarusdir) directory is correct.']);
+            debugln(['Note: (lazarus) The lpl directory is missing. Check that the Lazarus (--lazarusdir) directory is correct.']);
           end;
         end;
         if APackage.Missing then
         begin
-          debugln(['Note: (kode) The lpk (',APackage.Filename,') is missing for dependency=',Dependency.AsString])
+          debugln(['Note: (lazarus) The lpk (',APackage.Filename,') is missing for dependency=',Dependency.AsString])
         end;
         Dependency.LoadPackageResult:=lprLoadError;
       end;
@@ -5917,7 +5859,7 @@ var
       end;
     except
       on E: Exception do begin
-        debugln(['Error: (kode) error reading "'+LPKFilename+'": '+E.Message]);
+        debugln(['Error: (lazarus) error reading "'+LPKFilename+'": '+E.Message]);
       end;
     end;
   end;

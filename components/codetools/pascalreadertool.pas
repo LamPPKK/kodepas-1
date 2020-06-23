@@ -153,6 +153,8 @@ type
       Attributes: TProcHeadAttributes; out ProcHead: string): boolean;
     function ExtractClassNameOfProcNode(ProcNode: TCodeTreeNode;
         AddParentClasses: boolean = true; KeepGeneric: boolean = false): string;
+    function ProcNodeHasSpecifier(ProcNode: TCodeTreeNode;
+        ProcSpec: TProcedureSpecifier): boolean;
     function GetProcNameIdentifier(ProcNode: TCodeTreeNode): PChar;
     function FindProcNode(StartNode: TCodeTreeNode; const AProcHead: string;
         AProcSpecType: TPascalMethodGroup;
@@ -180,8 +182,6 @@ type
                                 SkipClassName: boolean; CleanPos: integer): boolean;
     function PositionInFuncResultName(ProcNode: TCodeTreeNode;
                                       CleanPos: integer): boolean;
-    function ProcNodeHasSpecifier(ProcNode: TCodeTreeNode;
-        ProcSpec: TProcedureSpecifier): boolean;
     function ProcNodeHasParamList(ProcNode: TCodeTreeNode): boolean;
     function ProcNodeHasOfObject(ProcNode: TCodeTreeNode): boolean;
     function GetProcParamList(ProcNode: TCodeTreeNode;
@@ -1480,6 +1480,30 @@ begin
   ReadNextAtom;
 end;
 
+function TPascalReaderTool.ProcNodeHasSpecifier(ProcNode: TCodeTreeNode;
+  ProcSpec: TProcedureSpecifier): boolean;
+begin
+  Result:=false;
+  if ProcNode=nil then exit;
+  if ProcNode.Desc=ctnProcedureHead then
+    ProcNode:=ProcNode.Parent;
+  {$IFDEF CheckNodeTool}
+  if ProcNode.Desc<>ctnProcedure then begin
+    DebugLn(['TPascalReaderTool.ProcNodeHasSpecifier Desc=',ProcNode.DescAsString]);
+    CTDumpStack;
+    RaiseException(20170421195959,'[TPascalReaderTool.ProcNodeHasSpecifier] '
+      +'internal error: invalid ProcNode');
+  end;
+  {$ENDIF}
+  if (ProcNode.FirstChild=nil)
+  or ((ProcNode.SubDesc and ctnsNeedJITParsing)>0) then
+    BuildSubTreeForProcHead(ProcNode);
+
+  // ToDo: ppu, dcu
+
+  Result:=MoveCursorToProcSpecifier(ProcNode,ProcSpec);
+end;
+
 function TPascalReaderTool.GetProcNameIdentifier(ProcNode: TCodeTreeNode): PChar;
 begin
 
@@ -2676,19 +2700,35 @@ begin
 end;
 
 function TPascalReaderTool.ExtractSourceName: string;
-var
-  NamePos: TAtomPosition;
 begin
   Result:='';
-  if Tree.Root=nil then exit;
-  if GetSourceNamePos(NamePos) then
-    Result:=copy(Src, NamePos.StartPos, NamePos.EndPos-NamePos.StartPos)
-  else if Tree.Root.Desc=ctnProgram then
+  if Tree.Root<>nil then begin
+    MoveCursorToNodeStart(Tree.Root);
+    ReadNextAtom; // read source type 'program', 'unit' ...
+    if (Tree.Root.Desc<>ctnProgram) or UpAtomIs('PROGRAM') then begin
+      ReadNextAtom; // read name
+      if AtomIsIdentifier then begin
+        Result:=copy(Src,CurPos.StartPos,CurPos.EndPos-CurPos.StartPos);
+        ReadNextAtom;
+        while CurPos.Flag=cafPoint do begin
+          ReadNextAtom;
+          if not AtomIsIdentifier then exit;
+          Result:=Result+'.'+copy(Src,CurPos.StartPos,CurPos.EndPos-CurPos.StartPos);
+          ReadNextAtom;
+        end;
+        exit;
+      end;
+    end;
+  end;
+  if (Tree.Root<>nil) and (Tree.Root.Desc=ctnProgram) then
     // a program without the 'program' header uses the file name as name
     Result:=ExtractFileNameOnly(MainFilename)
+  else
+    Result:='';
 end;
 
-function TPascalReaderTool.GetSourceNamePos(out NamePos: TAtomPosition): boolean;
+function TPascalReaderTool.GetSourceNamePos(out NamePos: TAtomPosition
+  ): boolean;
 begin
   Result:=false;
   NamePos.StartPos:=-1;
@@ -3319,30 +3359,6 @@ begin
       exit;
     ReadNextAtom;
   end;
-end;
-
-function TPascalReaderTool.ProcNodeHasSpecifier(ProcNode: TCodeTreeNode;
-  ProcSpec: TProcedureSpecifier): boolean;
-begin
-  Result:=false;
-  if ProcNode=nil then exit;
-  if ProcNode.Desc=ctnProcedureHead then
-    ProcNode:=ProcNode.Parent;
-  {$IFDEF CheckNodeTool}
-  if ProcNode.Desc<>ctnProcedure then begin
-    DebugLn(['TPascalReaderTool.ProcNodeHasSpecifier Desc=',ProcNode.DescAsString]);
-    CTDumpStack;
-    RaiseException(20170421195959,'[TPascalReaderTool.ProcNodeHasSpecifier] '
-      +'internal error: invalid ProcNode');
-  end;
-  {$ENDIF}
-  if (ProcNode.FirstChild=nil)
-  or ((ProcNode.SubDesc and ctnsNeedJITParsing)>0) then
-    BuildSubTreeForProcHead(ProcNode);
-
-  // ToDo: ppu, dcu
-
-  Result:=MoveCursorToProcSpecifier(ProcNode,ProcSpec);
 end;
 
 function TPascalReaderTool.ProcNodeHasParamList(ProcNode: TCodeTreeNode): boolean;

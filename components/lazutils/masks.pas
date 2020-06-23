@@ -13,6 +13,7 @@ unit Masks;
 interface
 
 uses
+  // For Smart Linking: Do not use the LCL!
   Classes, SysUtils, Contnrs, LazUtilsStrConsts, LazUtf8;
 
 type

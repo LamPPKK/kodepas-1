@@ -57,7 +57,7 @@ begin
   FLastMinimizeEvent := 0;
   FWindowManagerName := LowerCase(GetWindowManager);
   // metacity wm forks. marco = mint mate wm, gnome shell = gnome 3 wm
-  if (FWindowManagerName = 'marco') or // issue #35782 (FWindowManagerName = 'gnome shell') or
+  if (FWindowManagerName = 'marco') or (FWindowManagerName = 'gnome shell') or
     (UTF8Pos('mutter', FWindowManagerName) > 0) then
     FWindowManagerName := 'metacity';
   {$ENDIF}
@@ -257,7 +257,7 @@ begin
     if (StyleName = 'gtk') or (StyleName = 'gtk+') then
       QTimer_setInterval(ATimer, 1) {issue #31191}
     else
-      QTimer_setInterval(ATimer, {$IFDEF QtCocoa}5{$ELSE} 0 {$ENDIF});
+      QTimer_setInterval(ATimer, {$IFDEF QtCocoa}1{$ELSE} 0 {$ENDIF});
     QTimer_start(ATimer);
     FMainTimerID := QTimer_timerId(ATimer);
     QApplication_exec();
@@ -311,12 +311,8 @@ end;
 procedure TQtWidgetSet.AppTerminate;
 begin
   // free hooks
-  if Assigned(FAppEvenFilterHook) then
-    QObject_hook_destroy(FAppEvenFilterHook);
-  if Assigned(FAppFocusChangedHook) then
-    QApplication_hook_destroy(FAppFocusChangedHook);
-  FAppEvenFilterHook := nil;
-  FAppFocusChangedHook := nil;
+  QObject_hook_destroy(FAppEvenFilterHook);
+  QApplication_hook_destroy(FAppFocusChangedHook);
   // do not quit application if we are library
   if not FIsLibraryInstance then
   begin
@@ -1236,8 +1232,6 @@ begin
     lcRadialGradientBrush: Result := LCL_CAPABILITY_YES;
     lcTransparentWindow: Result := LCL_CAPABILITY_YES;
     lcTextHint: Result := LCL_CAPABILITY_YES;
-    lcNativeTaskDialog: Result := {$ifdef MSWINDOWS} LCL_CAPABILITY_NO {$else} LCL_CAPABILITY_YES {$endif};
-    lcAllowChildControlsInNativeControls: Result := LCL_CAPABILITY_YES;
   else
     Result := inherited GetLCLCapability(ACapability);
   end;
@@ -1875,7 +1869,7 @@ var
   ATempWidget: QWidgetH;
   R: TRect;
   ASize, AFrameSize: TSize;
-  AID: PtrUInt;
+  AID: LongWord;
   I: integer;
   B: Boolean;
   ATicks: DWORD;

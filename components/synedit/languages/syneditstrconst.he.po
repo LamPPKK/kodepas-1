@@ -434,7 +434,6 @@ msgid "Whitespace"
 msgstr "סימן \"לבן\""
 
 #: syneditstrconst.syns_duplicateshortcutmsg
-#, object-pascal-format
 msgid "The keystroke \"%s\" is already assigned to another editor command. (%s)"
 msgstr "ההקשה  \"%s\" כבר משוייכת לפקודת עורך אחרת.  (%s)"
 
@@ -795,17 +794,16 @@ msgid "XML Document (*.xml,*.xsd,*.xsl,*.xslt,*.dtd)|*.xml;*.xsd;*.xsl;*.xslt;*.
 msgstr "מסמכי XML  (*.xml,*.xsd,*.xsl,*.xslt,*.dtd)|*.xml;*.xsd;*.xsl;*.xslt;*.dtd"
 
 #: syneditstrconst.syns_previewscrollinfofmt
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Page: %d"
 msgstr "דף: d%"
 
 #: syneditstrconst.syns_scrollinfofmt
-#, object-pascal-format
 msgid "%d - %d"
 msgstr "%d - %d"
 
 #: syneditstrconst.syns_scrollinfofmttop
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Top Line: %d"
 msgstr "שורה עליונה: d%"
 

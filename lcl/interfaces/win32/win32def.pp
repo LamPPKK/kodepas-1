@@ -1,10 +1,10 @@
-{ $Id$
+{ $Id: win32def.pp 41387 2013-05-24 18:30:06Z juha $
                          ------------------------------
                          win32def.pp  -  Type definitions
                          ------------------------------
 
  @created(Wed Jan 24st WET 2001)
- @lastmod($Date$)
+ @lastmod($Date: 2013-05-24 20:30:06 +0200 (Fr, 24 Mai 2013) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)
 
  This unit contains type definitions needed in the Windows <-> LCL interface

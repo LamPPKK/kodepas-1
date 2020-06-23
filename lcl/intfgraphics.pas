@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: intfgraphics.pas 60390 2019-02-09 08:49:38Z mattias $  }
 {
  /***************************************************************************
                               intfgraphics.pp
@@ -3432,7 +3432,6 @@ begin
   then begin
     QueryDescription(FRawImage.Description, AFlags, AWidth, AHeight);
     ChooseGetSetColorFunctions;
-    CreateData;
   end;
 end;
 

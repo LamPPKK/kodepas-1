@@ -68,9 +68,6 @@ function TryCreateRelativePath(const Dest, Source: String; UsePointDirectory: bo
 function CreateRelativePath(const Filename, BaseDirectory: string;
   UsePointDirectory: boolean = false; AlwaysRequireSharedBaseFolder: Boolean = True): string;
 function FileIsInPath(const Filename, Path: string): boolean;
-function PathIsInPath(const Path, Directory: string): boolean;
-// Storten a file name for display.
-function ShortDisplayFilename(const aFileName: string; aLimit: Integer = 80): string;
 
 type
   TPathDelimSwitch = (
@@ -572,10 +569,11 @@ function FileIsText(const AFilename: string; out FileReadable: boolean): boolean
 var
   Buf: string;
   Len: integer;
-  NewLine: boolean;
   p: PChar;
   ZeroAllowed: Boolean;
   fHandle: THandle;
+const
+  BufSize = 2048;
 begin
   Result:=false;
   FileReadable:=true;
@@ -583,7 +581,7 @@ begin
   if (THandle(fHandle) <> feInvalidHandle)  then
   begin
     try
-      Len:=1024;
+      Len:=BufSize;
       SetLength(Buf,Len+1);
       Len := FileRead(fHandle,Buf[1],Len);
 
@@ -603,7 +601,6 @@ begin
           inc(p,2);
           ZeroAllowed:=true;
         end;
-        NewLine:=false;
         while true do begin
           case p^ of
           #0:
@@ -615,12 +612,10 @@ begin
           // #12: form feed
           // #26: end of file
           #1..#8,#11,#14..#25,#27..#31: exit;
-          #10,#13: NewLine:=true;
           end;
           inc(p);
         end;
-        if NewLine or (Len<1024) then
-          Result:=true;
+        Result:=true;
       end else
         Result:=true;
     finally
@@ -738,54 +733,15 @@ var
   ExpPath: String;
   l: integer;
 begin
-  if Path='' then exit(false);
+  if Path='' then begin
+    Result:=false;
+    exit;
+  end;
   ExpFile:=ResolveDots(Filename);
   ExpPath:=AppendPathDelim(ResolveDots(Path));
   l:=length(ExpPath);
   Result:=(l>0) and (length(ExpFile)>l) and (ExpFile[l]=PathDelim)
           and (CompareFilenames(ExpPath,LeftStr(ExpFile,l))=0);
-end;
-
-function PathIsInPath(const Path, Directory: string): boolean;
-// Note: Under Windows this treats C: as C:\
-var
-  ExpPath: String;
-  ExpDir: String;
-  l: integer;
-begin
-  if Path='' then exit(false);
-  ExpPath:=AppendPathDelim(ResolveDots(Path));
-  ExpDir:=AppendPathDelim(ResolveDots(Directory));
-  l:=length(ExpDir);
-  Result:=(l>0) and (length(ExpPath)>=l) and (ExpPath[l]=PathDelim)
-          and (CompareFilenames(ExpDir,LeftStr(ExpPath,l))=0);
-end;
-
-function ShortDisplayFilename(const aFileName: string; aLimit: Integer): string;
-// Shorten a long filename for display.
-// Add '...' after the 2. path delimiter, then the end part of filename.
-var
-  StartLen, EndLen, SepCnt: Integer;
-begin
-  if Length(aFileName) > aLimit then
-  begin
-    StartLen := 1;
-    SepCnt := 0;
-    while StartLen < Length(aFileName) - (aLimit div 2) do
-    begin
-      if aFileName[StartLen] in AllowDirectorySeparators then
-      begin
-        Inc(SepCnt);
-        if SepCnt = 2 then Break;
-      end;
-      Inc(StartLen);
-    end;
-    EndLen := aLimit - StartLen - 3;
-    Result := Copy(aFileName, 1, StartLen) + '...'
-            + Copy(aFileName, Length(aFileName)-EndLen+1, EndLen);
-  end
-  else
-    Result := aFileName;
 end;
 
 
@@ -1325,7 +1281,6 @@ function StrToCmdLineParam(const Param: string): string;
 const
   NoQuot = ' ';
   AnyQuot = '*';
-  SysQuot = {$IFDEF Windows}'"'{$ELSE}''''{$ENDIF};
 var
   Quot: Char;
   p: PChar;
@@ -1345,7 +1300,7 @@ begin
           if i<length(Result) then
             Delete(Result,i+1,length(Result));
           case Quot of
-          AnyQuot: Result:=SysQuot+Result+SysQuot;
+          AnyQuot: Result:=''''+Result+'''';
           '''': Result+='''';
           '"':  Result+='"';
           end;

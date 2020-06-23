@@ -35,7 +35,7 @@ uses
   // LazUtils
   FileUtil, LazFileUtils,
   // OpkMan
-  opkman_serializablepackages, opkman_common,
+  opkman_timer, opkman_serializablepackages, opkman_common,
   {$IFDEF FPC311}zipper{$ELSE}opkman_zip{$ENDIF};
 
 type
@@ -61,16 +61,17 @@ type
     FTotPos: Int64;
     FTotPosTmp: Int64;
     FTotSize: Int64;
-    FElapsed: QWord;
-    FStartTime: QWord;
+    FElapsed: Integer;
     FRemaining: Integer;
     FSpeed: Integer;
     FErrMsg: String;
     FIsUpdate: Boolean;
+    FTimer: TThreadTimer;
     FUnZipper: TUnZipper;
     FOnZipProgress: TOnZipProgress;
     FOnZipError: TOnZipError;
     FOnZipCompleted: TOnZipCompleted;
+    procedure DoOnTimer(Sender: TObject);
     procedure DoOnProgressEx(Sender : TObject; const ATotPos, {%H-}ATotSize: Int64);
     procedure DoOnZipProgress;
     procedure DoOnZipError;
@@ -145,9 +146,7 @@ var
   I: Integer;
   DelDir: String;
 begin
-  Sleep(50);
   FCnt := 0;
-  FStartTime := GetTickCount64;
   for I := 0 to SerializablePackages.Count - 1 do
   begin
     if SerializablePackages.Items[I].IsExtractable then
@@ -192,10 +191,7 @@ begin
     end;
   end;
   if (FNeedToBreak) then
-  begin
-    if DirectoryExists(DelDir) then
-      DeleteDirectory(DelDir, False)
-  end
+    DeleteDirectory(DelDir, False)
   else
   begin
     SerializablePackages.MarkRuntimePackages;
@@ -208,27 +204,30 @@ begin
   inherited Create(True);
   FreeOnTerminate := True;
   FUnZipper := TUnZipper.Create;
+  FTimer := nil;
 end;
 
 destructor TPackageUnzipper.Destroy;
 begin
+  if FTimer.Enabled then
+    FTimer.StopTimer;
+  FTimer.Terminate;
   FUnZipper.Free;
   inherited Destroy;
 end;
 
+procedure TPackageUnzipper.DoOnTimer(Sender: TObject);
+begin
+  Inc(FElapsed);
+  FSpeed := Round(FTotPosTmp/FElapsed);
+  FRemaining := Round((FTotSize - FTotPosTmp)/FSpeed);
+end;
+
 procedure TPackageUnzipper.DoOnProgressEx(Sender : TObject; const ATotPos, ATotSize: Int64);
 begin
-  FElapsed := GetTickCount64 - FStartTime;
-  if FElapsed < 1000 then
-    Exit;
-  FElapsed := FElapsed div 1000;
-
   FCurPos := ATotPos;
   FCurSize := ATotSize;
   FTotPosTmp := FTotPos + FCurPos;
-  FSpeed := Round(FTotPosTmp/FElapsed);
-  if FSpeed > 0 then
-    FRemaining := Round((FTotSize - FTotPosTmp)/FSpeed);
   Synchronize(@DoOnZipProgress);
   Sleep(5);
 end;
@@ -310,6 +309,9 @@ begin
     end;
   end;
   FStarted := True;
+  FTimer := TThreadTimer.Create;
+  FTimer.OnTimer := @DoOnTimer;
+  FTimer.StartTimer;
   Start;
 end;
 
@@ -317,6 +319,8 @@ procedure TPackageUnzipper.StopUnZip;
 begin
   if Assigned(FUnZipper) then
     FUnZipper.Terminate;
+  if Assigned(FTimer) then
+    FTimer.StopTimer;
   FNeedToBreak := True;
   FStarted := False;
 end;

@@ -81,10 +81,6 @@ type
 
   { TChartAxis }
 
-  TChartAxisHitTest = (ahtTitle, ahtLine, ahtLabels, ahtGrid,
-    ahtAxisStart, ahtAxisCenter, ahtAxisEnd);
-  TChartAxisHitTests = set of TChartAxisHitTest;
-
   TChartAxis = class(TChartBasicAxis)
   strict private
     FListener: TListener;
@@ -96,7 +92,6 @@ type
     FAxisRect: TRect;
     FGroupIndex: Integer;
     FTitleRect: TRect;
-    FTitlePolygon: TPointArray;
     function MakeValuesInRangeParams(AMin, AMax: Double): TValuesInRangeParams;
   strict private
     FAlignment: TChartAxisAlignment;
@@ -109,7 +104,6 @@ type
     FMargin: TChartDistance;
     FMarginsForMarks: Boolean;
     FMinors: TChartMinorAxisList;
-    FOnGetMarkText: TChartGetAxisMarkTextEvent;
     FOnMarkToText: TChartAxisMarkToTextEvent;
     FPosition: Double;
     FPositionUnits: TChartUnits;
@@ -131,7 +125,6 @@ type
     procedure SetMarginsForMarks(AValue: Boolean);
     procedure SetMarks(AValue: TChartAxisMarks);
     procedure SetMinors(AValue: TChartMinorAxisList);
-    procedure SetOnGetMarkText(AValue: TChartGetAxisMarkTextEvent);
     procedure SetOnMarkToText(AValue: TChartAxisMarkToTextEvent);
     procedure SetPosition(AValue: Double);
     procedure SetPositionUnits(AValue: TChartUnits);
@@ -151,7 +144,6 @@ type
     destructor Destroy; override;
   public
     procedure Assign(ASource: TPersistent); override;
-    function GetHitTestInfoAt(APoint: TPoint; ADelta: Integer): TChartAxisHitTests; virtual;
     procedure Draw;
     procedure DrawTitle(ASize: Integer);
     function GetChart: TCustomChart; inline;
@@ -162,7 +154,6 @@ type
     function IsVertical: Boolean; inline;
     procedure Measure(
       const AExtent: TDoubleRect; var AMeasureData: TChartAxisGroup);
-    function MeasureLabelSize(ADrawer: IChartDrawer): Integer;
     function PositionToCoord(const ARect: TRect): Integer;
     procedure PrepareHelper(
       ADrawer: IChartDrawer; const ATransf: ICoordTransformer;
@@ -178,6 +169,7 @@ type
     property AtDataOnly: Boolean read FAtDataOnly write SetAtDataOnly default false;
     property AxisPen: TChartAxisPen read FAxisPen write SetAxisPen;
     property Group: Integer read FGroup write SetGroup default 0;
+    // Inverts the axis scale from increasing to decreasing.
     property Inverted: boolean read FInverted write SetInverted default false;
     property LabelSize: Integer read FLabelSize write SetLabelSize default 0;
     property Margin: TChartDistance read FMargin write SetMargin default 0;
@@ -195,10 +187,8 @@ type
       read FTransformations write SetTransformations;
     property ZPosition: TChartDistance read FZPosition write SetZPosition default 0;
   published
-    property OnGetMarkText: TChartGetAxisMarkTextEvent
-      read FOnGetMarkText write SetOnGetMarkText;
     property OnMarkToText: TChartAxisMarkToTextEvent
-      read FOnMarkToText write SetOnMarkToText; deprecated 'Use "OnGetMarkText';
+      read FOnMarkToText write SetOnMarkToText;
   end;
 
   TChartOnSourceVisitor =
@@ -276,7 +266,7 @@ type
 implementation
 
 uses
-  LResources, Math, PropEdits, TAChartStrConsts, TAGeometry, TAMath;
+  LResources, Math, PropEdits, TAChartStrConsts, {%H-}TAGeometry, TAMath;
 
 var
   VIdentityTransform: TChartAxisTransformations;
@@ -437,7 +427,6 @@ begin
       Self.FTransformations := Transformations;
       Self.FZPosition := ZPosition;
       Self.FMarginsForMarks := MarginsForMarks;
-      Self.FOnGetMarkText := OnGetMarkText;
       Self.FOnMarkToText := OnMarkToText;
     end;
   inherited Assign(ASource);
@@ -468,95 +457,6 @@ begin
   FreeAndNil(FHelper);
   FreeAndNil(FAxisPen);
   inherited;
-end;
-
-function TChartAxis.GetHitTestInfoAt(APoint: TPoint;
-  ADelta: Integer): TChartAxisHitTests;
-var
-  R: TRect;
-  w, h, loc: Integer;
-  p: Integer;
-  t: TChartValueText;
-begin
-  Result := [];
-  if IsPointInPolygon(APoint, FTitlePolygon) then
-    Include(Result, ahtTitle)
-  else begin
-    R := FAxisRect;
-    case FAlignment of
-      calLeft:
-        begin
-          R.Right := R.Left + Max(ADelta, TickInnerLength);
-          R.Left := R.Left - Max(ADelta, TickLength);
-        end;
-      calRight:
-        begin
-          R.Left := R.Right - Max(ADelta, TickInnerLength);
-          R.Right := R.Right + Max(ADelta, TickLength);
-        end;
-      calTop:
-        begin
-          R.Bottom := R.Top + Max(ADelta, TickInnerLength);
-          R.Top := R.Top - Max(ADelta, TickLength);
-        end;
-      calBottom:
-        begin
-          R.Top := R.Bottom - Max(ADelta, TickInnerLength);
-          R.Bottom := R.Bottom + Max(ADelta, TickLength);
-        end;
-    end;
-    if IsPointInRect(APoint, R) then
-      Include(Result, ahtLine)
-    else if IsPointInside(APoint) then
-      Include(Result, ahtLabels)
-    else begin
-      R := FHelper.FClipRect^;
-      for t in FMarkValues do begin
-        p := FHelper.GraphToImage(FHelper.FAxisTransf(t.FValue));
-        if IsVertical then begin
-          R.Top := p - ADelta;
-          R.Bottom := p + ADelta;
-        end else begin
-          R.Left := p - ADelta;
-          R.Right := p + ADelta;
-        end;
-        if IsPointInRect(APoint, R) then begin
-          Include(Result, ahtGrid);
-          break;
-        end;
-      end;
-    end;
-
-    if Result = [] then
-      exit;
-
-    R := FHelper.FClipRect^;
-    if IsVertical then begin
-      h := R.Bottom - R.Top;
-      p := APoint.Y - R.Top;
-      if p < h div 4 then
-        loc := +1
-      else if p > h - h div 4 then
-        loc := -1
-      else
-        loc := 0;
-    end else begin
-      w := abs(R.Right - R.Left);
-      p := abs(APoint.X - R.Left);
-      if p < w div 4 then
-        loc := -1
-      else if p > w - w div 4 then
-        loc := +1
-      else
-        loc := 0;
-    end;
-    if IsFlipped then loc := -loc;
-    case loc of
-      -1: Include(Result, ahtAxisStart);
-       0: Include(Result, ahtAxisCenter);
-      +1: Include(Result, ahtAxisEnd);
-    end;
-  end;
 end;
 
 procedure TChartAxis.Draw;
@@ -621,6 +521,7 @@ end;
 procedure TChartAxis.DrawTitle(ASize: Integer);
 var
   p: TPoint;
+  dummy: TPointArray = nil;
   d: Integer;
 begin
   if not Visible or (ASize = 0) or (FTitlePos = MaxInt) then exit;
@@ -636,7 +537,7 @@ begin
   end;
   TPointBoolArr(p)[IsVertical] := FTitlePos;
   p += FHelper.FZOffset;
-  Title.DrawLabel(FHelper.FDrawer, p, p, Title.Caption, FTitlePolygon);
+  Title.DrawLabel(FHelper.FDrawer, p, p, Title.Caption, dummy);
 end;
 
 function TChartAxis.GetAlignment: TChartAxisAlignment;
@@ -709,11 +610,6 @@ begin
     FRotationCenter := Marks.RotationCenter;
   end;
 
-  if Assigned(FOnGetMarkText) then
-    for i := 0 to High(FMarkValues) do
-      FOnGetMarkText(self, FMarkValues[i].FText, FMarkValues[i].FValue);
-
-  // the following event is deprecated and will be removed...
   if Assigned(FOnMarkToText) then
     for i := 0 to High(FMarkValues) do
       FOnMarkToText(FMarkValues[i].FText, FMarkValues[i].FValue);
@@ -886,19 +782,6 @@ begin
     end;
 end;
 
-function TChartAxis.MeasureLabelSize(ADrawer: IChartDrawer): Integer;
-var
-  sz: Integer;
-  mv: TChartValueTextArray = nil;
-  i: Integer;
-begin
-  SetLength(mv, ValueCount);
-  for i := 0 to ValueCount - 1 do
-    mv[i] := Value[i];
-  sz := Marks.Measure(ADrawer, not IsVertical, TickLength, mv);
-  Result := round(sz / ADrawer.Scale(1));
-end;
-
 function TChartAxis.PositionIsStored: Boolean;
 begin
   Result := not SameValue(Position, 0.0);
@@ -1022,13 +905,6 @@ end;
 procedure TChartAxis.SetMinors(AValue: TChartMinorAxisList);
 begin
   FMinors.Assign(AValue);
-  StyleChanged(Self);
-end;
-
-procedure TChartAxis.SetOnGetMarkText(AValue: TChartGetAxisMarkTextEvent);
-begin
-  if TMethod(FOnGetMarkText) = TMethod(AValue) then exit;
-  FOnGetMarkText := AValue;
   StyleChanged(Self);
 end;
 

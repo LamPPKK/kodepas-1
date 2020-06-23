@@ -423,7 +423,6 @@ var
   W: QWidgetH;
   {$ENDIF}
   Flags: Cardinal;
-  AModalWindowFlag: QtWindowFlags;
 
   function ShowNonModalOverModal: Boolean;
   var
@@ -499,7 +498,7 @@ begin
       {$ifdef HASX11}
       if ((QtWidgetSet.WindowManagerName = 'kwin') and IsOldKDEInstallation) or
         (QtWidgetSet.WindowManagerName = 'xfwm4') or
-        (QtWidgetSet.WindowManagerName = 'metacity') or IsWayland then
+        (QtWidgetSet.WindowManagerName = 'metacity') then
       begin
         W := nil;
         ActiveWin := GetActiveWindow;
@@ -524,21 +523,10 @@ begin
 
       if TCustomForm(AWinControl).BorderStyle <> bsNone then
       begin
-        {$ifdef darwin}
-        Flags := QtWindowSystemMenuHint;
-        if (TCustomForm(AWinControl).BorderStyle in [bsSizeable, bsSizeToolWin]) then
-          Flags := Flags or QtWindowMaximizeButtonHint;
-        {$endif}
-        AModalWindowFlag := QtDialog;
-        {$IFDEF HASX11}
-        //do not translate those strings. issue #35782.
-        //if this fails for ubuntus < 18.04 then we must parse /etc/os-release
-        //for exact ubuntu version.
-        if (LowerCase(GetWindowManager) = 'gnome shell') then
-          AModalWindowFlag := QtWindow;
-        {$ENDIF}
-        QWidget_setWindowFlags(Widget.Widget, AModalWindowFlag or
-          {$ifdef darwin}Flags or {$endif}
+        QWidget_setWindowFlags(Widget.Widget, QtDialog or
+          {$ifdef darwin}
+          QtWindowSystemMenuHint or
+          {$endif}
           GetQtBorderIcons(TCustomForm(AWinControl).BorderStyle,
             TCustomForm(AWinControl).BorderIcons));
       end;
@@ -943,8 +931,7 @@ begin
   if (biMinimize in ABorderIcons) then
     Result := Result or QtWindowMinimizeButtonHint;
 
-  if (biMaximize in ABorderIcons)
-  {$ifdef darwin} or (AFormBorderStyle = bsSizeToolWin) {$endif} then
+  if (biMaximize in ABorderIcons) then
     Result := Result or QtWindowMaximizeButtonHint;
 
   if (biHelp in ABorderIcons) then

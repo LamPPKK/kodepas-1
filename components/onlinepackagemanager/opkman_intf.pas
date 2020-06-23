@@ -29,12 +29,11 @@ unit opkman_intf;
 interface
 
 uses
-  Classes, SysUtils, Forms, Dialogs, Controls, contnrs, fpjson, ExtCtrls,
-  dateutils,
+  Classes, SysUtils, Forms, Dialogs, Controls, contnrs, fpjson,
   // IdeIntf
   LazIDEIntf, PackageIntf, PackageLinkIntf, PackageDependencyIntf, IDECommands,
   // OPM
-  opkman_downloader, opkman_serializablepackages, opkman_installer, opkman_mainfrm;
+  opkman_timer, opkman_downloader, opkman_serializablepackages, opkman_installer;
 
 type
 
@@ -46,16 +45,15 @@ type
     FPackagesToInstall: TObjectList;
     FPackageDependecies: TObjectList;
     FPackageLinks: TObjectList;
-    FTimer: TTimer;
+    FWaitForIDE: TThreadTimer;
     FNeedToInit: Boolean;
-    procedure DoOnTimer(Sender: TObject);
+    FBusyUpdating: Boolean;
+    procedure DoWaitForIDE(Sender: TObject);
     procedure DoUpdatePackageLinks(Sender: TObject);
-    procedure DoOnIDEClose(Sender: TObject);
     procedure InitOPM;
     procedure SynchronizePackages;
     procedure AddToDownloadList(const AName: String);
     procedure AddToInstallList(const AName: String);
-    procedure DoHandleException(Sender: TObject; E: Exception);
     function Download(const ADstDir: String): TModalResult;
     function Extract(const ASrcDir, ADstDir: String; const AIsUpdate: Boolean = False): TModalResult;
     function Install(var AInstallStatus: TInstallStatus; var ANeedToRebuild: Boolean): TModalResult;
@@ -80,22 +78,24 @@ uses opkman_common, opkman_options, opkman_const, opkman_progressfrm, opkman_zip
 
 constructor TOPMInterfaceEx.Create;
 begin
-  InitCriticalSection(CriticalSection);
-  Application.AddOnExceptionHandler(@DoHandleException);
   FPackageLinks := TObjectList.Create(False);
   FPackagesToDownload := TObjectList.Create(False);
   FPackagesToInstall := TObjectList.Create(False);
   FPackageDependecies := TObjectList.Create(False);
   FNeedToInit := True;
-  FTimer := TTimer.Create(nil);
-  FTimer.Interval := 50;
-  FTimer.OnTimer := @DoOnTimer;
-  FTimer.Enabled := True;
+  FWaitForIDE := TThreadTimer.Create;
+  FWaitForIDE.Interval := 100;
+  FWaitForIDE.OnTimer := @DoWaitForIDE;
+  FWaitForIDE.StartTimer;
 end;
 
 destructor TOPMInterfaceEx.Destroy;
 begin
-  FTimer.Free;
+  if (PackageDownloader<>nil) and PackageDownloader.DownloadingJSON then
+    PackageDownloader.Cancel;
+  FWaitForIDE.StopTimer;
+  FWaitForIDE.Terminate;
+  FWaitForIDE.WaitFor;
   FPackageLinks.Clear;
   FPackageLinks.Free;
   FPackagesToDownload.Clear;
@@ -108,41 +108,33 @@ begin
   SerializablePackages.Free;
   Options.Free;
   InstallPackageList.Free;
-  DoneCriticalsection(CriticalSection);
   inherited Destroy;
 end;
 
-procedure TOPMInterfaceEx.DoOnIDEClose(Sender: TObject);
+procedure TOPMInterfaceEx.DoWaitForIDE(Sender: TObject);
 begin
-  if Assigned(PackageDownloader) then
-    if PackageDownloader.DownloadingJSON then
-      PackageDownloader.Cancel;
-end;
-
-
-procedure TOPMInterfaceEx.DoOnTimer(Sender: TObject);
-begin
-  if Assigned(LazarusIDE) and Assigned(PackageEditingInterface) and (not LazarusIDE.IDEIsClosing) then
+  if Assigned(LazarusIDE) and Assigned(PackageEditingInterface) then
   begin
     if FNeedToInit then
     begin
       InitOPM;
       FNeedToInit := False;
-      FTimer.Enabled := False;
-      FTimer.Interval := 5000;
-      FTimer.Enabled := True;
+      FWaitForIDE.StopTimer;
+      FWaitForIDE.Interval := 5000;
+      FWaitForIDE.StartTimer;
     end
     else
     begin
-      FTimer.Enabled := False;
-      if (not LazarusIDE.IDEIsClosing) then
+      if (FPackageLinks.Count = 0) then
       begin
-        if (Options.CheckForUpdates <> 5) and (not Assigned(MainFrm)) then
-        begin
+        if (not PackageDownloader.DownloadingJSON) and (not Application.Terminated) and (Options.CheckForUpdates <> 5) then
           PackageDownloader.DownloadJSON(Options.ConTimeOut*1000, True);
-          LazarusIDE.AddHandlerOnIDEClose(@DoOnIDEClose);
-        end;
+        Exit;
       end;
+      if (not Application.terminated) then
+        if (not FBusyUpdating) then
+          if (Assigned(OnPackageListAvailable)) then
+            OnPackageListAvailable(Self);
     end;
   end;
 end;
@@ -187,36 +179,41 @@ var
   PackageLink: TPackageLink;
   FileName, Name, URL: String;
 begin
-  PkgLinks.ClearOnlineLinks;
-  FPackageLinks.Clear;
-  for I := 0 to SerializablePackages.Count - 1 do
-  begin
-    MetaPackage := SerializablePackages.Items[I];
-    for J := 0 to MetaPackage.LazarusPackages.Count - 1 do
+  if FBusyUpdating then
+    Exit;
+  FBusyUpdating := True;
+  try
+    PkgLinks.ClearOnlineLinks;
+    FPackageLinks.Clear;
+    for I := 0 to SerializablePackages.Count - 1 do
     begin
-      LazPackage := TLazarusPackage(MetaPackage.LazarusPackages.Items[J]);
-      FileName := Options.LocalRepositoryPackagesExpanded + MetaPackage.PackageBaseDir + LazPackage.PackageRelativePath + LazPackage.Name;
-      Name := StringReplace(LazPackage.Name, '.lpk', '', [rfReplaceAll, rfIgnoreCase]);
-      URL := Options.RemoteRepository[Options.ActiveRepositoryIndex] + MetaPackage.RepositoryFileName;
-      PackageLink := FindOnlineLink(Name);
-      if PackageLink = nil then
+      MetaPackage := SerializablePackages.Items[I];
+      for J := 0 to MetaPackage.LazarusPackages.Count - 1 do
       begin
-        PackageLink := PkgLinks.AddOnlineLink(FileName, Name, URL);
-        if PackageLink <> nil then
+        LazPackage := TLazarusPackage(MetaPackage.LazarusPackages.Items[J]);
+        FileName := Options.LocalRepositoryPackagesExpanded + MetaPackage.PackageBaseDir + LazPackage.PackageRelativePath + LazPackage.Name;
+        Name := StringReplace(LazPackage.Name, '.lpk', '', [rfReplaceAll, rfIgnoreCase]);
+        URL := Options.RemoteRepository[Options.ActiveRepositoryIndex] + MetaPackage.RepositoryFileName;
+        PackageLink := FindOnlineLink(Name);
+        if PackageLink = nil then
         begin
-          PackageLink.Version.Assign(LazPackage.Version);
-          PackageLink.PackageType := LazPackage.PackageType;
-          PackageLink.OPMFileDate := MetaPackage.RepositoryDate;
-          PackageLink.Author := LazPackage.Author;
-          PackageLink.Description := LazPackage.Description;
-          PackageLink.License := LazPackage.License;
-          FPackageLinks.Add(PackageLink);
+          PackageLink := PkgLinks.AddOnlineLink(FileName, Name, URL);
+          if PackageLink <> nil then
+          begin
+            PackageLink.Version.Assign(LazPackage.Version);
+            PackageLink.PackageType := LazPackage.PackageType;
+            PackageLink.OPMFileDate := MetaPackage.RepositoryDate;
+            PackageLink.Author := LazPackage.Author;
+            PackageLink.Description := LazPackage.Description;
+            PackageLink.License := LazPackage.License;
+            FPackageLinks.Add(PackageLink);
+          end;
         end;
       end;
     end;
+  finally
+    FBusyUpdating := False;
   end;
-  if (Assigned(OnPackageListAvailable)) then
-     OnPackageListAvailable(Self);
 end;
 
 procedure TOPMInterfaceEx.AddToDownloadList(const AName: String);
@@ -539,11 +536,5 @@ begin
     end;
   end;
 end;
-
-procedure TOPMInterfaceEx.DoHandleException(Sender: TObject; E: Exception);
-begin
-  //
-end;
-
 
 end.

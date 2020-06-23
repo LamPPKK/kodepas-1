@@ -10,19 +10,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: lclstrconsts.hhshelpbrowsernotexecutable
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Browser %s%s%s not executable."
 msgid "Browser \"%s\" not executable."
 msgstr "דפדפן  %s%s%s אינו קובץ ריצה."
 
 #: lclstrconsts.hhshelpbrowsernotfound
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Browser %s%s%s not found."
 msgid "Browser \"%s\" not found."
 msgstr "דפדפן  %s%s%s לא נמצא."
 
 #: lclstrconsts.hhshelperrorwhileexecuting
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Error while executing %s%s%s:%s%s"
 msgid "Error while executing \"%s\":%s%s"
 msgstr "שגיאה בזמן הרצת %s%s%s:%s%s"
@@ -32,18 +32,16 @@ msgid "Unable to find a HTML browser."
 msgstr "לא יכול למצוא דפדפן HTML."
 
 #: lclstrconsts.hhshelpnohtmlbrowserfoundpleasedefineone
-#, object-pascal-format
 msgid "No HTML Browser found.%sPlease define one in Tools -> Options -> Help -> Help Options"
 msgstr ""
 
 #: lclstrconsts.hhshelpthehelpdatabasewasunabletofindfile
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "The help database %s%s%s was unable to find file %s%s%s."
 msgid "The help database \"%s\" was unable to find file \"%s\"."
 msgstr "בסיס הנתונים של העזרה לא יכול למצוא את הקובץ %s%s%s."
 
 #: lclstrconsts.hhshelpthemacrosinbrowserparamswillbereplacedbytheurl
-#, object-pascal-format
 msgid "The macro %s in BrowserParams will be replaced by the URL."
 msgstr "המאקרו %s ב BrowserParams  יוחלף ב URL."
 
@@ -81,7 +79,7 @@ msgid "Unknown"
 msgstr "לא ידוע"
 
 #: lclstrconsts.lislclresourcesnotfound
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgctxt "lclstrconsts.lislclresourcesnotfound"
 msgid "Resource %s not found"
 msgstr "משאב s% לא נמצא"
@@ -107,7 +105,6 @@ msgid "Active Caption"
 msgstr "כותרת פעילה"
 
 #: lclstrconsts.rsallfiles
-#, object-pascal-format
 msgid "All files (%s)|%s|%s"
 msgstr "כל הקבצים  (%s)|%s|%s"
 
@@ -120,7 +117,6 @@ msgid "Aqua"
 msgstr "מימי"
 
 #: lclstrconsts.rsascannothaveasparent
-#, object-pascal-format
 msgid "Class %s cannot have %s as parent."
 msgstr ""
 
@@ -190,22 +186,20 @@ msgid "Case sensitive"
 msgstr "רגיש לריישיות"
 
 #: lclstrconsts.rscontrolclasscantcontainchildclass
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Control of class '%s' can't have control of class '%s' as a child"
 msgstr "פקד של המחלקה  '%s' לא יכול לקבל פקד של מחלקה s% בתור בן"
 
 #: lclstrconsts.rscontrolhasnoparentformorframe
-#, object-pascal-format
 msgid "Control '%s' has no parent form or frame"
 msgstr ""
 
 #: lclstrconsts.rscontrolhasnoparentwindow
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Control '%s' has no parent window"
 msgstr "לפקד s% אין חלון הורה"
 
 #: lclstrconsts.rscontrolisnotaparent
-#, object-pascal-format
 msgid "'%s' is not a parent of '%s'"
 msgstr ""
 
@@ -272,12 +266,11 @@ msgid "Error"
 msgstr "שגיאה"
 
 #: lclstrconsts.rserrorcreatingdevicecontext
-#, object-pascal-format
 msgid "Error creating device context for %s.%s"
 msgstr "שגיאה ביצירת הקשר התקן עבור %s.%s"
 
 #: lclstrconsts.rserroroccurredinataddressframe
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Error occurred in %s at %sAddress %s%s Frame %s"
 msgstr "שגיאה אירעה ב s% בכתובת %s%s מסגרת s%"
 
@@ -294,12 +287,10 @@ msgid "Directory must exist"
 msgstr "התיקייה חייבת להיות קיימת"
 
 #: lclstrconsts.rsfddirectorynotexist
-#, object-pascal-format
 msgid "The directory \"%s\" does not exist."
 msgstr "התיקייה  \"%s\" לא קיימת."
 
 #: lclstrconsts.rsfdfilealreadyexists
-#, object-pascal-format
 msgid "The file \"%s\" already exists. Overwrite ?"
 msgstr "הקובץ  \"%s\" כבר קיים, לדרוס?"
 
@@ -308,12 +299,10 @@ msgid "File must exist"
 msgstr "הקובץ חייב להיות קיים"
 
 #: lclstrconsts.rsfdfilenotexist
-#, object-pascal-format
 msgid "The file \"%s\" does not exist."
 msgstr "הקובץ  \"%s\" לא קיים."
 
 #: lclstrconsts.rsfdfilereadonly
-#, object-pascal-format
 msgid "The file \"%s\" is not writable."
 msgstr "לא ניתן לכתוב לקובץ \"%s\" ."
 
@@ -338,7 +327,6 @@ msgid "Path must exist"
 msgstr "הנתיב חייב להיות קיים"
 
 #: lclstrconsts.rsfdpathnoexist
-#, object-pascal-format
 msgid "The path \"%s\" does not exist."
 msgstr "הנתיב \"%s\" לא קיים."
 
@@ -347,7 +335,6 @@ msgid "Select Directory"
 msgstr "בחר תיקייה"
 
 #: lclstrconsts.rsfileinfofilenotfound
-#, object-pascal-format
 msgid "(file not found: \"%s\")"
 msgstr "(קובץ לא נמצא:  \"%s\" )"
 
@@ -389,12 +376,10 @@ msgid "Form"
 msgstr "טופס"
 
 #: lclstrconsts.rsformresourcesnotfoundforresourcelessformscreatenew
-#, object-pascal-format
 msgid "Form resource %s not found. For resourceless forms CreateNew constructor must be used. See the global variable RequireDerivedFormResource."
 msgstr ""
 
 #: lclstrconsts.rsformstreamingerror
-#, object-pascal-format
 msgid "Form streaming \"%s\" error: %s"
 msgstr "זרימת טופס  \"%s\" שגיאה: %s"
 
@@ -517,7 +502,6 @@ msgid "Help"
 msgstr "עזרה"
 
 #: lclstrconsts.rshelpalreadyregistered
-#, object-pascal-format
 msgid "%s: Already registered"
 msgstr "כבר רשום %s:"
 
@@ -538,58 +522,54 @@ msgid "Help Error"
 msgstr "שגיאת עזרה"
 
 #: lclstrconsts.rshelphelpcontextnotfound
-#, object-pascal-format
 msgid "Help context %s not found."
 msgstr "עזרה תלויית הקשר %s לא נמצאה."
 
 #: lclstrconsts.rshelphelpcontextnotfoundindatabase
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Help context %s not found in Database %s%s%s."
 msgid "Help context %s not found in Database \"%s\"."
 msgstr "עזרה תלויית הקשר %s לא נמצאה בבסיס הנתונים %s%s%s."
 
 #: lclstrconsts.rshelphelpdatabasedidnotfoundaviewerforahelppageoftype
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Help Database \"%s\" did not found a viewer for a help page of type %s"
 msgid "Help Database \"%s\" did not find a viewer for a help page of type %s"
 msgstr "בסיס הנתונים של העזרה %s%s%s  לא מצא תוכנה להצגת דף עזרה מסוג %s"
 
 #: lclstrconsts.rshelphelpdatabasenotfound
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Help Database %s%s%s not found"
 msgid "Help Database \"%s\" not found"
 msgstr "בסיס הנתונים של העזרה %s%s%s  לא נמצא "
 
 #: lclstrconsts.rshelphelpfordirectivenotfound
-#, object-pascal-format
 msgid "Help for directive \"%s\" not found."
 msgstr ""
 
 #: lclstrconsts.rshelphelpfordirectivenotfoundindatabase
-#, object-pascal-format
 msgid "Help for directive \"%s\" not found in Database \"%s\"."
 msgstr ""
 
 #: lclstrconsts.rshelphelpkeywordnotfound
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Help keyword %s%s%s not found."
 msgid "Help keyword \"%s\" not found."
 msgstr "מלת מפתח לעזרה %s%s%s  לא נמצאה. "
 
 #: lclstrconsts.rshelphelpkeywordnotfoundindatabase
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Help keyword %s%s%s not found in Database %s%s%s."
 msgid "Help keyword \"%s\" not found in Database \"%s\"."
 msgstr "מלת מפתח לעזרה %s%s%s  לא נמצאה בבסיס הנתונים %s%s%s. "
 
 #: lclstrconsts.rshelphelpnodehasnohelpdatabase
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "Help node %s%s%s has no Help Database"
 msgid "Help node \"%s\" has no Help Database"
 msgstr "לצומת  העזרה %s%s% אין בסיס נתונים"
 
 #: lclstrconsts.rshelpnohelpfoundforsource
-#, object-pascal-format
 msgid "No help found for line %d, column %d of %s."
 msgstr "לא נמצאה עזרה לשורה %d, עמודה %d,  של %s."
 
@@ -606,7 +586,6 @@ msgid "No help found for this topic"
 msgstr "עזרה לא נמצאה"
 
 #: lclstrconsts.rshelpnotregistered
-#, object-pascal-format
 msgid "%s: Not registered"
 msgstr "לא רשום %s:"
 
@@ -615,7 +594,7 @@ msgid "Help Selector Error"
 msgstr "שגיאת בורר העזרה"
 
 #: lclstrconsts.rshelpthereisnoviewerforhelptype
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 #| msgid "There is no viewer for help type %s%s%s"
 msgid "There is no viewer for help type \"%s\""
 msgstr "אין תוכנה להצגת עזרה מסוג  %s%s%s"
@@ -689,12 +668,12 @@ msgid "Inactive Caption"
 msgstr "כותרת לא פעילה"
 
 #: lclstrconsts.rsindexoutofbounds
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "%s Index %d out of bounds 0 .. %d"
 msgstr "אינדקס d% מחוץ לתחום 0 .. d%"
 
 #: lclstrconsts.rsindexoutofrange
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Index Out of range Cell[Col=%d Row=%d]"
 msgstr "אידקס מחוץ לתחום תא [ עמודה=d% שורה=d% ]"
 
@@ -712,12 +691,12 @@ msgid "Insert"
 msgstr "הכנס"
 
 #: lclstrconsts.rsinvaliddate
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Invalid Date : %s"
 msgstr "תאריך לא חוקי: s%"
 
 #: lclstrconsts.rsinvaliddaterangehint
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Invalid Date: %s. Must be between %s and %s"
 msgstr "תאריך לא חוקי: s% חייב להיות בין s% ל s%"
 
@@ -734,7 +713,7 @@ msgid "Invalid stream format"
 msgstr "פורמט זרימה לא חוקי"
 
 #: lclstrconsts.rsisalreadyassociatedwith
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "%s is already associated with %s"
 msgstr "כבר משוייך ל s%"
 
@@ -751,12 +730,11 @@ msgid "Lime"
 msgstr "לימוני"
 
 #: lclstrconsts.rslistindexexceedsbounds
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "List index exceeds bounds (%d)"
 msgstr "אינדקס הרשימה עובר את הגבול"
 
 #: lclstrconsts.rsmacosmenuhide
-#, object-pascal-format
 msgid "Hide %s"
 msgstr ""
 
@@ -765,7 +743,6 @@ msgid "Hide Others"
 msgstr ""
 
 #: lclstrconsts.rsmacosmenuquit
-#, object-pascal-format
 msgid "Quit %s"
 msgstr ""
 
@@ -950,7 +927,6 @@ msgid "Post"
 msgstr "אחרי"
 
 #: lclstrconsts.rspressoktoignoreandriskdatacorruptionpressaborttok
-#, object-pascal-format
 msgid "%s%sPress OK to ignore and risk data corruption.%sPress Abort to kill the program."
 msgstr ""
 
@@ -964,7 +940,7 @@ msgid "Prompt on replace"
 msgstr ""
 
 #: lclstrconsts.rspropertydoesnotexist
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Property %s does not exist"
 msgstr "התכונה s% לא קיימת"
 
@@ -1089,7 +1065,7 @@ msgid "Replace all"
 msgstr "החלף הכל"
 
 #: lclstrconsts.rsresourcenotfound
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgctxt "lclstrconsts.rsresourcenotfound"
 msgid "Resource %s not found"
 msgstr "משאב s% לא נמצא"
@@ -1178,32 +1154,32 @@ msgid "Unsupported bitmap format."
 msgstr "פורמט מפת סיביות לא נתמך."
 
 #: lclstrconsts.rsunsupportedclipboardformat
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid "Unsupported clipboard format: %s"
 msgstr "פורמט לוח זמני לא נתמך"
 
 #: lclstrconsts.rswarningunreleaseddcsdump
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid " WARNING: There are %d unreleased DCs, a detailed dump follows:"
 msgstr "אזהרה: יש DCs שלא שוחררו, הטלה מפורטת להלן:"
 
 #: lclstrconsts.rswarningunreleasedgdiobjectsdump
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid " WARNING: There are %d unreleased GDIObjects, a detailed dump follows:"
 msgstr "אזהרה: יש GDIObjects שלא שוחררו, הטלה מפורטת להלן:"
 
 #: lclstrconsts.rswarningunreleasedmessagesinqueue
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid " WARNING: There are %d messages left in the queue! I'll free them"
 msgstr "אזהרה: יש הודעות שנשארו בתור! אני אשחרר אותן"
 
 #: lclstrconsts.rswarningunreleasedtimerinfos
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid " WARNING: There are %d TimerInfo structures left, I'll free them"
 msgstr "אזהרה: נשארו מבני TimerInfo, אני אשחרר אותם"
 
 #: lclstrconsts.rswarningunremovedpaintmessages
-#, object-pascal-format, fuzzy, badformat
+#, fuzzy,badformat
 msgid " WARNING: There are %s unremoved LM_PAINT/LM_GtkPAINT message links left."
 msgstr "אזהרה: נשארו קישורים להודעות LM_PAINT/LM_GtkPAINT שלא הוסרו."
 
@@ -1243,6 +1219,10 @@ msgstr "צהוב"
 msgid "Cannot focus a disabled or invisible window"
 msgstr "לא יכול להתמקד בחלון מנוטרל או בלתי נראה"
 
+#: lclstrconsts.scannotsetdesigntimeppi
+msgid "Cannot set design time PPI."
+msgstr ""
+
 #: lclstrconsts.sduplicatemenus
 msgid "Duplicate menus"
 msgstr "תפריטים כפולים"
@@ -1264,7 +1244,6 @@ msgid "Invalid action unregistration"
 msgstr "ביטול רישום פעולה לא חוקי"
 
 #: lclstrconsts.sinvalidcharset
-#, object-pascal-format
 msgid "The char set in mask \"%s\" is not valid!"
 msgstr "ערכת התווים במסכה \"%s\" לא חוקית"
 
@@ -1380,27 +1359,22 @@ msgid "No timers available"
 msgstr "אין קוצב זמן זמין"
 
 #: lclstrconsts.sparentrequired
-#, object-pascal-format
 msgid "Control \"%s\" has no parent window."
 msgstr ""
 
 #: lclstrconsts.sparexpected
-#, object-pascal-format
 msgid "Wrong token type: %s expected"
 msgstr "סוג token שגוי: %s צפוי"
 
 #: lclstrconsts.sparinvalidfloat
-#, object-pascal-format
 msgid "Invalid floating point number: %s"
 msgstr "מספר נקודה צפה לא חוקי: %s"
 
 #: lclstrconsts.sparinvalidinteger
-#, object-pascal-format
 msgid "Invalid integer number: %s"
 msgstr "מספר שלם לא חוקי %s"
 
 #: lclstrconsts.sparlocinfo
-#, object-pascal-format
 msgid " (at %d,%d, stream offset %d)"
 msgstr ""
 
@@ -1413,52 +1387,44 @@ msgid "Unterminated string"
 msgstr "מחרוזת לא גמורה"
 
 #: lclstrconsts.sparwrongtokensymbol
-#, object-pascal-format
 msgid "Wrong token symbol: %s expected but %s found"
 msgstr "סוג token שגוי: %s צפוי אבל %s נמצא"
 
 #: lclstrconsts.sparwrongtokentype
-#, object-pascal-format
 msgid "Wrong token type: %s expected but %s found"
 msgstr "סוג token שגוי: %s צפוי אבל %s נמצא"
 
 #: lclstrconsts.sshellctrlsbytes
-#, object-pascal-format
 msgid "%s bytes"
 msgstr ""
 
 #: lclstrconsts.sshellctrlsinvalidpath
-#, object-pascal-format
 msgctxt "lclstrconsts.sshellctrlsinvalidpath"
 msgid ""
 "Invalid pathname:\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 
 #: lclstrconsts.sshellctrlsinvalidpathrelative
-#, object-pascal-format
 msgid ""
 "Invalid relative pathname:\n"
 "\"%s\"\n"
 "in relation to rootpath:\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 
 #: lclstrconsts.sshellctrlsinvalidroot
-#, object-pascal-format
 msgctxt "lclstrconsts.sshellctrlsinvalidroot"
 msgid ""
 "Invalid pathname:\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 
 #: lclstrconsts.sshellctrlskb
-#, object-pascal-format
 msgid "%s kB"
 msgstr ""
 
 #: lclstrconsts.sshellctrlsmb
-#, object-pascal-format
 msgid "%s MB"
 msgstr ""
 
@@ -1467,10 +1433,9 @@ msgid "Name"
 msgstr ""
 
 #: lclstrconsts.sshellctrlsselecteditemdoesnotexists
-#, object-pascal-format
 msgid ""
 "The selected item does not exist on disk:\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 
 #: lclstrconsts.sshellctrlssize

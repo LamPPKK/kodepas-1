@@ -201,25 +201,20 @@ end;
 
 procedure TCustomBitBtn.ActionChange(Sender: TObject; CheckDefaults: Boolean);
 var
-  NewAct: TCustomAction;
-  Imgs: TCustomImageList;
-  ImgRes: TScaledImageListResolution;
+  ImagesRes: TScaledImageListResolution;
 begin
   inherited ActionChange(Sender,CheckDefaults);
   if Sender is TCustomAction then
   begin
-    NewAct := TCustomAction(Sender);
-    //DebugLn(['TCustomBitBtn.ActionChange: Glyph.Empty=', Glyph.Empty,
-    //         ', Action=', NewAct.Caption,
-    //         ', ActionList=', NewAct.ActionList,
-    //         ', Images=', NewAct.ActionList.Images,
-    //         ', ImageIndex=', NewAct.ImageIndex ]);
-    if (NewAct.ActionList = nil) or (NewAct.ImageIndex < 0) then Exit;
-    Imgs := NewAct.ActionList.Images;
-    if (Imgs = nil) or (NewAct.ImageIndex >= Imgs.Count) then Exit;
-    //DebugLn([' TCustomBitBtn.ActionChange: Setting image, ImageWidth=', ImageWidth]);
-    ImgRes := Imgs.ResolutionForPPI[ImageWidth,Font.PixelsPerInch,GetCanvasScaleFactor];
-    ImgRes.GetBitmap(NewAct.ImageIndex, Glyph);
+    with TCustomAction(Sender) do
+    begin
+      if (Glyph.Empty) and (ActionList <> nil) and (ActionList.Images <> nil) and
+        (ImageIndex >= 0) and (ImageIndex < ActionList.Images.Count) then
+      begin
+        ImagesRes := ActionList.Images.ResolutionForPPI[ImageWidth, Font.PixelsPerInch, GetCanvasScaleFactor];
+        ImagesRes.GetBitmap(ImageIndex, Glyph);
+      end;
+    end;
   end;
 end;
 

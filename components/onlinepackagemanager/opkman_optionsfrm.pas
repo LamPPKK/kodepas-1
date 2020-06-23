@@ -58,8 +58,6 @@ type
     bOpen: TButton;
     bpOptions: TButtonPanel;
     bColors: TButton;
-    cbIncompatiblePackages: TCheckBox;
-    cbAlreadyInstalledPackages: TCheckBox;
     cbProxy: TCheckBox;
     cbForceDownloadExtract: TCheckBox;
     cbDeleteZipAfterInstall: TCheckBox;
@@ -103,13 +101,11 @@ type
     pnBottom: TPanel;
     pnProfilesMain: TPanel;
     pnProfilesLeft: TPanel;
-    rbOpenSSL: TRadioGroup;
     rbHintFormOptions: TRadioGroup;
     SDD: TSelectDirectoryDialog;
     seProxyPort: TSpinEdit;
     spDaysToShowNewPackages: TSpinEdit;
     spConTimeOut: TSpinEdit;
-    tsOpenSSL: TTabSheet;
     tsFolders: TTabSheet;
     tsProfiles: TTabSheet;
     tsGeneral: TTabSheet;
@@ -423,8 +419,6 @@ begin
   Options.ForceDownloadAndExtract := cbForceDownloadExtract.Checked;
   Options.ConTimeOut := spConTimeOut.Value;
   Options.DeleteZipAfterInstall := cbDeleteZipAfterInstall.Checked;
-  Options.IncompatiblePackages := cbIncompatiblePackages.Checked;
-  Options.AlreadyInstalledPackages := cbAlreadyInstalledPackages.Checked;
   Options.CheckForUpdates := cbCheckForUpdates.ItemIndex;
   Options.DaysToShowNewPackages := spDaysToShowNewPackages.Value;
   Options.ShowRegularIcons := cbRegularIcons.Checked;
@@ -436,8 +430,6 @@ begin
   Options.ProxyPort := seProxyPort.Value;
   Options.ProxyUser := edProxyUser.Text;
   Options.ProxyPassword := edProxyPassword.Text;
-
-  Options.OpenSSLDownloadType:= rbOpenSSL.ItemIndex;
 
   Options.LocalRepositoryPackages := edLocalRepositoryPackages.Text;
   Options.LocalRepositoryArchive := edLocalRepositoryArchive.Text;
@@ -490,8 +482,6 @@ begin
   cbRemoteRepository.ItemIndex := Options.ActiveRepositoryIndex;
   cbForceDownloadExtract.Checked := Options.ForceDownloadAndExtract;
   cbDeleteZipAfterInstall.Checked := Options.DeleteZipAfterInstall;
-  cbIncompatiblePackages.Checked := Options.IncompatiblePackages;
-  cbAlreadyInstalledPackages.Checked := Options.AlreadyInstalledPackages;
   cbForceDownloadExtract.Caption := rsOptions_cbForceDownloadExtract_Caption;
   cbForceDownloadExtract.Hint := rsOptions_cbForceDownloadExtract_Hint;
   lbConTimeOut.Caption := rsOptions_lbConTimeOut_Caption;
@@ -499,10 +489,6 @@ begin
   spConTimeOut.Value := Options.ConTimeOut;
   cbDeleteZipAfterInstall.Caption := rsOptions_cbDelete_Caption;
   cbDeleteZipAfterInstall.Hint := rsOptions_cbDelete_Hint;
-  cbIncompatiblePackages.Caption := rsOption_cbIncompatiblePackage_Caption;
-  cbIncompatiblePackages.Hint := rsOption_cbIncompatiblePackage_Hint;
-  cbAlreadyInstalledPackages.Caption := rsOption_cbcbAlreadyInstalledPackages_Caption;
-  cbAlreadyInstalledPackages.Hint := rsOption_cbcbAlreadyInstalledPackages_Hint;
   lbUpdates.Caption := rsOptions_lbCheckForUpdates_Caption;
   cbCheckForUpdates.Clear;
   cbCheckForUpdates.Items.Add(rsOptions_cbCheckForUpdates_Item0);
@@ -528,7 +514,6 @@ begin
   rbHintFormOptions.ItemIndex := Options.HintFormOption;
   cbUseDefaultTheme.Checked := Options.UseDefaultTheme;
   cbUseDefaultTheme.Caption := rsOptions_cbUseDefaultTheme_Caption;
-
   tsProxy.Caption := rsOptions_tsProxy_Caption;
   cbProxy.Caption := rsOptions_cbProxy_Caption;
   gbProxySettings.Caption := rsOptions_gbProxySettings_Caption;
@@ -543,18 +528,6 @@ begin
   //seProxyPort.Top := edProxyServer.Top + (edProxyServer.Height - seProxyPort.Height) div 2;
   edProxyUser.Text := Options.ProxyUser;
   edProxyPassword.Text := Options.ProxyPassword;
-
-  rbOpenSSL.Caption := rsOpenSSLFrm_lbMessage1_Caption;
-  rbOpenSSL.Items.Clear;
-  rbOpenSSL.Items.Add(rsOptions_rbOpenSSL_Item0);
-  rbOpenSSL.Items.Add(rsOptions_rbOpenSSL_Item1);
-  rbOpenSSL.Items.Add(rsOptions_rbOpenSSL_Item2);
-  rbOpenSSL.ItemIndex := Options.OpenSSLDownloadType;
-  {$IFDEF MSWINDOWS}
-  tsOpenSSL.TabVisible := True;
-  {$ELSE}
-  tsOpenSSL.TabVisible := False;
-  {$ENDIF}
 
   tsFolders.Caption := rsOptions_tsFolders_Caption;
   lbLocalRepositoryPackages.Caption := rsOptions_lbLocalRepositoryPackages_Caption;

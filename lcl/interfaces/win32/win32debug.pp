@@ -1,11 +1,11 @@
-{ $Id$ }
+{ $Id: win32debug.pp 41387 2013-05-24 18:30:06Z juha $ }
 {
                       ------------------------------------
                       win32debug.pp  -  graphic dump utils 
                       ------------------------------------
  
  @created(Fri Jun 1th WET 2007)
- @lastmod($Date$)
+ @lastmod($Date: 2013-05-24 20:30:06 +0200 (Fr, 24 Mai 2013) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)                       
 
  This unit contains utility functions to show the contents of graphics

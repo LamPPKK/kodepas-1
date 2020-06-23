@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: dbctrls.pp 62614 2020-02-07 22:02:11Z maxim $}
 {
  /***************************************************************************
                                DbCtrls.pp
@@ -20,7 +20,7 @@
 @abstract(common db aware controls, as in Delphi)
 @author(Andrew Johnson <acjgenius@@earthlink.net>)
 @created(Sun Sep 14 2003)
-@lastmod($Date$)
+@lastmod($Date: 2020-02-07 23:02:11 +0100 (Fr, 07 Feb 2020) $)
 }
 unit DBCtrls;
 
@@ -133,7 +133,6 @@ Type
     FLookUpFieldIsCached: Boolean;
     FLookupCache: Boolean;
     FInitializing: Boolean;
-    FScrollListDataset: Boolean;
     {$IF FPC_FULLVERSION < 30000}
     FFetchingLookupData: Boolean;
     {$ENDIF}
@@ -155,7 +154,7 @@ Type
     destructor Destroy; override;
     procedure Initialize(AControlDataLink: TFieldDataLink; AControlItems: TStrings);
     function KeyFieldValue: Variant;
-    procedure UpdateData(ValueIndex: Integer);
+    procedure UpdateData(ValueIndex: Integer; ScrollDataset: Boolean);
     function  GetKeyValue(ValueIndex: Integer): Variant;
     function  GetKeyIndex: Integer;
     function  GetKeyIndex(const AKeyValue: Variant): Integer;
@@ -168,7 +167,6 @@ Type
     property ListFieldIndex: Integer read FListFieldIndex write FListFieldIndex default 0;
     property ListSource: TDataSource read GetListSource write SetListSource;
     property NullValueKey: TShortcut read FNullValueKey write FNullValueKey;
-    property ScrollListDataset: Boolean read FScrollListDataset write FScrollListDataset;
   end;
 
   { TDBEdit }
@@ -450,6 +448,7 @@ Type
   TDBLookupListBox = class(TCustomDBListBox)
   private
     FLookup: TDBLookup;
+    FScrollListDataset: Boolean;
     procedure ActiveChange(Sender: TObject);
     function GetKeyField: string;
     function GetKeyValue: Variant;
@@ -458,7 +457,6 @@ Type
     function GetListSource: TDataSource;
     function GetLookupCache: boolean;
     function GetNullValueKey: TShortCut;
-    function GetScrollListDataset: Boolean;
     procedure SetKeyField(const Value: string);
     procedure SetKeyValue(const AValue: Variant);
     procedure SetListField(const Value: string);
@@ -466,7 +464,6 @@ Type
     procedure SetListSource(const Value: TDataSource);
     procedure SetLookupCache(const Value: boolean);
     procedure SetNullValueKey(const AValue: TShortCut);
-    procedure SetScrollListDataset(AValue: Boolean);
     procedure UpdateLookup;
   protected
     procedure DataChange(Sender: TObject); override;
@@ -534,7 +531,7 @@ Type
     property ParentShowHint;
     property PopupMenu;
     property ReadOnly;
-    property ScrollListDataset: Boolean read GetScrollListDataset write SetScrollListDataset default False;
+    property ScrollListDataset: Boolean read FScrollListDataset write FScrollListDataset default False;
     property ShowHint;
     property Sorted;
 //    property Style;
@@ -676,7 +673,6 @@ Type
     property BorderSpacing;
     property Caption;
     property Color;
-    property Constraints;
     property DataField: string read GetDataField write SetDataField;
     property DataSource: TDataSource read GetDataSource write SetDataSource;
     property DoubleBuffered;
@@ -736,7 +732,6 @@ Type
     function DoEdit: boolean; virtual;
     procedure DoOnCloseUp; virtual;
     procedure DoOnSelect; virtual;
-    procedure DoOnChange; virtual;
     procedure LMDeferredEdit(var Message: TLMessage); message LM_DEFERREDEDIT;
     property DetectedEvents: Word read FDetectedEvents;
   protected
@@ -786,7 +781,6 @@ Type
     property BorderStyle;
     property CharCase;
     property Color;
-    property Constraints;
     property DataField;
     property DataSource;
     property DoubleBuffered;
@@ -851,6 +845,7 @@ Type
     function IsUnbound: boolean;
   private
     FLookup: TDBLookup;
+    FScrollListDataset: Boolean;
     procedure ActiveChange(Sender: TObject);
     function GetKeyField: string;
     function GetKeyValue: variant;
@@ -859,7 +854,6 @@ Type
     function GetListSource: TDataSource;
     function GetLookupCache: boolean;
     function GetNullValueKey: TShortCut;
-    function GetScrollListDataset: Boolean;
     procedure SetKeyField(const Value: string);
     procedure SetKeyValue(const AValue: variant);
     procedure SetListField(const Value: string);
@@ -867,7 +861,6 @@ Type
     procedure SetListSource(const Value: TDataSource);
     procedure SetLookupCache(const Value: boolean);
     procedure SetNullValueKey(const AValue: TShortCut);
-    procedure SetScrollListDataset(AValue: Boolean);
     procedure UpdateLookup;
     procedure UpdateItemIndex;
   protected
@@ -949,7 +942,7 @@ Type
     property ParentShowHint;
     property PopupMenu;
     property ReadOnly;
-    property ScrollListDataset: Boolean read GetScrollListDataset write SetScrollListDataset default False;
+    property ScrollListDataset: Boolean read FScrollListDataset write FScrollListDataset default False;
     property ShowHint;
     property Sorted;
     property Style;
@@ -1248,7 +1241,6 @@ Type
     property Field: TField read GetField;
   published
     property BorderSpacing;
-    property Constraints;
     property DataField: string read GetDataField write SetDataField;
     property DataSource: TDataSource read GetDataSource write SetDataSource;
 
@@ -1443,7 +1435,6 @@ type
     property ClientHeight;
     property ClientWidth;
     property Color default clBackground;
-    property Constraints;
     property ConfirmDelete;
     property DataSource;
     property Direction;

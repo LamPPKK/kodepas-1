@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: win32wscontrols.pp 58912 2018-09-08 20:04:47Z michl $}
 {
  *****************************************************************************
  *                            Win32WSControls.pp                             *
@@ -161,7 +161,7 @@ begin
     Width := CreateParams.Width;
     Height := CreateParams.Height;
 
-    LCLBoundsToWin32Bounds(AWinControl, Left, Top);
+    LCLBoundsToWin32Bounds(AWinControl, Left, Top, Width, Height);
     SetStdBiDiModeParams(AWinControl, Params);
 
     if not (csDesigning in AWinControl.ComponentState) and not AWinControl.IsEnabled then
@@ -446,7 +446,7 @@ begin
   IntfTop := ATop;
   IntfWidth := AWidth;
   IntfHeight := AHeight;
-  LCLBoundsToWin32Bounds(AWinControl, IntfLeft, IntfTop);
+  LCLBoundsToWin32Bounds(AWinControl, IntfLeft, IntfTop, IntfWidth, IntfHeight);
   {$IFDEF VerboseSizeMsg}
   DebugLn('TWin32WSWinControl.ResizeWindow A ', dbgsName(AWinControl),
     ' LCL=',Format('%d, %d, %d, %d', [ALeft,ATop,AWidth,AHeight]),

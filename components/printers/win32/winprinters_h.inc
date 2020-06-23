@@ -20,7 +20,7 @@
 }
 
 uses
-  Classes, SysUtils, LazUTF8, Printers, LCLType, Windows;
+  Classes, SysUtils,Printers,LCLType,{Forms,}Windows;//,dialogs;
 
 
 Type

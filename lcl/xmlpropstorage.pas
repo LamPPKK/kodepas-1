@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: xmlpropstorage.pas 51954 2016-03-15 21:16:43Z juha $  }
 {
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

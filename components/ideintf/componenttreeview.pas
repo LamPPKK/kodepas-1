@@ -292,6 +292,7 @@ begin
      and FComponentList.IsEqual(PropertyEditorHook.LookupRoot, NewSelection) then
   begin
     // nodes ok, but maybe node values need update
+    //DebugLn('TComponentTreeView.SetSelection: Updating component node values.');
     UpdateComponentNodesValues;
     Exit;
   end;
@@ -299,7 +300,7 @@ begin
   FComponentList.Selection.Assign(NewSelection);
   if NewSelection.ForceUpdate then
   begin
-    DebugLn('TComponentTreeView.SetSelection: Selection.ForceUpdate encountered.');
+    //DebugLn('TComponentTreeView.SetSelection: Selection.ForceUpdate encountered.');
     NewSelection.ForceUpdate:=false;
   end;
   UpdateSelected;

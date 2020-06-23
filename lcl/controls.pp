@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: controls.pp 61993 2019-10-05 12:39:01Z maxim $  }
 {
  /***************************************************************************
                                Controls.pp
@@ -33,8 +33,6 @@ interface
 //  {$C+}
 //  {$DEFINE ASSERT_IS_ON}
 {$ENDIF}
-
-{$INTERFACES CORBA}
 
 uses
   Classes, SysUtils, TypInfo, Types, Laz_AVL_Tree,
@@ -81,15 +79,7 @@ const
   // Mac and iOS use Meta instead of Ctrl for those shortcuts
   ssModifier = {$if defined(darwin) or defined(macos) or defined(iphonesim)} ssMeta {$else} ssCtrl {$endif};
 
-  GUID_ObjInspInterface = '{37417989-8C8F-4A2D-9D26-0FA377E8D8CC}';
-
 type
-  IObjInspInterface = interface
-      [GUID_ObjInspInterface]
-      function AllowAdd: Boolean;
-      function AllowDelete: Boolean;
-    end;
-
   TWinControl = class;
   TControl = class;
   TWinControlClass = class of TWinControl;
@@ -926,8 +916,6 @@ type
 
   { TControl }
 
-  ELayoutException = class(Exception);
-
   TControlAutoSizePhase = (
     caspNone,
     caspChangingProperties,
@@ -1135,6 +1123,7 @@ type
     FControlFlags: TControlFlags;
     FControlHandlers: array[TControlHandlerType] of TMethodList;
     FControlStyle: TControlStyle;
+    FDesktopFont: Boolean;
     FDockOrientation: TDockOrientation;
     FDragCursor: TCursor;
     FDragKind: TDragKind;
@@ -1184,6 +1173,7 @@ type
     FOnStartDrag: TStartDragEvent;
     FOnTripleClick: TNotifyEvent;
     FParent: TWinControl;
+    FParentBiDiMode: Boolean;
     FPopupMenu: TPopupMenu;
     FPreferredMinWidth: integer;// without theme space
     FPreferredMinHeight: integer;// without theme space
@@ -1199,8 +1189,6 @@ type
     FWidth: Integer;
     FWindowProc: TWndMethod;
     //boolean fields, keep together to save some bytes
-    FDesktopFont: Boolean;
-    FParentBiDiMode: Boolean;
     FIsControl: Boolean;
     FShowHint: Boolean;
     FParentColor: Boolean;
@@ -1539,7 +1527,6 @@ type
                          KeepDockSiteSize: Boolean = true): Boolean; virtual;
     function ReplaceDockedControl(Control: TControl; NewDockSite: TWinControl;
                            DropControl: TControl; ControlSide: TAlign): Boolean;
-    function Docked: Boolean;
     function Dragging: Boolean;
     // accessibility
     function GetAccessibleObject: TLazAccessibleObject;
@@ -2305,7 +2292,6 @@ type
     procedure WriteLayoutDebugReport(const Prefix: string); override;
     procedure AutoAdjustLayout(AMode: TLayoutAdjustmentPolicy; const AFromPPI,
       AToPPI, AOldFormWidth, ANewFormWidth: Integer); override;
-    procedure FixDesignFontsPPIWithChildren(const ADesignTimePPI: Integer);
   public
     constructor Create(TheOwner: TComponent);override;
     constructor CreateParented(AParentWindow: HWND);
@@ -2713,15 +2699,15 @@ const
     (akLeft,akRight,akLeft)
     );
 
-function FindDragTarget(const Position: TPoint; AllowDisabled: Boolean): TControl; inline;
+function FindDragTarget(const Position: TPoint; AllowDisabled: Boolean): TControl;
 function FindControlAtPosition(const Position: TPoint; AllowDisabled: Boolean): TControl;
 function FindLCLWindow(const ScreenPos: TPoint; AllowDisabled: Boolean = True): TWinControl;
 function FindControl(Handle: HWND): TWinControl;
 function FindOwnerControl(Handle: HWND): TWinControl;
 function FindLCLControl(const ScreenPos: TPoint): TControl;
 
-function SendAppMessage(Msg: Cardinal; WParam: WParam; LParam: LParam): Longint; inline;
-procedure MoveWindowOrg(dc: hdc; X,Y: Integer); inline;
+function SendAppMessage(Msg: Cardinal; WParam: WParam; LParam: LParam): Longint;
+procedure MoveWindowOrg(dc: hdc; X,Y: Integer);
 
 // Interface support.
 procedure RecreateWnd(const AWinControl:TWinControl);
@@ -2744,8 +2730,8 @@ var
 function CursorToString(Cursor: TCursor): string;
 function StringToCursor(const S: string): TCursor;
 procedure GetCursorValues(Proc: TGetStrProc);
-function CursorToIdent(Cursor: Longint; var Ident: string): Boolean; inline;
-function IdentToCursor(const Ident: string; var Cursor: Longint): Boolean; inline;
+function CursorToIdent(Cursor: Longint; var Ident: string): Boolean;
+function IdentToCursor(const Ident: string; var Cursor: Longint): Boolean;
 
 procedure CheckTransparentWindow(var Handle: THandle; var AWinControl: TWinControl);
 function CheckMouseButtonDownUp(const AWinHandle: THandle; const AWinControl: TWinControl;
@@ -2758,7 +2744,7 @@ function GetKeyShiftState: TShiftState;
 procedure AdjustBorderSpace(var RemainingClientRect, CurBorderSpace: TRect;
   Left, Top, Right, Bottom: integer);
 procedure AdjustBorderSpace(var RemainingClientRect, CurBorderSpace: TRect;
-  const Space: TRect); inline;
+  const Space: TRect);
 
 function IsColorDefault(AControl: TControl): Boolean;
 
@@ -4625,6 +4611,15 @@ end;
 
 initialization
   //DebugLn('controls.pp - initialization');
+  RegisterPropertyToSkip(TControl, 'AlignWithMargins', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'Ctl3D',            'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'ParentCtl3D',      'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'IsControl',        'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'DesignSize',       'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'ExplicitLeft',     'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'ExplicitHeight',   'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'ExplicitTop',      'VCL compatibility property', '');
+  RegisterPropertyToSkip(TControl, 'ExplicitWidth',    'VCL compatibility property', '');
   {$IF FPC_FULLVERSION<30003}
   RegisterPropertyToSkip(TDataModule, 'PPI',    'PPI was introduced in FPC 3.0.3', '');
   {$ENDIF}

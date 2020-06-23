@@ -4332,7 +4332,7 @@ begin
       SizeType := 6; // force realign
       if (FWidth  < Low(Word)) or (FWidth  > High(Word))
       or (FHeight < Low(Word)) or (FHeight > High(Word)) then
-        raise ELayoutException.CreateFmt('Size range overflow in %s.SendMoveSizeMessages:'
+        raise Exception.CreateFmt('Size range overflow in %s.SendMoveSizeMessages:'
                                  +' Width=%d, Height=%d.', [Name, FWidth, FHeight]);
       Width := FWidth;
       Height := FHeight;
@@ -4352,7 +4352,7 @@ begin
       MoveType:= 1;
       if (FLeft < Low(Smallint)) or (FLeft > High(Smallint))
       or (FTop  < Low(Smallint)) or (FTop  > High(Smallint)) then
-        raise ELayoutException.CreateFmt('Position range overflow in %s.SendMoveSizeMessages:'
+        raise Exception.CreateFmt('Position range overflow in %s.SendMoveSizeMessages:'
                                  +' Left=%d, Top=%d.', [Name, FLeft, FTop]);
       XPos := FLeft;
       YPos := FTop;
@@ -4614,23 +4614,6 @@ begin
   finally
     List.Free;
   end;
-end;
-
-procedure TWinControl.FixDesignFontsPPIWithChildren(const ADesignTimePPI: Integer);
-  procedure FixChildren(const AParent: TWinControl);
-  var
-    I: Integer;
-  begin
-    for I := 0 to AParent.ControlCount-1 do
-    begin
-      AParent.Controls[I].FixDesignFontsPPI(ADesignTimePPI);
-      if AParent.Controls[I] is TWinControl then
-        FixChildren(TWinControl(AParent.Controls[I]));
-    end;
-  end;
-begin
-  FixDesignFontsPPI(ADesignTimePPI);
-  FixChildren(Self);
 end;
 
 procedure TWinControl.SelectFirst;
@@ -4941,9 +4924,8 @@ begin
       if not (TempControl is TWinControl) then begin
         //DebugLn('TWinControl.PaintControls B Self=',Self.Name,':',Self.ClassName,' Control=',TempControl.Name,':',TempControl.ClassName,' ',TempControl.Left,',',TempControl.Top,',',TempControl.Width,',',TempControl.Height);
         with TempControl do
-          if ((WidgetSet.GetLCLCapability(lcCanDrawHidden) = LCL_CAPABILITY_YES) and isControlVisible)
-            or (IsVisible and RectVisible(DC, TempControl.BoundsRect))
-          then
+          if IsVisible
+          and RectVisible(DC, TempControl.BoundsRect) then
           begin
             if csPaintCopy in Self.ControlState then
               Include(FControlState, csPaintCopy);
@@ -6926,7 +6908,7 @@ var
 
   procedure RaiseLoop;
   begin
-    raise ELayoutException.Create('TWinControl.WMMove loop detected: '+DbgSName(Self)+' BoundsRealized='+dbgs(FBoundsRealized)+' NewBoundsRealized='+dbgs(NewBoundsRealized));
+    raise Exception.Create('TWinControl.WMMove loop detected: '+DbgSName(Self)+' BoundsRealized='+dbgs(FBoundsRealized)+' NewBoundsRealized='+dbgs(NewBoundsRealized));
   end;
 
 begin
@@ -7003,7 +6985,7 @@ var
       or (OldClientSize.cy<>NewClientSize.cy)
     then
       s:=s+' OldClientSize='+dbgs(OldClientSize)+' NewClientSize='+dbgs(NewClientSize);
-    raise ELayoutException.Create(s);
+    raise Exception.Create(s);
   end;
 
 begin
@@ -7128,7 +7110,7 @@ var
 
   procedure RaiseLoop;
   begin
-    raise ELayoutException.Create('TWinControl.WMWindowPosChanged loop detected: '+DbgSName(Self)+' BoundsRealized='+dbgs(FBoundsRealized)+' NewBoundsRealized='+dbgs(NewBoundsRealized));
+    raise Exception.Create('TWinControl.WMWindowPosChanged loop detected: '+DbgSName(Self)+' BoundsRealized='+dbgs(FBoundsRealized)+' NewBoundsRealized='+dbgs(NewBoundsRealized));
   end;
 
 begin
@@ -7277,7 +7259,8 @@ begin
   //debugln('TWinControl.CNChar B ',DbgSName(Self),' ',dbgs(Message.CharCode),' ',dbgs(IntfSendsUTF8KeyPress));
   if Widgetset.GetLCLCapability(lcSendsUTF8KeyPress) = LCL_CAPABILITY_NO then
   begin
-    // current interface does not (yet) send UTF8 key press notifications -> emulate
+    // current interface does not (yet) send UTF8 key press notifications
+    // -> emulate
     if (Message.CharCode < %11000000) then
     begin
       c:=chr(Message.CharCode);
@@ -7950,8 +7933,7 @@ end;
 procedure TWinControl.EndUpdateBounds;
 begin
   if FBoundsLockCount <= 0 then
-    raise ELayoutException.CreateFmt('TWinControl.EndUpdateBounds %s too many calls.',
-                                     [DbgSName(Self)]);
+    raise EInvalidOperation.CreateFmt('TWinControl.EndUpdateBounds %s too many calls.', [DbgSName(Self)]);
   dec(FBoundsLockCount);
   if FBoundsLockCount = 0 then
     SetBounds(Left, Top, Width, Height);
@@ -8114,11 +8096,9 @@ procedure TWinControl.SetBounds(ALeft, ATop, AWidth, AHeight: integer);
     if FRealizeBoundsLockCount > 0 then Exit;
     // the user changed the bounds
     if AWidth < 0 then
-      raise ELayoutException.CreateFmt('TWinControl.SetBounds (%s): Negative width %d not allowed.',
-                                       [DbgSName(Self), AWidth]);
+      raise EInvalidOperation.CreateFmt('TWinControl.SetBounds (%s): Negative width %d not allowed.', [DbgSName(Self), AWidth]);
     if AHeight < 0 then
-      raise ELayoutException.CreateFmt('TWinControl.SetBounds (%s): Negative height %d not allowed.',
-                                       [DbgSName(Self), AHeight]);
+      raise EInvalidOperation.CreateFmt('TWinControl.SetBounds (%s): Negative height %d not allowed.', [DbgSName(Self), AHeight]);
   end;
 
 var

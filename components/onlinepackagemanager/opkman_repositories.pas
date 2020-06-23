@@ -28,7 +28,7 @@ unit opkman_repositories;
 interface
 
 uses
-  Classes, SysUtils, laz.VirtualTrees,
+  Classes, SysUtils, VirtualTrees,
   // LCL
   Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, ButtonPanel,
   // OpkMan
@@ -50,9 +50,9 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    FVST: TLazVirtualStringTree;
+    FVST: TVirtualStringTree;
     FSortCol: Integer;
-    FSortDir: laz.VirtualTrees.TSortDirection;
+    FSortDir: VirtualTrees.TSortDirection;
     procedure VSTGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; {%H-}TextType: TVSTTextType; var CellText: String);
     procedure VSTGetImageIndex(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -100,7 +100,7 @@ begin
   //ButtonPanel1.OKButton.Caption := rsRepositories_bOk_Caption;
   //ButtonPanel1.CancelButton.Caption := rsRepositories_bCancel_Caption;
 
-  FVST := TLazVirtualStringTree.Create(nil);
+  FVST := TVirtualStringTree.Create(nil);
   with FVST do
   begin
     Parent := Self;
@@ -228,7 +228,7 @@ var
 begin
   Options.RemoteRepositoryTmp.Clear;
   FVST.BeginUpdate;
-  FVST.SortTree(0, laz.VirtualTrees.sdAscending);
+  FVST.SortTree(0, VirtualTrees.sdAscending);
   Node := FVST.GetFirst;
   while Assigned(Node) do
   begin
@@ -314,14 +314,14 @@ begin
       if (SortColumn = NoColumn) or (SortColumn <> HitInfo.Column) then
       begin
         SortColumn    := HitInfo.Column;
-        SortDirection := laz.VirtualTrees.sdAscending;
+        SortDirection := VirtualTrees.sdAscending;
       end
       else
       begin
-        if SortDirection = laz.VirtualTrees.sdAscending then
-          SortDirection := laz.VirtualTrees.sdDescending
+        if SortDirection = VirtualTrees.sdAscending then
+          SortDirection := VirtualTrees.sdDescending
         else
-          SortDirection := laz.VirtualTrees.sdAscending;
+          SortDirection := VirtualTrees.sdAscending;
         FSortDir := SortDirection;
       end;
       SortTree(SortColumn, SortDirection, False);
@@ -401,7 +401,7 @@ begin
       Data^.FUniqueID := UniqueID;
     end;
   end;
-  FVST.SortTree(0, laz.VirtualTrees.sdAscending);
+  FVST.SortTree(0, VirtualTrees.sdAscending);
   Node := FVST.GetFirst;
   if Node <> nil then
   begin

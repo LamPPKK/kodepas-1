@@ -61,7 +61,7 @@ implementation
 
 uses
   {$ifdef MSWINDOWS}
-    Windows, ShellApi, {$PUSH} {$WARNINGS OFF} FileCtrl {$POP}
+    Windows, ShellApi, {$WARNINGS OFF} FileCtrl {$WARNINGS ON}
   {$endif}
   {$ifdef Unix}
     Unix
@@ -95,11 +95,10 @@ end;
     liAttr: integer;
   begin
     Assert(FileExists(ps));
-  {$PUSH}
   {$WARNINGS OFF}
     liAttr := FileGetAttr(ps);
     Result := ((liAttr and faReadOnly) <> 0);
-  {$POP}
+  {$WARNINGS ON}
   end;
 
 {$ELSE}
@@ -111,11 +110,10 @@ end;
     liAttr: integer;
   begin
     Assert(FileExists(ps));
-  {$PUSH}
   {$WARNINGS OFF}
     liAttr := FileGetAttr(ps);
     Result := ((liAttr and faReadOnly) <> 0);
-  {$POP}
+  {$WARNINGS ON}
   end;
 
   {$ENDIF}

@@ -293,14 +293,44 @@ end;
 
 
 {------------------------------------------------------------------------------
+  function CreatePChar(const s: string): PChar;
+
   Allocates a new PChar
- ------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------}
 function CreatePChar(const s: string): PChar;
 begin
   Result:=StrAlloc(length(s) + 1);
   StrPCopy(Result, s);
 end;
-}
+
+{------------------------------------------------------------------------------
+  function ComparePChar(P1, P2: PChar): boolean;
+
+  Checks if P1 and P2 have the same content.
+ ------------------------------------------------------------------------------}
+function ComparePChar(P1, P2: PChar): boolean;
+begin
+  if (P1<>P2) then begin
+    if (P1<>nil) and (P2<>nil) then begin
+      while (P1^=P2^) do begin
+        if P1^<>#0 then begin
+          inc(P1);
+          inc(P2);
+        end else begin
+          Result:=true;
+          exit;
+        end;
+      end;
+    end;
+    Result:=false;
+  end else begin
+    Result:=true;
+  end;
+end;
+
+{------------------------------------------------------------------------------
+  function FindChar(c: char; p:PChar; Max: integer): integer;
+ ------------------------------------------------------------------------------}
 function FindChar(c: char; p:PChar; Max: integer): integer;
 begin
   Result:=0;
@@ -4461,8 +4491,6 @@ var
   begin
     {$IfDef GTK1}
     //debugln('UpdateTabCloseBtn ',GetWidgetDebugReport(NoteBookWidget));
-    Img:=nil;
-    Mask:=nil;
     GetNoteBookCloseBtnImage(GetControlWindow(NoteBookWidget), Img, Mask);
     {$EndIf}
     //debugln('UpdateTabCloseBtn ',dbgs(nboShowCloseButtons in TheNotebook.Options),' ',dbgs(Img<>nil));
@@ -4943,7 +4971,7 @@ end;
 function DesignSignalNameToType(Name: PChar; After: boolean): TDesignSignalType;
 begin
   for Result:=Low(TDesignSignalType) to High(TDesignSignalType) do
-    if SamePChar(DesignSignalNames[Result],Name)
+    if ComparePChar(DesignSignalNames[Result],Name)
     and (DesignSignalAfter[Result]=After) then exit;
   Result:=dstUnknown;
 end;
@@ -4976,7 +5004,7 @@ var
 begin
   Handler := gtk_object_get_data_by_id (AnObject, gtk_handler_quark);
   SignalID := g_signal_lookup(ASignal, GTK_OBJECT_TYPE(AnObject));
-  if SignalID>$ffffff then
+  if (SignalID<0) or (SignalID>$ffffff) then
     RaiseGDBException('SignalConnected');
 
   while (Handler <> nil) do begin
@@ -5877,7 +5905,7 @@ begin
     OldCheckMenuItemDrawProc(MenuItem,Area);
     exit;
   end;
-  IconSize:=LCLMenuItem.GetIconSize(0);
+  IconSize:=LCLMenuItem.GetIconSize;
   IconWidth:=IconSize.X;
   IconHeight:=IconSize.Y;
 
@@ -5970,7 +5998,7 @@ begin
       CurToggleSize:=OldCheckMenuItemToggleSize;
       LCLMenuItem:=TMenuItem(GetLCLObject(MenuItem));
       if LCLMenuItem<>nil then begin
-        IconSize:=LCLMenuItem.GetIconSize(0);
+        IconSize:=LCLMenuItem.GetIconSize;
         {if IconSize.X>100 then
           debugln('MenuSizeRequest LCLMenuItem=',LCLMenuItem.Name,' ',LCLMenuItem.Caption,
             ' ');}
@@ -6096,7 +6124,7 @@ var
     if LCLMenuItem.HasIcon then
     begin
       {$IFNDEF Gtk2}
-      IconSize := LCLMenuItem.GetIconSize(0);
+      IconSize := LCLMenuItem.GetIconSize;
       IconWidth := IconSize.X;
       IconHeight := IconSize.Y;
       // set the toggle width
@@ -9253,23 +9281,127 @@ begin
   end;
 end;
 
-{-------------------------------------------------------------------------------
-  Creates a new PChar. Deletes escaping ampersands, replaces the first single
-  ampersand with an underscore and deletes all other single ampersands.
--------------------------------------------------------------------------------}
-function Ampersands2Underscore(Src: PChar) : PChar;
+function DeleteAmpersands(var Str : String) : Longint;
+// convert double ampersands to single & and delete single &
+// return the position of the letter after the first deleted single ampersand
+// in the new string
 var
-  s: String;
+  Tmp : String;
+  SrcPos, DestPos, SrcLen: integer;
 begin
-  s := StrPas(Src);
-  s := Ampersands2Underscore(s);
-  Result := StrAlloc(Length(s)+1); // +1 for #0 char at end
-  strcopy(Result, PChar(s));
+  Result := -1;
+  
+  // for speedup reasons check if Str must be changed
+  SrcLen:=length(Str);
+  SrcPos:=SrcLen;
+  while (SrcPos>=1) and (Str[SrcPos]<>'&') do dec(SrcPos);
+  if SrcPos<1 then exit;
+
+  // copy Str to Tmp and convert ampersands on the fly
+  SetLength(Tmp,SrcLen);
+  SrcPos:=1;
+  DestPos:=1;
+  while (SrcPos<=SrcLen) do begin
+    if Str[SrcPos]<>'&' then begin
+      // copy normal char
+      Tmp[DestPos]:=Str[SrcPos];
+      inc(SrcPos);
+      inc(DestPos);
+    end else begin
+      inc(SrcPos);
+      if (SrcPos<=SrcLen) and (Str[SrcPos]='&') then begin
+        // double ampersand
+        Tmp[DestPos]:='&';
+        inc(DestPos);
+        inc(SrcPos);
+      end else begin
+        // single ampersand
+        if Result<1 then Result:=DestPos;
+      end;
+    end;
+  end;
+  SetLength(Tmp,DestPos-1);
+  Str:=Tmp;
 end;
 
 {-------------------------------------------------------------------------------
+  function Ampersands2Underscore(Src: PChar) : PChar;
+
+  Creates a new PChar. Deletes escaping ampersands, replaces the first single
+  ampersand with an underscore and deleting all other single ampersands.
+-------------------------------------------------------------------------------}
+function Ampersands2Underscore(Src: PChar) : PChar;
+var
+  i, j: Longint;
+  ShortenChars, FirstAmpersand, NewLength, SrcLength: integer;
+begin
+  // count ampersands and find first ampersand
+  ShortenChars:= 0;  // chars to delete
+  FirstAmpersand:= -1;
+  SrcLength:= StrLen(Src);
+
+  { Look for amperands. If found, check if it is an escaped ampersand.
+    If it is, don't count it in. }
+  i:=0;
+  while i<SrcLength do begin
+    if Src[i] = '&' then begin
+      if (i < SrcLength - 1) and (Src[i+1] = '&') then begin
+        // escaping ampersand found
+        inc(ShortenChars);
+        inc(i,2);
+        Continue;
+      end else begin
+        // single ampersand found
+        if (FirstAmpersand < 0) then
+          // the first will be replaced ...
+          FirstAmpersand:= i
+        else
+          // ... and all others will be deleted
+          inc(ShortenChars);
+      end; 
+    end;
+    inc(i);
+  end;
+  // create new PChar
+  NewLength:= SrcLength - ShortenChars;
+
+  Result:=StrAlloc(NewLength+1); // +1 for #0 char at end
+
+  // copy string without ampersands
+  i:=0;
+  j:=0;
+  while (j < NewLength) do begin
+    if Src[i] <> '&' then begin
+      // copy normal char
+      Result[j]:= Src[i];
+    end else begin
+      // ampersand
+      if (i < (SrcLength - 1)) and (Src[i+1] = '&') then begin
+        // escaping ampersand found
+        inc(i);
+        Result[j]:='&';
+      end else begin
+        // single ampersand found
+        if i = FirstAmpersand then begin
+          // replace first single ampersand with underscore
+          Result[j]:='_';
+        end else begin
+          // delete single ampersand
+          dec(j);
+        end;
+      end;
+    end;
+    Inc(i);
+    Inc(j);
+  end;
+  Result[NewLength]:=#0;
+end;
+
+{-------------------------------------------------------------------------------
+  function Ampersands2Underscore(const ASource: String): String;
+
   Deletes escaping ampersands, replaces the first single
-  ampersand with an underscore and deletes all other single ampersands.
+  ampersand with an underscore and deleting all other single ampersands.
 -------------------------------------------------------------------------------}
 function Ampersands2Underscore(const ASource: String): String;
 var
@@ -9282,19 +9414,25 @@ begin
   n := 1;
   while n <= Length(Result) do
   begin
-    if Result[n] = '&' then
-    begin
-      if FirstFound
-      or ( (n < Length(Result)) and (Result[n+1] = '&') ) // got &&
+    if Result[n] = '&'
+    then begin
+      if (n < Length(Result))
+      and (Result[n + 1] = '&')
       then begin
+        // we got a &&, remove the first
         Delete(Result, n, 1);
-        if not FirstFound then
-          Inc(n);               // Skip the second & of &&
-      end
-      else begin
-        FirstFound := True;
-        Result[n] := '_';
+        Inc(n);
+        Continue;
       end;
+      if FirstFound
+      then begin
+        // simply remove it
+        Delete(Result, n, 1);
+        Continue;
+      end;
+      // if we are here it's our first
+      FirstFound := True;
+      Result[n] := '_';
     end;
     Inc(n);
   end;

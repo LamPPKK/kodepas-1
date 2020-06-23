@@ -1,5 +1,5 @@
 {%MainUnit gtkproc.pp}{%MainUnit gtkint.pp}
-{ $Id$ }
+{ $Id: gtkdefines.inc 23394 2010-01-06 17:43:33Z paul $ }
 
 {******************************************************************************
   Centralized includefile for some common gtk defines

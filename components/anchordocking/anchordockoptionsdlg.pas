@@ -37,14 +37,14 @@ type
     HeaderStyleLabel: TLabel;
     HideHeaderCaptionForFloatingCheckBox: TCheckBox;
     HighlightFocusedCheckBox: TCheckBox;
-    DockSitesCanBeMinimized: TCheckBox;
     ScaleOnResizeCheckBox: TCheckBox;
     ShowHeaderCaptionCheckBox: TCheckBox;
     ShowHeaderCheckBox: TCheckBox;
     SplitterWidthLabel: TLabel;
     SplitterWidthSpinEdit: TSpinEdit;
     SplitterWidthTrackBar: TTrackBar;
-    procedure HeaderStyleComboBoxDrawItem({%H-}Control: TWinControl; Index: Integer;
+    procedure FrameClick(Sender: TObject);
+    procedure HeaderStyleComboBoxDrawItem(Control: TWinControl; Index: Integer;
       ARect: TRect; {%H-}State: TOwnerDrawState);
     procedure OkClick(Sender: TObject);
     procedure DragThresholdTrackBarChange(Sender: TObject);
@@ -148,11 +148,13 @@ end;
 
 procedure TAnchorDockOptionsFrame.HeaderStyleComboBoxDrawItem(
   Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
-var
- st:TADHeaderStyle;
 begin
-  st:=DockMaster.HeaderStyleName2ADHeaderStyle.Data[Index];
-  st.DrawProc(Canvas,st.StyleDesc,ARect,true,true);
+  DrawADHeader(TComboBox(Control).Canvas,TADHeaderStyle(Index),ARect,true,False);
+end;
+
+procedure TAnchorDockOptionsFrame.FrameClick(Sender: TObject);
+begin
+
 end;
 
 procedure TAnchorDockOptionsFrame.DragThresholdTrackBarChange(Sender: TObject);
@@ -200,7 +202,7 @@ begin
 
       HeaderAlignTopSpinEdit.Visible:=true;
       HeaderAlignTopTrackBar.Visible:=false;
-      HeaderAlignTopSpinEdit.AnchorToNeighbour(akTop,6,DockSitesCanBeMinimized);
+      HeaderAlignTopSpinEdit.AnchorToNeighbour(akTop,6,HighlightFocusedCheckBox);
       HeaderAlignTopLabel.AnchorVerticalCenterTo(HeaderAlignTopSpinEdit);
       UpdateHeaderAlignTopLabel;
 
@@ -297,7 +299,6 @@ begin
   HeaderStyleLabel.Enabled:=HasHeaders;
   HeaderStyleComboBox.Enabled:=HasHeaders;
   HighlightFocusedCheckBox.Enabled:=HasHeaders;
-  DockSitesCanBeMinimized.Enabled:=HasHeaders;
 end;
 
 constructor TAnchorDockOptionsFrame.Create(TheOwner: TComponent);
@@ -353,15 +354,14 @@ begin
   TheSettings.HideHeaderCaptionFloatingControl:=HideHeaderCaptionForFloatingCheckBox.Checked;
   TheSettings.HeaderFlatten:=FlattenHeadersCheckBox.Checked;
   TheSettings.HeaderFilled:=FilledHeadersCheckBox.Checked;
-  TheSettings.HeaderStyle:=DockMaster.HeaderStyleName2ADHeaderStyle.Data[HeaderStyleComboBox.ItemIndex].StyleDesc.Name;
+  TheSettings.HeaderStyle:=TADHeaderStyle(HeaderStyleComboBox.ItemIndex);
   TheSettings.HeaderHighlightFocused:=HighlightFocusedCheckBox.Checked;
-  TheSettings.DockSitesCanBeMinimized:=DockSitesCanBeMinimized.Checked;
 end;
 
 procedure TAnchorDockOptionsFrame.LoadFromSettings(
   TheSettings: TAnchorDockSettings);
 var
-  StyleIndex,CurrentStyleIndex: Integer;
+  hs: TADHeaderStyle;
   sl: TStringList;
 begin
   DragThresholdTrackBar.Hint:=
@@ -417,25 +417,18 @@ begin
 
   sl:=TStringList.Create;
   try
-    for StyleIndex:=0 to DockMaster.HeaderStyleName2ADHeaderStyle.Count-1 do begin
-      sl.Add(DockMaster.HeaderStyleName2ADHeaderStyle.Data[StyleIndex].StyleDesc.Name);
-      if DockMaster.HeaderStyleName2ADHeaderStyle.Data[StyleIndex].StyleDesc.Name=TheSettings.HeaderStyle then
-        CurrentStyleIndex:=StyleIndex;
-    end;
+    for hs:=Low(TADHeaderStyle) to High(TADHeaderStyle) do
+      sl.Add(ADHeaderStyleNames[hs]);
     HeaderStyleComboBox.Items.Assign(sl);
   finally
     sl.Free;
   end;
   HeaderStyleLabel.Caption:=adrsHeaderStyle;
-  HeaderStyleComboBox.ItemIndex:=CurrentStyleIndex;
+  HeaderStyleComboBox.ItemIndex:=ord(TheSettings.HeaderStyle);
 
   HighlightFocusedCheckBox.Checked:=TheSettings.HeaderHighlightFocused;
   HighlightFocusedCheckBox.Caption:=adrsHighlightFocused;
   HighlightFocusedCheckBox.Hint:=adrsHighlightFocusedHint;
-
-  DockSitesCanBeMinimized.Checked:=TheSettings.DockSitesCanBeMinimized;
-  DockSitesCanBeMinimized.Caption:=adrsAllowDockSitesToBeMinimized;
-  DockSitesCanBeMinimized.Hint:=adrsAllowDockSitesToBeMinimized;
 end;
 
 end.

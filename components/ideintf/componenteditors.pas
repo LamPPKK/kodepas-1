@@ -391,19 +391,7 @@ type
   end;
 
 
-{ TFlowPanelComponentEditor
-  The default componenteditor for TFlowPanel }
-
-  TFlowPanelComponentEditor = class(TComponentEditor)
-  public
-    procedure ExecuteVerb({%H-}AIndex: Integer); override;
-    function GetVerb({%H-}AIndex: Integer): string; override;
-    function GetVerbCount: Integer; override;
-    function FlowPanel: TFlowPanel;
-  end;
-
-
-  { TToolBarComponentEditor
+{ TToolBarComponentEditor
   The default componenteditor for TToolBar }
 
   TToolBarComponentEditor = class(TDefaultComponentEditor)
@@ -452,41 +440,6 @@ procedure RegisterComponentEditor(ComponentClasses: array of TComponentClass;
   ComponentEditor: TComponentEditorClass);
 function GetComponentEditor(Component: TComponent;
   const Designer: TComponentEditorDesigner): TBaseComponentEditor;
-
-
-type
-{ TComponentRequirements
-
-  Providing this class for a component class allows to influence the
-  requirements for that component (for example which units or packages should
-  be referenced upon adding the component to a form).
-
-  RequiredUnits
-    Called to determine the units that a component requires. By default the
-    Units parameter contains the unit the component is contained in.
-
-  RequiredPkgs
-    Called to determine the packages that a component requires. By default the
-    Pkgs parameter contains the packages of the units returned by RequiredUnits
-  }
-  TComponentRequirements = class
-  private
-    FComponentClass: TComponentClass;
-  public
-    constructor Create(AComponentClass: TComponentClass); virtual;
-    procedure RequiredUnits({%H-}Units: TStrings); virtual;
-    procedure RequiredPkgs({%H-}Pkgs: TStrings); virtual;
-    property ComponentClass: TComponentClass read FComponentClass;
-  end;
-
-  TComponentRequirementsClass = class of TComponentRequirements;
-
-
-procedure RegisterComponentRequirements(ComponentClass: TComponentClass;
-  ComponentRequirements: TComponentRequirementsClass);
-procedure RegisterComponentRequirements(ComponentClasses: array of TComponentClass;
-  ComponentRequirements: TComponentRequirementsClass);
-function GetComponentRequirements(ComponentClass: TComponentClass): TComponentRequirements;
 
 type
   TPropertyEditorFilterFunc =
@@ -1298,30 +1251,6 @@ begin
   Result:=1;
 end;
 
-
-{ TFlowPanelComponentEditor }
-
-procedure TFlowPanelComponentEditor.ExecuteVerb(AIndex: Integer);
-begin
-  EditCollectionNoAddDel(FlowPanel, FlowPanel.ControlList, 'ControlList');
-end;
-
-function TFlowPanelComponentEditor.GetVerb(AIndex: Integer): string;
-begin
-  Result := fpFlowPanelEditor+'...';
-end;
-
-function TFlowPanelComponentEditor.GetVerbCount: Integer;
-begin
-  Result := 1;
-end;
-
-function TFlowPanelComponentEditor.FlowPanel: TFlowPanel;
-begin
-  Result := TFlowPanel(GetComponent);
-end;
-
-
 { TToolBarComponentEditor }
 
 procedure TToolBarComponentEditor.ExecuteVerb(Index: Integer);
@@ -1415,84 +1344,9 @@ end;
 
 //------------------------------------------------------------------------------
 
-{ RegisterComponentRequirements }
-type
-  PComponentClassReqRec = ^TComponentClassReqRec;
-  TComponentClassReqRec = record
-    ComponentClass: TComponentClass;
-    RequirementsClass: TComponentRequirementsClass;
-  end;
-
-const
-  ComponentClassReqList: TList = Nil;
-
-procedure RegisterComponentRequirements(ComponentClass: TComponentClass;
-  ComponentRequirements: TComponentRequirementsClass);
-var
-  P: PComponentClassReqRec;
-begin
-  if not Assigned(ComponentClass) or not Assigned(ComponentRequirements) then
-    Exit;
-  if not Assigned(ComponentClassReqList) then
-    ComponentClassReqList := TList.Create;
-  New(P);
-  P^.ComponentClass := ComponentClass;
-  P^.RequirementsClass := ComponentRequirements;
-  ComponentClassReqList.Add(P);
-end;
-
-procedure RegisterComponentRequirements(ComponentClasses: array of TComponentClass;
-  ComponentRequirements: TComponentRequirementsClass);
-var
-  I: Integer;
-begin
-  for I := 0 to High(ComponentClasses) do
-    RegisterComponentRequirements(ComponentClasses[I], ComponentRequirements);
-end;
-
-function GetComponentRequirements(ComponentClass: TComponentClass): TComponentRequirements;
-var
-  I: Integer;
-  P: PComponentClassReqRec;
-begin
-  if not Assigned(ComponentClass) or not Assigned(ComponentClassReqList) then
-    Exit(Nil);
-  for I := 0 to ComponentClassReqList.Count - 1 do
-  begin
-    P := PComponentClassReqRec(ComponentClassReqList[i]);
-    if P^.ComponentClass = ComponentClass then
-    begin
-      Result := P^.RequirementsClass.Create(ComponentClass);
-      Exit;
-    end;
-  end;
-  Result := Nil;
-end;
-
-{ TComponentRequirements }
-
-constructor TComponentRequirements.Create(AComponentClass: TComponentClass);
-begin
-  inherited Create;
-  FComponentClass := AComponentClass;
-end;
-
-procedure TComponentRequirements.RequiredUnits(Units: TStrings);
-begin
-  ; // Inherit classes can override as needed.
-end;
-
-procedure TComponentRequirements.RequiredPkgs(Pkgs: TStrings);
-begin
-  ; // Inherit classes can override as needed.
-end;
-
-//------------------------------------------------------------------------------
-
 procedure InternalFinal;
 var
   p: PComponentClassRec;
-  pq: PComponentClassReqRec;
   i: integer;
 begin
   if ComponentClassList<>nil then begin
@@ -1501,13 +1355,6 @@ begin
       Dispose(p);
     end;
     ComponentClassList.Free;
-  end;
-  if Assigned(ComponentClassReqList) then begin
-    for i:=0 to ComponentClassReqList.Count-1 do begin
-      pq:=PComponentClassReqRec(ComponentClassReqList[i]);
-      Dispose(pq);
-    end;
-    ComponentClassReqList.Free;
   end;
 
   EditorForms.Free;
@@ -1737,7 +1584,6 @@ initialization
   RegisterComponentEditor(TStringGrid, TStringGridComponentEditor);
   RegisterComponentEditor(TCheckListBox, TCheckListBoxComponentEditor);
   RegisterComponentEditor(TCheckGroup, TCheckGroupComponentEditor);
-  RegisterComponentEditor(TFlowPanel, TFlowPanelComponentEditor);
   RegisterComponentEditor(TToolBar, TToolBarComponentEditor);
   RegisterComponentEditor(TCommonDialog, TCommonDialogComponentEditor);
   RegisterComponentEditor(TCustomTimer, TTimerComponentEditor);

@@ -10,7 +10,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: maincalleditor.ceractivereport
-#, object-pascal-format
 msgid "Active report: %s"
 msgstr "Reporte Activo: %s"
 
@@ -71,7 +70,6 @@ msgid "Index"
 msgstr "Índice"
 
 #: maincalleditor.cerindexfields
-#, object-pascal-format
 msgid "Index Fields: %s"
 msgstr "Campos Índice: %s"
 

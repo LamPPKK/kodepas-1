@@ -743,10 +743,6 @@ begin
     exit(false);
   p1:=@Src[CleanStartPos1];
   p2:=@Src[CleanStartPos2];
-  if p1^='&' then
-    Inc(p1);
-  if p2^='&' then
-    Inc(p2);
   while IsIdentChar[p1^] do begin
     if (UpChars[p1^]<>UpChars[p2^]) then
       exit(false);
@@ -1917,7 +1913,6 @@ function TCustomCodeTool.ReadTilBracketClose(
 // after call cursor is on the closing bracket
 var CloseBracket, AntiCloseBracket: TCommonAtomFlag;
   Start: TAtomPosition;
-  Node: TCodeTreeNode;
   
   procedure RaiseBracketNotFound;
   begin
@@ -1925,13 +1920,6 @@ var CloseBracket, AntiCloseBracket: TCommonAtomFlag;
       SaveRaiseExceptionFmt(20170421194736,ctsBracketNotFound,[')'],false)
     else
       SaveRaiseExceptionFmt(20170421194740,ctsBracketNotFound,[']'],false);
-  end;
-
-  procedure RaiseAtNicePos;
-  begin
-    SetNiceErrorPos(Start.StartPos);
-    if ExceptionOnNotFound then
-      RaiseBracketNotFound;
   end;
   
 begin
@@ -1954,20 +1942,11 @@ begin
     if (CurPos.StartPos>SrcLen)
     or (CurPos.Flag in [cafEnd,AntiCloseBracket])
     then begin
-      RaiseAtNicePos;
-      exit;
-    end;
-    if (CurPos.Flag=cafWord) and (UpAtomIs('PROCEDURE') or UpAtomIs('FUNCTION'))
-    then begin
-      // check for anonymous function
-      Node:=FindDeepestNodeAtPos(CurPos.StartPos+1,false);
-      if (Node<>nil) and (Node.Desc=ctnProcedure) then
-      begin
-        MoveCursorToCleanPos(Node.EndPos);
-      end else begin
-        RaiseAtNicePos;
-        exit;
+      SetNiceErrorPos(Start.StartPos);
+      if ExceptionOnNotFound then begin
+        RaiseBracketNotFound;
       end;
+      exit;
     end;
     if (CurPos.Flag in [cafRoundBracketOpen,cafEdgedBracketOpen]) then begin
       if not ReadTilBracketClose(ExceptionOnNotFound) then exit;
@@ -1979,8 +1958,9 @@ end;
 function TCustomCodeTool.ReadBackTilBracketOpen(
   ExceptionOnNotFound: boolean): boolean;
 // reads code brackets (not comment brackets)
-var OpenBracket: TCommonAtomFlag;
-
+var OpenBracket, AntiOpenBracket: TCommonAtomFlag;
+  Start: TAtomPosition;
+  
   procedure RaiseBracketNotFound;
   begin
     if OpenBracket=cafRoundBracketOpen then
@@ -1989,10 +1969,6 @@ var OpenBracket: TCommonAtomFlag;
       SaveRaiseExceptionFmt(20170421194749,ctsBracketNotFound,['[']);
   end;
   
-var
-  AntiOpenBracket: TCommonAtomFlag;
-  Start: TAtomPosition;
-  Node: TCodeTreeNode;
 begin
   Result:=false;
   if (CurPos.Flag=cafRoundBracketClose) then begin
@@ -2011,18 +1987,12 @@ begin
     ReadPriorAtom;
     if (CurPos.Flag=OpenBracket) then exit(true);
     if (CurPos.StartPos<1)
-    or (CurPos.Flag=AntiOpenBracket) then
+    or (CurPos.Flag in [AntiOpenBracket,cafEND])
+    or ((CurPos.Flag=cafWord)
+        and UnexpectedKeyWordInBrackets.DoItCaseInsensitive(Src,
+             CurPos.StartPos,CurPos.EndPos-CurPos.StartPos))
+    then begin
       break;
-    if (CurPos.Flag=cafEnd) then begin
-      // check if anonymous function
-      Node:=FindDeepestNodeAtPos(CurPos.StartPos,true);
-      if (Node<>nil) and (Node.EndPos=CurPos.EndPos)
-      and (Node.Desc in [ctnBeginBlock,ctnAsmBlock])
-      and (Node.Parent.Desc=ctnProcedure) then
-        // ToDo: check if Node is anonymous procedure
-        MoveCursorToCleanPos(Node.Parent.StartPos)
-      else
-        break;
     end;
     if CurPos.Flag in [cafRoundBracketClose,cafEdgedBracketClose] then begin
       if not ReadBackTilBracketOpen(ExceptionOnNotFound) then exit;
@@ -3043,10 +3013,6 @@ function TCustomCodeTool.CompareSrcIdentifiers(Identifier1, Identifier2: PChar
 begin
   Result:=false;
   if (Identifier1=nil) or (Identifier2=nil) then exit;
-  if Identifier1^='&' then
-    Inc(Identifier1);
-  if Identifier2^='&' then
-    Inc(Identifier2);
   while IsIdentChar[Identifier1^] do begin
     if (UpChars[Identifier1^]=UpChars[Identifier2^]) then begin
       inc(Identifier1);
@@ -3063,14 +3029,6 @@ begin
   Result:=false;
   if (AnIdentifier=nil) or (CleanStartPos<1) or (CleanStartPos>SrcLen) then
     exit;
-  if AnIdentifier^='&' then
-    Inc(AnIdentifier);
-  if Src[CleanStartPos]='&' then
-  begin
-    Inc(CleanStartPos);
-    if CleanStartPos>SrcLen then
-      exit;
-  end;
   while IsIdentChar[AnIdentifier^] do begin
     if (UpChars[AnIdentifier^]=UpChars[Src[CleanStartPos]]) then begin
       inc(AnIdentifier);

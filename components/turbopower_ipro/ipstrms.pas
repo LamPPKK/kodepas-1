@@ -2,7 +2,7 @@
 {*     IPSTRMS.PAS - Various stream classes                       *}
 {******************************************************************}
 
-{ $Id$ }
+{ $Id: ipstrms.pas 56391 2017-11-13 17:33:30Z juha $ }
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1

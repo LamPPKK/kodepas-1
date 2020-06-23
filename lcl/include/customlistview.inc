@@ -312,10 +312,7 @@ begin
     end;
     LVN_ITEMCHANGED:
     begin
-      if nm^.iItem < 0 then
-        Item := nil
-      else
-        Item := Items[nm^.iItem];
+      Item := Items[nm^.iItem];
       //DebugLn('TCustomListView.CNNotify Count=',dbgs(Items.Count),' nm^.iItem=',dbgs(nm^.iItem),' destroying=',dbgs(lifDestroying in Item.FFlags));
       if (Item <> nil) and (not OwnerData) and (lifDestroying in Item.FFlags) then
       begin
@@ -325,6 +322,8 @@ begin
           InvalidateSelected;
       end else
       begin
+        // owner data
+        Change(Item, nm^.uChanged);
         if (nm^.uChanged = LVIF_STATE) then
         begin
           // checkbox
@@ -352,13 +351,12 @@ begin
             // select state changed
             if (nm^.uNewState and LVIS_SELECTED) = 0 then
             begin
-              if not OwnerData then
-              begin
-                if FSelected = Item then
-                  InvalidateSelected
-              end else
-                if (nm^.iItem < 0) or (nm^.iItem = FSelectedIdx) then
-                  InvalidateSelected;
+              if not OwnerData and (FSelected = Item) then
+                InvalidateSelected
+              else if OwnerData and (nm^.iItem=FSelectedIdx) then
+                InvalidateSelected;
+              if nm^.iItem > -1 then
+                DoSelectItem(Item, False);
             end else
             begin
               FSelected := Item;
@@ -368,13 +366,11 @@ begin
                 FSelectedIdx:=nm^.iItem;
               end;
               //DebugLn('TCustomListView.CNNotify FSelected=',dbgs(FSelected));
+              if nm^.iItem > -1 then
+                DoSelectItem(Item, True);
             end;
-            Change(Item, nm^.uChanged);
-            DoSelectItem(Item, (nm^.uNewState and LVIS_SELECTED) <> 0);
           end;
-        end
-        else
-          Change(Item, nm^.uChanged);
+        end;
       end;
     end;
 //    LVN_GETINFOTIP:
@@ -621,8 +617,7 @@ end;
 {------------------------------------------------------------------------------}
 procedure TCustomListView.DoSelectItem(AItem: TListItem; ASelected: Boolean);
 begin
-  if Assigned(AItem) then
-    AItem.Selected:=ASelected;
+  AItem.Selected:=ASelected;
   if Assigned(FOnSelectItem) and
     ([lffItemsMoving, lffItemsSorting] * FFlags = []) then
       FOnSelectItem(Self, AItem, ASelected);

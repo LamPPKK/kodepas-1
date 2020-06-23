@@ -23,7 +23,6 @@ const
 
 type
   TChartAxisBrush = TClearBrush;
-  TChartBasicAxis = class;
 
   TChartAxisFramePen = class(TChartPen)
   published
@@ -72,8 +71,6 @@ type
   TChartAxisMargins = array [TChartAxisAlignment] of Integer;
   TChartAxisMarkToTextEvent =
     procedure (var AText: String; AMark: Double) of object;
-  TChartGetAxisMarkTextEvent =
-    procedure (Sender: TObject; var AText: String; AMark: Double) of object;
 
   {$IFNDEF fpdoc} // Workaround for issue #18549.
   TBasicChartAxisMarks =
@@ -689,7 +686,6 @@ procedure TChartBasicAxis.Assign(ASource: TPersistent);
 begin
   if ASource is TChartBasicAxis then
     with TChartBasicAxis(ASource) do begin
-      Self.FArrow.Assign(Arrow);
       Self.FGrid.Assign(Grid);
       Self.FMarks.Assign(Marks);
       Self.FTickColor := TickColor;

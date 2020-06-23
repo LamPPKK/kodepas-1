@@ -106,7 +106,8 @@ type
           SourceChangeCache: TSourceChangeCache): boolean;
         
     // uses sections
-    function RenameUsedUnit(const OldUnitName, NewUnitName, NewUnitInFile: string;
+    function RenameUsedUnit(const OldUnitName, NewUnitName,
+          NewUnitInFile: string;
           SourceChangeCache: TSourceChangeCache): boolean;
     function ReplaceUsedUnits(UnitNamePairs: TStringToStringTree; // ToDo: dotted
           SourceChangeCache: TSourceChangeCache): boolean;
@@ -121,7 +122,8 @@ type
     function AddUnitToMainUsesSection(const NewUnitName, NewUnitInFile: string;
           SourceChangeCache: TSourceChangeCache;
           AsLast: boolean = false; CheckSpecialUnits: boolean = true): boolean;
-    function AddUnitToImplementationUsesSection(const NewUnitName, NewUnitInFile: string;
+    function AddUnitToImplementationUsesSection(const NewUnitName,
+          NewUnitInFile: string;
           SourceChangeCache: TSourceChangeCache;
           AsLast: boolean = false; CheckSpecialUnits: boolean = true): boolean;
     function UnitExistsInUsesSection(UsesSection: TUsesSection;
@@ -273,10 +275,8 @@ type
           out NewPos: TCodeXYPosition; out NewTopLine: integer): boolean;
 
     // compiler directives
-    {$IFDEF GuessMisplacedIfdef}
     function GuessMisplacedIfdefEndif(const CursorPos: TCodeXYPosition;
           out NewPos: TCodeXYPosition; out NewTopLine: integer): boolean;
-    {$ENDIF}
     function FindEnclosingIncludeDirective(const CursorPos: TCodeXYPosition;
           out NewPos: TCodeXYPosition; out NewTopLine: integer): boolean;
     function FindModeDirective(DoBuildTree: boolean;
@@ -426,8 +426,7 @@ end;
 
 function TStandardCodeTool.RenameSource(const NewName: string;
   SourceChangeCache: TSourceChangeCache): boolean;
-var
-  NamePos: TAtomPosition;
+var NamePos: TAtomPosition;
 begin
   Result:=false;
   BuildTree(lsrSourceName);
@@ -436,16 +435,17 @@ begin
   or (Length(NewName)>255) then exit;
   //debugln(['TStandardCodeTool.RenameSource OldName="',dbgstr(copy(Src,NamePos.StartPos,NamePos.EndPos-NamePos.StartPos)),'"']);
   SourceChangeCache.MainScanner:=Scanner;
-  SourceChangeCache.Replace(gtNone,gtNone,NamePos.StartPos,NamePos.EndPos,NewName);
+  SourceChangeCache.Replace(gtNone,gtNone,NamePos.StartPos,NamePos.EndPos,
+    NewName);
   if not SourceChangeCache.Apply then exit;
   CachedSourceName:=NewName;
   Result:=true;
 end;
 
-function TStandardCodeTool.RenameUsedUnit(const OldUnitName, NewUnitName,
-  NewUnitInFile: string; SourceChangeCache: TSourceChangeCache): boolean;
-var
-  UnitPos, InPos: TAtomPosition;
+function TStandardCodeTool.RenameUsedUnit(const OldUnitName,
+  NewUnitName, NewUnitInFile: string;
+  SourceChangeCache: TSourceChangeCache): boolean;
+var UnitPos, InPos: TAtomPosition;
   NewUsesTerm: string;
 begin
   Result:=false;
@@ -6292,7 +6292,6 @@ begin
   Result:=true;
 end;
 
-{$IFDEF GuessMisplacedIfdef}
 function TStandardCodeTool.GuessMisplacedIfdefEndif(
   const CursorPos: TCodeXYPosition;
   out NewPos: TCodeXYPosition; out NewTopLine: integer): boolean;
@@ -6324,7 +6323,6 @@ begin
     end;
   end;
 end;
-{$ENDIF}
 
 function TStandardCodeTool.FindEnclosingIncludeDirective(
   const CursorPos: TCodeXYPosition; out NewPos: TCodeXYPosition; out

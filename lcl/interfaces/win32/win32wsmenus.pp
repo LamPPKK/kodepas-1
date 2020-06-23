@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: win32wsmenus.pp 57968 2018-05-18 23:26:49Z maxim $}
 {
  *****************************************************************************
  *                              Win32WSMenus.pp                              *
@@ -245,14 +245,12 @@ begin
     Result := Result + Spacing + MenuItemShortCut(AMenuItem);
 end;
 
-(* Item with external string caption *)
+(* Idem with external string caption *)
 function CompleteMenuItemStringCaption(const AMenuItem: TMenuItem; ACaption: String; Spacing: String): string;
 begin
   Result := ACaption;
-  if AMenuItem.ShortCut <> scNone then begin
-    Result := Result + Spacing;
-    Result := Result + MenuItemShortCut(AMenuItem);
-  end;
+  if AMenuItem.ShortCut <> scNone then
+    Result := Result + Spacing + MenuItemShortCut(AMenuItem);
 end;
 
 (* Get the maximum length of the given string in pixels *)
@@ -1114,25 +1112,16 @@ var
   AImageList: TCustomImageList;
   FreeImageList: Boolean;
   AImageIndex, AImagesWidth: Integer;
-  ATransparentColor: TColor;
   APPI: longint;
 begin
   AMenuItem.GetImageList(AImageList, AImagesWidth);
   if (AImageList = nil) or (AMenuItem.ImageIndex < 0) then // using icon from Bitmap
   begin
-    if not (Assigned(AMenuItem.Bitmap) and (AMenuItem.Bitmap.Height>0)) then
-      Exit;
     AImageList := TImageList.Create(nil);
-    AImageList.Width := AMenuItem.Bitmap.Width;
+    AImageList.Width := AMenuItem.Bitmap.Width; // maybe height to prevent too wide bitmaps?
     AImageList.Height := AMenuItem.Bitmap.Height;
-    if AMenuItem.Bitmap.Transparent then
-    begin
-      case AMenuItem.Bitmap.TransparentMode of
-        tmAuto:  ATransparentColor := AMenuItem.Bitmap.Canvas.Pixels[0, AImageList.Height-1];
-        tmFixed: ATransparentColor := AMenuItem.Bitmap.TransparentColor;
-      end;
-      AImageIndex := AImageList.AddMasked(AMenuItem.Bitmap, ATransparentColor);
-    end
+    if not AMenuItem.Bitmap.Transparent then
+      AImageIndex := AImageList.AddMasked(AMenuItem.Bitmap, AMenuItem.Bitmap.Canvas.Pixels[0, AImageList.Height-1])
     else
       AImageIndex := AImageList.Add(AMenuItem.Bitmap, nil);
     FreeImageList := True;

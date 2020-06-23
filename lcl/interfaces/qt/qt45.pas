@@ -10648,8 +10648,7 @@ const
 
 type
   QStyleControlElement = (  //QStyle::ControlElement (2)
-    QStyleCE_CustomBase = LongInt($f0000000),
-    QStyleCE_PushButton = 0,
+    QStyleCE_PushButton,
     QStyleCE_PushButtonBevel,
     QStyleCE_PushButtonLabel,
     QStyleCE_CheckBox,
@@ -10696,12 +10695,11 @@ type
     QStyleCE_HeaderEmptyArea,
     QStyleCE_ColumnViewGrip,
     QStyleCE_ItemViewItem,
-    QStyleCE_ShapedFrame
-    );
+    QStyleCE_ShapedFrame,
+    QStyleCE_CustomBase = $f0000000 );
 
   QStyleComplexControl = (  //QStyle::ComplexControl (2)
-    QStyleCC_CustomBase = LongInt($f0000000),
-    QStyleCC_SpinBox = 0,
+    QStyleCC_SpinBox,
     QStyleCC_ComboBox,
     QStyleCC_ScrollBar,
     QStyleCC_Slider,
@@ -10710,8 +10708,8 @@ type
     QStyleCC_Q3ListView,
     QStyleCC_Dial,
     QStyleCC_GroupBox,
-    QStyleCC_MdiControls
-    );
+    QStyleCC_MdiControls,
+    QStyleCC_CustomBase = $f0000000 );
 
 type
   QStyleSubControl = cardinal; // QStyle::SubControl
@@ -10766,8 +10764,7 @@ const
 
 type
   QStyleContentsType = (  //QStyle::ContentsType (2)
-    QStyleCT_CustomBase = LongInt($f0000000),
-    QStyleCT_PushButton = 0,
+    QStyleCT_PushButton,
     QStyleCT_CheckBox,
     QStyleCT_RadioButton,
     QStyleCT_ToolButton,
@@ -10791,12 +10788,11 @@ type
     QStyleCT_HeaderSection,
     QStyleCT_GroupBox,
     QStyleCT_MdiControls,
-    QStyleCT_ItemViewItem
-    );
+    QStyleCT_ItemViewItem,
+    QStyleCT_CustomBase = $f0000000 );
 
   QStyleStandardPixmap = (  //QStyle::StandardPixmap (2)
-    QStyleSP_CustomBase = LongInt($f0000000),
-    QStyleSP_TitleBarMenuButton = 0,
+    QStyleSP_TitleBarMenuButton,
     QStyleSP_TitleBarMinButton,
     QStyleSP_TitleBarMaxButton,
     QStyleSP_TitleBarCloseButton,
@@ -10864,8 +10860,8 @@ type
     QStyleSP_MediaSeekForward,
     QStyleSP_MediaSeekBackward,
     QStyleSP_MediaVolume,
-    QStyleSP_MediaVolumeMuted
-    );
+    QStyleSP_MediaVolumeMuted,
+    QStyleSP_CustomBase = $f0000000 );
 
 type
   QStylePrimitiveElement = cardinal; //  QStyle::PrimitiveElement (4)

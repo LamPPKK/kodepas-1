@@ -12,7 +12,6 @@ uses
 {$R *.res}
 
 begin
-  Application.Scaled:=True;
   Application.Title:='TAChart axis transformation demo';
   Application.Initialize;
   Application.CreateForm(TForm1, Form1);

@@ -35,9 +35,11 @@ procedure DeallocateHWnd(Wnd: HWND); override;
 procedure DrawDefaultDockImage(AOldRect, ANewRect: TRect; AOperation: TDockImageOperation); override;
 
 function ExtUTF8Out(DC: HDC; X, Y: Integer; Options: Longint; Rect: PRect;
-  Str: PChar; Count: Longint; Dx: PInteger): Boolean; override;
+  Str: PChar; Count: Longint; Dx: PInteger): Boolean; override;}
 
-function GetAcceleratorString(const AVKey: Byte; const AShiftState: TShiftState): String; override;
+function FontCanUTF8(Font: HFont): boolean; override;
+
+{function GetAcceleratorString(const AVKey: Byte; const AShiftState: TShiftState): String; override;
 function GetControlConstraints(Constraints: TObject): boolean; override;
 }
 function PromptUser(const DialogCaption, DialogMessage: String; DialogType: longint;

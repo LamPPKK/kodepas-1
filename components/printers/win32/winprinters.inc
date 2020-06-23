@@ -255,9 +255,9 @@ begin
 
   if RawMode then
   begin
-    Doc1.pDocName := PChar(UTF8ToWinCP(Title));
+    Doc1.pDocName := PChar(Title);
     if Filename <> '' then
-      Doc1.pOutputFile := PChar(UTF8ToWinCP(Filename))
+      Doc1.pOutputFile := PChar(Filename)
     else
       Doc1.pOutputFile := nil;
     Doc1.pDataType := 'RAW';
@@ -283,9 +283,9 @@ begin
 
     FillChar(Inf, SizeOf(Inf), 0);
     Inf.cbSize := SizeOf(Inf);
-    Inf.lpszDocName := PChar(UTF8ToWinCP(Title));
+    Inf.lpszDocName := PChar(Title);
     if FileName <> '' then
-      Inf.lpszOutput := PChar(UTF8ToWinCP(Filename));
+      Inf.lpszOutput := PChar(Filename);
 
     StartDoc(fDC,@Inf);
     Windows.StartPage(fDC);
@@ -626,9 +626,7 @@ begin
         // See note on doGetPaperName
         i := IndexOf(PDev.DefaultPaperName);
         if i<0 then
-          Result := Strings[0]
-        else
-          Result := Strings[i];
+          Result := Strings[0];
       end;
     end;
   end;

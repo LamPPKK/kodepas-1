@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, fgl, TestDbgConfig, TestDbgCompilerProcess,
   TestOutputLogger, TTestDebuggerClasses, TestCommonSources, LazFileUtils,
-  LazLoggerBase, FileUtil, DbgIntfDebuggerBase, fpcunit;
+  FileUtil, DbgIntfDebuggerBase, fpcunit;
 
 type
 
@@ -89,7 +89,6 @@ type
     FWatches: TTestWatchesMonitor;
     FThreads: TTestThreadsMonitor;
     FRegisters: TTestRegistersMonitor;
-    FTestBreakPoints: TStringList;
 
     function GetCpuBitTypes: TCpuBitTypes;
     function GetSymbolTypes: TSymbolTypes;
@@ -109,17 +108,15 @@ type
   public
     function StartDebugger(AppDir, TestExeName: String): boolean; virtual;
     procedure FreeDebugger;
-    function RunToNextPause(ACmd: TDBGCommand; ATimeOut: Integer = 5000; AWaitForInternal: Boolean = False): Boolean;
     function WaitForFinishRun(ATimeOut: Integer = 5000; AWaitForInternal: Boolean = False): Boolean;
 
     function SetBreakPoint(AFileName: String; ALine: Integer): TDBGBreakPoint;
     function SetBreakPoint(ACommonSource: TCommonSource; AName: String): TDBGBreakPoint;
     function SetBreakPoint(ACommonSource: TCommonSource; ASourceName, AName: String): TDBGBreakPoint;
-    function BreakPointByName(AName: String): TDBGBreakPoint;
 
     procedure CleanAfterTestDone; virtual;
 
-    property LazDebugger: TDebuggerIntf read FLazDebugger write FLazDebugger;
+    property LazDebugger: TDebuggerIntf read FLazDebugger;
 
     property CallStack: TTestCallStackMonitor read FCallStack;
     property Disassembler: TBaseDisassembler read FDisassembler;
@@ -238,6 +235,7 @@ procedure TTestDbgCompiler.TestCompileUses(UsesDir: TUsesDir; out
   UsesLibDir: String; out ExeID: string);
 var
   Opts: String;
+  i: Integer;
   DirPostFix: String;
 begin
   DirPostFix := SymbolTypeNames[UsesDir.SymbolType] + '_' + NameToFileName(Name);
@@ -328,8 +326,6 @@ end;
 
 procedure TTestDbgDebugger.InitDebuggerMonitors(ADebugger: TDebuggerIntf);
 begin
-  FTestBreakPoints := TStringList.Create;
-
   //FBreakPoints := TManagedBreakPoints.Create(Self);
   //FBreakPointGroups := TIDEBreakPointGroups.Create;
   FWatches := TTestWatchesMonitor.Create;
@@ -378,8 +374,6 @@ begin
   FreeAndNil(FLocals);
   FreeAndNil(FLineInfo);
   FreeAndNil(FRegisters);
-
-  FreeAndNil(FTestBreakPoints);
 end;
 
 function TTestDbgDebugger.StartDebugger(AppDir, TestExeName: String): boolean;
@@ -396,31 +390,6 @@ begin
   end;
   ClearDebuggerMonitors;
   FreeAndNil(FLazDebugger);
-end;
-
-function TTestDbgDebugger.RunToNextPause(ACmd: TDBGCommand; ATimeOut: Integer;
-  AWaitForInternal: Boolean): Boolean;
-begin
-  Result := False;
-  with LazDebugger.GetLocation do DebugLnEnter('>>> RunToNextPause Starting at %s %d @ %x', [SrcFile, SrcLine, Address]);
-  case ACmd of
-    dcRun:      LazDebugger.Run;
-    dcStepOver: LazDebugger.StepOver;
-    dcStepInto: LazDebugger.StepInto;
-    dcStepOut:  LazDebugger.StepOut;
-    dcStepOverInstr: LazDebugger.StepOverInstr;
-    dcStepIntoInstr: LazDebugger.StepIntoInstr;
-    else
-      exit;
-  end;
-  Result := WaitForFinishRun(ATimeOut, AWaitForInternal);
-  if LazDebugger.State = dsPause then
-    with LazDebugger.GetLocation do begin
-      DebugLnExit('<<< RunToNextPause Ending at %s %d @ %x %s', [SrcFile, SrcLine, Address, dbgs(LazDebugger.State)]);
-      TestLogger.DebugLn('at %s %d @ %x %s', [SrcFile, SrcLine, Address, dbgs(LazDebugger.State)]);
-    end
-  else
-    DebugLnExit(['<<< RunToNextPause - ERROR: not paused']);
 end;
 
 function TTestDbgDebugger.WaitForFinishRun(ATimeOut: Integer;
@@ -452,14 +421,12 @@ begin
     InitialEnabled := True;
     Enabled := True;
   end;
-  DebugLn('Inserted breakpoint %s %d  id: %d', [AFileName, ALine, Result.ID]);
 end;
 
 function TTestDbgDebugger.SetBreakPoint(ACommonSource: TCommonSource;
   AName: String): TDBGBreakPoint;
 begin
   Result := SetBreakPoint(ACommonSource.FileName, ACommonSource.BreakPoints[AName]);
-  FTestBreakPoints.AddObject(AName, Result);
 end;
 
 function TTestDbgDebugger.SetBreakPoint(ACommonSource: TCommonSource;
@@ -467,12 +434,6 @@ function TTestDbgDebugger.SetBreakPoint(ACommonSource: TCommonSource;
 begin
   ACommonSource := ACommonSource.OtherSrc[ASourceName];
   Result := SetBreakPoint(ACommonSource.FileName, ACommonSource.BreakPoints[AName]);
-  FTestBreakPoints.AddObject(AName, Result);
-end;
-
-function TTestDbgDebugger.BreakPointByName(AName: String): TDBGBreakPoint;
-begin
-  Result := TDBGBreakPoint(FTestBreakPoints.Objects[FTestBreakPoints.IndexOf(AName)]);
 end;
 
 procedure TTestDbgDebugger.CleanAfterTestDone;

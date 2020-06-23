@@ -1,4 +1,4 @@
-{ $Id$ }
+{ $Id: win32int.pp 56879 2017-12-30 18:43:08Z michl $ }
 {
  /***************************************************************************
                          WIN32INT.pp  -  Win32Interface Object
@@ -19,7 +19,6 @@
 unit Win32Int;
 
 {$mode objfpc}{$H+}{$T-}{$message warning Fix implicit pointer conversions}
-{$ModeSwitch advancedrecords}
 {$I win32defines.inc}
 
 interface

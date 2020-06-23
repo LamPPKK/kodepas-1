@@ -3277,7 +3277,6 @@ begin
   FTreeLinePenPattern[1] := 1;
   FExpandSignColor := clWindowFrame;
   FHotTrackColor := clNone;
-  FDisabledFontColor := clGrayText;
   // Accessibility
   AccessibleDescription := rsTTreeViewAccessibilityDescription;
   AccessibleRole := larTreeView;
@@ -5245,19 +5244,10 @@ var
         Canvas.Font.Color := FHotTrackColor;
     end;
 
-    NodeRect.Offset(ScaleX(2, 96), 0);
     if (tvoThemedDraw in Options) then
-    begin
-      if not Enabled then
-        Details.State := 4; // TmSchema.TREIS_DISABLED = 4
-      ThemeServices.DrawText(Canvas, Details, AText, NodeRect, DT_LEFT or DT_VCENTER or DT_SINGLELINE or DT_NOPREFIX, 0);
-    end
+      ThemeServices.DrawText(Canvas, Details, AText, NodeRect, DT_CENTER or DT_VCENTER or DT_SINGLELINE or DT_NOPREFIX, 0)
     else
-    begin
-      if not Enabled and (FDisabledFontColor<>clNone) then
-        Canvas.Font.Color := FDisabledFontColor;
-      DrawText(Canvas.Handle, PChar(AText), -1, NodeRect, DT_LEFT or DT_VCENTER or DT_SINGLELINE or DT_NOPREFIX);
-    end;
+      DrawText(Canvas.Handle, PChar(AText), -1, NodeRect, DT_CENTER or DT_VCENTER or DT_SINGLELINE or DT_NOPREFIX);
 
     if NeedUnderline then
     begin
@@ -5380,7 +5370,7 @@ begin
     begin
       CurTextRect := NodeRect;
       CurTextRect.Left := x;
-      CurTextRect.Right := x + TextWidth(Node.Text) + (FDefItemSpace * 2);
+      CurTextRect.Right := x + TextWidth(Node.Text) + RealIndent div 2;
       DrawNodeText(NodeSelected, CurTextRect, Node.Text);
     end;
 

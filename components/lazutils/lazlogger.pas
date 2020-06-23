@@ -56,8 +56,8 @@ type
     procedure CloseFile;
     procedure ResetWriteFailedCounter;
 
-    procedure WriteToFile(const s: string; ALogger: TLazLogger = nil); virtual;
-    procedure WriteLnToFile(const s: string; ALogger: TLazLogger = nil); virtual;
+    procedure WriteToFile(const s: string); virtual;
+    procedure WriteLnToFile(const s: string); virtual;
 
     property  LogName: String read FLogName write SetLogName;
     property  UseStdOut: Boolean read FUseStdOut write FUseStdOut;
@@ -70,8 +70,6 @@ type
 
   { TLazLoggerFileHandleThreadSave
     file operations in critical section
-
-    Requires that DoOpenFile is called by main thread. Otherwise the filehandle may get closed...
   }
 
   TLazLoggerFileHandleThreadSave = class (TLazLoggerFileHandle)
@@ -80,8 +78,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure WriteToFile(const s: string; ALogger: TLazLogger = nil); override;
-    procedure WriteLnToFile(const s: string; ALogger: TLazLogger = nil); override;
+    procedure WriteToFile(const s: string); override;
+    procedure WriteLnToFile(const s: string); override;
   end;
 
   { TLazLoggerFileHandleMainThread
@@ -96,7 +94,6 @@ type
       Next: PWriteListEntry;
       Data: String;
       Ln: Boolean;
-      Logger: TLazLogger;
     end;
   private
     FWriteToFileLock: TRTLCriticalSection;
@@ -106,8 +103,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure WriteToFile(const s: string; ALogger: TLazLogger = nil); override;
-    procedure WriteLnToFile(const s: string; ALogger: TLazLogger = nil); override;
+    procedure WriteToFile(const s: string); override;
+    procedure WriteLnToFile(const s: string); override;
   end;
 
 
@@ -151,16 +148,16 @@ type
 
     procedure IncreaseIndent; overload; override;
     procedure DecreaseIndent; overload; override;
-    procedure IncreaseIndent(LogEnabled: TLazLoggerLogEnabled); overload; override;
-    procedure DecreaseIndent(LogEnabled: TLazLoggerLogEnabled); overload; override;
+    procedure IncreaseIndent(LogGroup: PLazLoggerLogGroup); overload; override;
+    procedure DecreaseIndent(LogGroup: PLazLoggerLogGroup); overload; override;
     procedure IndentChanged; override;
     procedure CreateIndent; virtual;
     function GetBlockHandler(AIndex: Integer): TLazLoggerBlockHandler; override;
     procedure ClearAllBlockHandler;
 
 
-    procedure DoDbgOut(s: string); override;
-    procedure DoDebugLn(s: string); override;
+    procedure DoDbgOut(const s: string); override;
+    procedure DoDebugLn(const s: string); override;
     procedure DoDebuglnStack(const s: string); override;
 
     property FileHandle: TLazLoggerFileHandle read GetFileHandle write SetFileHandle;
@@ -240,8 +237,8 @@ begin
   while Data <> nil do begin
     NextData := Data^.Next;
     if Data^.Ln
-    then inherited WriteLnToFile(Data^.Data, Data^.Logger)
-    else inherited WriteToFile(Data^.Data, Data^.Logger);
+    then inherited WriteLnToFile(Data^.Data)
+    else inherited WriteToFile(Data^.Data);
     Dispose(Data);
     Data := NextData;
   end;
@@ -255,27 +252,17 @@ end;
 
 destructor TLazLoggerFileHandleMainThread.Destroy;
 begin
-  // Call Syncronize (in the main thread) before destroy to catch any pending log
-  TThread.RemoveQueuedEvents(@MainThreadWrite);
   inherited Destroy;
   DoneCriticalsection(FWriteToFileLock);
 end;
 
-procedure TLazLoggerFileHandleMainThread.WriteToFile(const s: string;
-  ALogger: TLazLogger);
+procedure TLazLoggerFileHandleMainThread.WriteToFile(const s: string);
 var
   Data: PWriteListEntry;
 begin
-  if (not System.IsMultiThread) or (GetCurrentThreadID = MainThreadID) then begin
-    if FFirst <> nil then MainThreadWrite; // Dirty read of FFirst is ok
-    inherited WriteToFile(s, ALogger);
-    exit;
-  end;
-
   New(Data);
   Data^.Data := s;
   Data^.Ln := False;
-  Data^.Logger := ALogger;
   Data^.Next := nil;
   EnterCriticalsection(FWriteToFileLock);
   try
@@ -290,21 +277,13 @@ begin
   TThread.Queue(nil, @MainThreadWrite);
 end;
 
-procedure TLazLoggerFileHandleMainThread.WriteLnToFile(const s: string;
-  ALogger: TLazLogger);
+procedure TLazLoggerFileHandleMainThread.WriteLnToFile(const s: string);
 var
   Data: PWriteListEntry;
 begin
-  if (not System.IsMultiThread) or (GetCurrentThreadID = MainThreadID) then begin
-    if FFirst <> nil then MainThreadWrite; // Dirty read of FFirst is ok
-    inherited WriteLnToFile(s, ALogger);
-    exit;
-  end;
-
   New(Data);
   Data^.Data := s;
   Data^.Ln := True;
-  Data^.Logger := ALogger;
   Data^.Next := nil;
   EnterCriticalsection(FWriteToFileLock);
   try
@@ -333,23 +312,21 @@ begin
   DoneCriticalsection(FWriteToFileLock);
 end;
 
-procedure TLazLoggerFileHandleThreadSave.WriteToFile(const s: string;
-  ALogger: TLazLogger);
+procedure TLazLoggerFileHandleThreadSave.WriteToFile(const s: string);
 begin
   EnterCriticalsection(FWriteToFileLock);
   try
-    inherited WriteToFile(s, ALogger);
+    inherited WriteToFile(s);
   finally
     LeaveCriticalsection(FWriteToFileLock);
   end;
 end;
 
-procedure TLazLoggerFileHandleThreadSave.WriteLnToFile(const s: string;
-  ALogger: TLazLogger);
+procedure TLazLoggerFileHandleThreadSave.WriteLnToFile(const s: string);
 begin
   EnterCriticalsection(FWriteToFileLock);
   try
-    inherited WriteLnToFile(s, ALogger);
+    inherited WriteLnToFile(s);
   finally
     LeaveCriticalsection(FWriteToFileLock);
   end;
@@ -485,28 +462,16 @@ begin
   FWriteFailedCount := 0;
 end;
 
-procedure TLazLoggerFileHandle.WriteToFile(const s: string; ALogger: TLazLogger
-  );
-var
-  Handled: Boolean;
+procedure TLazLoggerFileHandle.WriteToFile(const s: string);
 begin
   try
-    if OnWidgetSetDbgOut <> nil then
-    begin
-      Handled := False;
-      OnWidgetSetDbgOut(ALogger, s, Handled, WriteTarget, ActiveLogText);
-      if Handled then
-        Exit;
-    end;
+  DoOpenFile;
+  if FActiveLogText = nil then exit;
 
-    DoOpenFile;
-    if FActiveLogText = nil then exit;
+  Write(FActiveLogText^, s);
 
-    Write(FActiveLogText^, s);
-    {$IFDEF LAZLOGGER_FLUSH} Flush(FActiveLogText^); {$ENDIF}
-
-    if FCloseLogFileBetweenWrites then
-      DoCloseFile;
+  if FCloseLogFileBetweenWrites then
+    DoCloseFile;
     FLastWriteFailed := False;
   except
     inc(FWriteFailedCount);
@@ -514,27 +479,16 @@ begin
   end;
 end;
 
-procedure TLazLoggerFileHandle.WriteLnToFile(const s: string;
-  ALogger: TLazLogger);
-var
-  Handled: Boolean;
+procedure TLazLoggerFileHandle.WriteLnToFile(const s: string);
 begin
   try
-    if OnWidgetSetDebugLn <> nil then
-    begin
-      Handled := False;
-      OnWidgetSetDebugLn(ALogger, s, Handled, WriteTarget, ActiveLogText);
-      if Handled then
-        Exit;
-    end;
+  DoOpenFile;
+  if FActiveLogText = nil then exit;
 
-    DoOpenFile;
-    if FActiveLogText = nil then exit;
+  WriteLn(FActiveLogText^, s);
 
-    WriteLn(FActiveLogText^, s);
-
-    if FCloseLogFileBetweenWrites then
-      DoCloseFile;
+  if FCloseLogFileBetweenWrites then
+    DoCloseFile;
     FLastWriteFailed := False;
   except
     inc(FWriteFailedCount);
@@ -629,54 +583,49 @@ end;
 procedure TLazLoggerFile.IncreaseIndent;
 var
   i: Integer;
-  l: LongInt;
 begin
-  l := InterLockedIncrement(FDebugNestLvl);
+  inc(FDebugNestLvl);
   CreateIndent;
   for i := 0 to BlockHandlerCount - 1 do
-    BlockHandler[i].EnterBlock(Self, l);
+    BlockHandler[i].EnterBlock(Self, FDebugNestLvl);
 end;
 
 procedure TLazLoggerFile.DecreaseIndent;
 var
   i: Integer;
-  l: LongInt;
 begin
   if not FDebugNestAtBOL then DebugLn;
 
-  l := InterLockedDecrement(FDebugNestLvl);
-  if l < 0 then
-    l := InterLockedIncrement(FDebugNestLvl);
-
-  if l >= 0 then begin
-    inc(l);
+  if FDebugNestLvl > 0 then begin
     for i := 0 to BlockHandlerCount - 1 do
-      BlockHandler[i].ExitBlock(Self, l);
+      BlockHandler[i].ExitBlock(Self, FDebugNestLvl);
+    dec(FDebugNestLvl);
   end;
   CreateIndent;
 end;
 
-procedure TLazLoggerFile.IncreaseIndent(LogEnabled: TLazLoggerLogEnabled);
+procedure TLazLoggerFile.IncreaseIndent(LogGroup: PLazLoggerLogGroup);
 begin
-  if not (LogEnabled.Enabled) then exit;
-
-  if (LogEnabled.Group <> nil) and (LogEnabled.Group^.Enabled) then
-    inc(LogEnabled.Group^.FOpenedIndents);
-  IncreaseIndent;
+  if (LogGroup <> nil) then begin
+    if (not LogGroup^.Enabled) then exit;
+    inc(LogGroup^.FOpenedIndents);
+    IncreaseIndent;
+  end
+  else
+    IncreaseIndent;
 end;
 
-procedure TLazLoggerFile.DecreaseIndent(LogEnabled: TLazLoggerLogEnabled);
+procedure TLazLoggerFile.DecreaseIndent(LogGroup: PLazLoggerLogGroup);
 begin
-  if (LogEnabled.Enabled) then begin
-    if LogEnabled.Group <> nil then
-      dec(LogEnabled.Group^.FOpenedIndents);
+  if (LogGroup <> nil) then begin
+    // close what was opened, even if now disabled
+    // only close, if opened by this group
+    if (LogGroup^.FOpenedIndents <= 0) then exit;
+    dec(LogGroup^.FOpenedIndents);
     DecreaseIndent;
   end
   else
-  if (LogEnabled.Group <> nil) and (LogEnabled.Group^.FOpenedIndents > 0) then begin
-    dec(LogEnabled.Group^.FOpenedIndents);
     DecreaseIndent;
-  end;
 end;
 
 procedure TLazLoggerFile.IndentChanged;
@@ -688,13 +637,11 @@ procedure TLazLoggerFile.CreateIndent;
 var
   s: String;
   NewLen: Integer;
-  l: Integer;
 begin
-  l := InterlockedCompareExchange(FDebugNestLvl, -1, -1);
-  NewLen := l * NestLvlIndent;
+  NewLen := FDebugNestLvl * NestLvlIndent;
   if NewLen < 0 then NewLen := 0;
   if (NewLen >= MaxNestPrefixLen) then begin
-    s := IntToStr(l);
+    s := IntToStr(FDebugNestLvl);
     NewLen := MaxNestPrefixLen - Length(s);
     if NewLen < 1 then
       NewLen := 1;
@@ -717,64 +664,86 @@ begin
   while BlockHandlerCount > 0 do RemoveBlockHandler(BlockHandler[0]);
 end;
 
-procedure TLazLoggerFile.DoDbgOut(s: string);
+procedure TLazLoggerFile.DoDbgOut(const s: string);
 var
   Handled: Boolean;
-  CB: TLazLoggerWriteEvent;
+  s2: String;
 begin
   if not IsInitialized then Init;
 
-  (* DoDbgOut in not useful in threaded environment.
-     Therefore FDebugNestAtBOL is not handled in a thread safe way.
-     If DoDbgOut is *not* used at all, the FDebugNestAtBOL is always true, and
-     dirty reads should therefore yield the correct value: "true"
-  *)
+  EnterCriticalsection(FIndentCriticalSection);
+  s2 := FDebugIndent + s;
+  LeaveCriticalsection(FIndentCriticalSection);
 
-  if s <> '' then begin
-    if FDebugNestAtBOL then begin
-      EnterCriticalsection(FIndentCriticalSection);
-      s := FDebugIndent + s;
-      LeaveCriticalsection(FIndentCriticalSection);
-    end;
-    FDebugNestAtBOL := (s[length(s)] in [#10,#13]);
-  end;
-
-  CB := OnDbgOut;
-  if CB <> nil then
+  if OnDbgOut <> nil then
   begin
     Handled := False;
-    CB(Self, s, Handled);
+    if FDebugNestAtBOL and (s <> '') then
+      OnDbgOut(Self, s2, Handled)
+    else
+      OnDbgOut(Self, s, Handled);
     if Handled then
       Exit;
   end;
 
-  FileHandle.WriteToFile(s, Self);
+  if OnWidgetSetDbgOut <> nil then
+  begin
+    Handled := False;
+    if FDebugNestAtBOL and (s <> '') then
+      OnWidgetSetDbgOut(Self, s2, Handled,
+                        FileHandle.WriteTarget, FileHandle.ActiveLogText)
+    else
+      OnWidgetSetDbgOut(Self, s, Handled, FileHandle.WriteTarget, FileHandle.ActiveLogText);
+    if Handled then
+      Exit;
+  end;
+
+  if FDebugNestAtBOL and (s <> '') then
+    FileHandle.WriteToFile(s2)
+  else
+    FileHandle.WriteToFile(s);
+  FDebugNestAtBOL := (s = '') or (s[length(s)] in [#10,#13]);
 end;
 
-procedure TLazLoggerFile.DoDebugLn(s: string);
+procedure TLazLoggerFile.DoDebugLn(const s: string);
 var
   Handled: Boolean;
-  CB: TLazLoggerWriteEvent;
+  s2: String;
 begin
   if not IsInitialized then Init;
 
-  if FDebugNestAtBOL and (s <> '') then begin
-    EnterCriticalsection(FIndentCriticalSection);
-    s := FDebugIndent + s;
-    LeaveCriticalsection(FIndentCriticalSection);
-  end;
-  FDebugNestAtBOL := True;
+  EnterCriticalsection(FIndentCriticalSection);
+  s2 := FDebugIndent + s;
+  LeaveCriticalsection(FIndentCriticalSection);
 
-  CB := OnDebugLn;
-  if CB <> nil then
+  if OnDebugLn <> nil then
   begin
     Handled := False;
-    CB(Self, s, Handled);
+    if FDebugNestAtBOL and (s <> '') then
+      OnDebugLn(Self, s2, Handled)
+    else
+      OnDebugLn(Self, s, Handled);
     if Handled then
       Exit;
   end;
 
-  FileHandle.WriteLnToFile(LineBreaksToSystemLineBreaks(s), Self);
+  if OnWidgetSetDebugLn <> nil then
+  begin
+    Handled := False;
+    if FDebugNestAtBOL and (s <> '') then
+      OnWidgetSetDebugLn(Self, s2, Handled,
+                         FileHandle.WriteTarget, FileHandle.ActiveLogText)
+    else
+      OnWidgetSetDebugLn(Self, s, Handled, FileHandle.WriteTarget, FileHandle.ActiveLogText);
+    if Handled then
+      Exit;
+  end;
+
+  if FDebugNestAtBOL and (s <> '') then
+    FileHandle.WriteLnToFile(LineBreaksToSystemLineBreaks(s2))
+  else
+    FileHandle.WriteLnToFile(ConvertLineEndings(s));
+  FDebugNestAtBOL := True;
 end;
 
 procedure TLazLoggerFile.DoDebuglnStack(const s: string);
@@ -833,7 +802,7 @@ end;
 
 function TLazLoggerFile.CurrentIndentLevel: Integer;
 begin
-  Result := InterlockedCompareExchange(FDebugNestLvl, -1, -1);
+  Result := FDebugNestLvl;
 end;
 
 procedure TLazLoggerFile.AddBlockHandler(AHandler: TLazLoggerBlockHandler);

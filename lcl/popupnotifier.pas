@@ -60,8 +60,6 @@ type
     btnX: TNotifierXButton;
     procedure HideForm(Sender: TObject);
     procedure HandleResize(Sender: TObject);
-  protected
-    procedure CreateHandle; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -84,10 +82,6 @@ type
     procedure SetVisible(const Value: Boolean);
     procedure SetOnClose(const Value: TCloseEvent);
     function  GetOnClose:TCloseEvent;
-    function  GetTextFont: TFont;
-    procedure SetTextFont(const Value: TFont);
-    function GetTitleFont: TFont;
-    procedure SetTitleFont(const Value: TFont);
   public
     vNotifierForm: TNotifierForm;
     constructor Create(AOwner: TComponent); override;
@@ -99,11 +93,9 @@ type
     property Color: TColor  read GetColor write SetColor;
     property Icon: TPicture read GetIcon write SetIcon;
     property Text: string read GetText write SetText;
-    property TextFont: TFont read GetTextFont write SetTextFont;
     property Title: string read GetTitle write SetTitle;
-    property TitleFont: TFont read GetTitleFont write SetTitleFont;
     property Visible: Boolean read GetVisible write SetVisible;
-    property OnClose: TCloseEvent read GetOnClose write SetOnClose;
+    property OnClose: TCloseEvent  read GetOnClose write SetOnClose;
   end;
 
 const
@@ -228,12 +220,8 @@ begin
   lblTitle.Parent := Self;
   lblTitle.AutoSize := False;
   lblTitle.Transparent := True;
-  lblTitle.Font.Name := 'default';
-  lblTitle.Font.Size := 0;
-  lblTitle.Font.Color := clDefault;
-  lblTitle.Font.Style := [fsBold];
+  lblTitle.Font.Style := [FsBold];
   lblTitle.Caption := 'Caption';
-  lblTitle.Wordwrap := true;
   lblTitle.ParentColor := True;
   lblTitle.OnClick := HideForm;
 
@@ -241,9 +229,6 @@ begin
   lblText.Parent := Self;
   lblText.AutoSize := False;
   lblText.Transparent := True;
-  lblText.Font.Name := 'default';
-  lblText.Font.Size := 0;
-  lblText.Font.Color := clDefault;
   lblText.Caption := 'Text';
   lblText.WordWrap := True;
   lblText.ParentColor := True;
@@ -278,15 +263,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TNotifierForm.CreateHandle;
-begin
-  inherited;
-  if lblText.Font.Color = clDefault then
-    lblText.Font.Color := clInfoText;
-  if lblTitle.Font.Color = clDefault then
-    lblTitle.Font.Color := clInfoText;
-end;
-
 procedure TNotifierForm.Paint;
 begin
   Canvas.Brush.Style := bsSolid;
@@ -303,11 +279,10 @@ end;
 *  Utilized for events that hide the form, such as clicking on it
 *******************************************************************}
 procedure TNotifierForm.HideForm(Sender: TObject);
-Var
-  NoValue :TCloseAction;
+Var NoValue :TCloseAction;
 begin
-  if Assigned(OnClose) then
-    OnClose(Self, NoValue);
+if Assigned(OnClose) then
+   OnClose(Self,NoValue);
   Hide;
 end;
 
@@ -330,21 +305,12 @@ begin
   else
     IconAdjust := 0;
 
-  if (BtnX <> nil) then
-  begin
-    BtnX.Left := Width - (btnSize + Scale96ToForm(5));
-    BtnX.Top := spc;
-    BtnX.Width := btnSize;
-    BtnX.Height := btnSize;
-  end;
-
   if (lblTitle <> nil) then
   begin
     lblTitle.Left := IconAdjust + spc;
     lblTitle.Top := spc;
-    lblTitle.AutoSize := false;
-    lblTitle.Constraints.MaxWidth := Width - (lblTitle.Left + spc + btnsize + spc);
-    lblTitle.AutoSize := true;
+    lblTitle.Width := Width - (lblTitle.Left + spc);
+    lblTitle.Height := Scale96ToForm(20);
   end;
 
   if (lblText <> nil) then
@@ -353,6 +319,14 @@ begin
     lblText.Top := LblTitle.Top + LblTitle.Height + spc;
     lblText.Width := Width - (lblText.Left + spc);
     lblText.Height := Height - (lblText.Top + spc);
+  end;
+
+  if (BtnX <> nil) then
+  begin
+    BtnX.Left := Width - (btnSize + Scale96ToForm(5));
+    BtnX.Top := spc;
+    BtnX.Width := btnSize;
+    BtnX.Height := btnSize;
   end;
 end;
 
@@ -421,26 +395,6 @@ end;
 procedure TPopupNotifier.SetColor(const Value: TColor);
 begin
   vNotifierForm.Color := Value;
-end;
-
-function TPopupNotifier.GetTextFont: TFont;
-begin
-  Result := vNotifierForm.lblText.Font;
-end;
-
-procedure TPopupNotifier.SetTextFont(const Value: TFont);
-begin
-  vNotifierForm.lblText.Font.Assign(Value);
-end;
-
-function TPopupNotifier.GetTitleFont: TFont;
-begin
-  Result := vNotifierForm.lblTitle.Font;
-end;
-
-procedure TPopupNotifier.SetTitleFont(const Value: TFont);
-begin
-  vNotifierForm.lblTitle.Font.Assign(Value);
 end;
 
 {*******************************************************************

@@ -66,11 +66,9 @@ resourcestring
   rsPackagesFound = '(%s repository packages found, containing %s lpk files, total size %s)';
   rsMainFrm_VSTHeaderColumn_PackageName = 'Packages';
   rsMainFrm_VSTHeaderColumn_LazarusPackage = 'Lazarus Package (.lpk)';
-  rsMainFrm_VSTHeaderColumn_Repository = 'OPM repository';
-  rsMainFrm_VSTHeaderColumn_Repository_Hint = 'Packages available in the OPM repository (https://packages.lazarus-ide.org/)';
+  rsMainFrm_VSTHeaderColumn_Repository = 'Repository';
   rsMainFrm_VSTHeaderColumn_Installed = 'Installed';
-  rsMainFrm_VSTHeaderColumn_Update = 'External repository';
-  rsMainFrm_VSTHeaderColumn_Update_Hint = 'Packages available at the developer''s webpage (see node "External link (JSON)" for more details)';
+  rsMainFrm_VSTHeaderColumn_Update = 'External';
   rsMainFrm_VSTHeaderColumn_Data = 'Status/Data';
   rsMainFrm_VSTHeaderColumn_Button = '';
   rsMainFrm_VSTHeaderColumn_Rating = 'Rating';
@@ -144,7 +142,6 @@ resourcestring
   rsMainFrm_cbAll_Hint = 'Check/Uncheck packages';
   rsMainFrm_lbFilter_Caption = 'Filter by:';
   rsMainFrm_cbFilterBy_Hint = 'Filter package list by:';
-  rsMainFrm_bReturn_Caption = 'Return';
   rsMainFrm_edFilter_Hint = 'Type filter text';
   rsMainFrm_spClear_Hint = 'Clear filter text';
   rsMainFrm_spExpand_Hint = 'Expand package tree';
@@ -169,8 +166,8 @@ resourcestring
   rsMainFrm_TBOptions_Hint = 'Show options dialog';
   rsMainFrm_TBHelp_Caption = 'Help';
   rsMainFrm_TBHelp_Hint = 'Help (' + cHelpPage + ')';
-  rsMainFrm_miFromRepository = 'From official repository';
-  rsMainFrm_miFromExternalSource = 'From third party repository';
+  rsMainFrm_miFromRepository = 'From repository';
+  rsMainFrm_miFromExternalSource = 'From external source';
   rsMainFrm_miCreateRepositoryPackage = 'Create repository package';
   rsMainFrm_miCreateJSONForUpdates = 'Create JSON for updates';
   rsMainFrm_miCreateRepository = 'Create private repository';
@@ -190,7 +187,6 @@ resourcestring
   rsMainFrm_miLoad = 'Load packages';
   rsMainFrm_PackagenameAlreadyExists = 'A package with the same name already exists!';
   rsMainFrm_PackageAlreadyInstalled = 'The following packages are already installed. Continue anyway?';
-  rsMainFrm_PackageIncompatible = 'The following packages are not tested and the install might fail. Continue anyway?';
   rsMainFrm_PackageAlreadyDownloaded = 'The following repository packages already exist in the target folder. Continue?';
   rsMainFrm_PackageUpdateWarning = 'Installing packages from external link is not without a risk!' + sLineBreak + 'Only install if you trust the package maintainer. Continue?';
   rsMainFrm_PackageUpdate0 = 'The following repository packages are not available externally. The packages will be skipped. Continue?';
@@ -275,10 +271,6 @@ resourcestring
   rsOptions_cbSelectProfile_Hint = 'Choose a profile that best fits you';
   rsOptions_cbDelete_Caption = 'Delete downloaded zip files after installation/update';
   rsOptions_cbDelete_Hint = 'If this option is checked the downloaded zip file is always deleted after installation';
-  rsOption_cbIncompatiblePackage_Caption = 'Warn me about incompatible/untested packages';
-  rsOption_cbIncompatiblePackage_Hint = 'If a package is not compatible with the current widgetset or Lazarus/FPC version, OPM will show a warning message';
-  rsOption_cbcbAlreadyInstalledPackages_Caption = 'Warn me about already installed packages';
-  rsOption_cbcbAlreadyInstalledPackages_Hint = 'If a package is already installed, OPM will show a warning message';
   rsOptions_cbProxy_Caption = 'Use proxy';
   rsOptions_gbProxySettings_Caption = 'Proxy settings';
   rsOptions_lbServer_Caption = 'Server';
@@ -328,26 +320,15 @@ resourcestring
   rsOptions_InputBox_Info1 = 'Please select a folder!';
   rsOptions_InputBox_Conf0 = 'Delete selected extension ("%s")?';
   rsOptions_InputBox_Conf1 = 'Delete selected folder ("%s")?';
-  rsOptions_rbOpenSSL_Item0 = 'Automatically download files from "https://packages.lazarus-ide.org/"';
-  rsOptions_rbOpenSSL_Item1 = 'Show confirmation dialog before download';
-  rsOptions_rbOpenSSL_Item2 = 'Never download files';
+
 
   //packagelist form
   rsPackageListFrm_Caption0 = 'Installed package list';
   rsPackageListFrm_Caption1 = 'Downloaded package list';
   rsPackageListFrm_Caption2 = 'Update package list';
-  rsPackageListFrm_Caption3 = 'Incompatible package list';
-  rsPackageListFrm_SupLazVers = 'Supported Lazarus versions: ';
-  rsPackageListFrm_CurLazVer = 'Current Lazarus version: ';
-  rsPackageListFrm_SupFPCVers = 'Supported FPC versions: ';
-  rsPackageListFrm_CurFPCVer = 'Current FPC version: ';
-  rsPackageListFrm_SupWSs = 'Supported widgetsets: ';
-  rsPackageListFrm_CurWS = 'Current widgetset: ';
-  rsPackageListFrm_Incompatible = 'Not tested';
   rsPackageListFrm_bYes_Caption = 'Yes';
   rsPackageListFrm_bNo_Caption = 'No';
   rsPackageListFrm_bOk_Caption = 'OK';
-  rsPackageListFrm_lbHint_Caption = 'Hint: for more details move the mouse over the problematic column.';
 
   //createrepositorypackage form
   rsCreateRepositoryPackageFrm_Caption = 'Create repository package';
@@ -414,11 +395,8 @@ resourcestring
   rsCreateJSONForUpdatesFrm_Error1 = 'Cannot create JSON for updates! Error message:';
 
   //categories form
-  rsCategoriesFrm_Caption1 = 'List with categories';
-  rsCategoriesFrm_Caption2 = 'List with Lazarus versions';
-  rsCategoriesFrm_Caption3 = 'List with FPC versions';
-  rsCategoriesFrm_Caption4 = 'List with supported widgetsets';
-  rsCategoriesFrm_lbMessage_Caption = 'Please select (check) one or more items';
+  rsCategoriesFrm_Caption = 'List with categories';
+  rsCategoriesFrm_lbMessage_Caption = 'Please select (check) one or more categories';
   rsCategoriesFrm_bYes_Caption = 'OK';
   rsCategoriesFrm_bCancel_Caption = 'Cancel';
 
@@ -520,15 +498,6 @@ resourcestring
   //colors form
   rsColors_Caption = 'Colors';
   rsColors_CD_Title = 'Select color';
-
-  //OpenSSL form
-  rsOpenSSLFrm_Caption = 'Download OpenSSL libraries';
-  rsOpenSSLFrm_Bp_OKButton_Caption = 'Yes';
-  rsOpenSSLFrm_Bp_CancelButton_Caption = 'No';
-  rsOpenSSLFrm_chPermanent_Caption = 'Do not ask this question again';
-  rsOpenSSLFrm_lbMessage1_Caption = 'In order to work properly, OPM needs the OpenSSL libraries: "libeay32.dll" and "ssleay32.dll"';
-  rsOpenSSLFrm_lbMessage2_Caption = 'Download these files from "https://packages.lazarus-ide.org/"?';
-
 
 implementation
 

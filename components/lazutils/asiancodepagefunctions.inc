@@ -12,14 +12,18 @@
   The clipboard is able to work with the windows and gtk behaviour/features.
 }
 
-function DBCSToUTF8(const s: string; const ArrayUni, ArrayCP: array of word): string;
+function DBCSToUTF8(const s: string; CodeP: integer): string;
 var
   len, l: Integer;
   Src, Dest: PChar;
   c: char;
   code: word;
 begin
-  if s = '' then exit('');
+  if s = '' then
+  begin
+    Result := s;
+    exit;
+  end;
   len := length(s);
   SetLength(Result, len * 4);// Asia UTF-8 is at most 4 bytes
   Src  := PChar(s);
@@ -41,25 +45,23 @@ begin
       code := code + Byte(c);
       Inc(Src);
 
-      code := ArrayUni[SearchTable(ArrayCP, code)];
+      case CodeP of
+        936:
+          code := Uni936C[SearchTable(CP936CC, code)];
+        950:
+          code := Uni950C[SearchTable(CP950CC, code)];
+        949:
+          code := Uni949C[SearchTable(CP949CC, code)];
+        932:
+          code := Uni932C[SearchTable(CP932CC, code)];
+        else
+          code := 0;
+      end;
+
       if code>0 then
       begin
         l:=UnicodeToUTF8Inline(code,Dest);
         inc(Dest,l);
-      end
-      else
-      case ConvertEncodingErrorMode of
-        ceemSkip:
-          begin end;
-        ceemException:
-          raise EConvertError.Create('Cannot convert DBCS code page to UTF8');
-        ceemReplace:
-          begin
-            Dest^:='?';
-            Inc(Dest);
-          end;
-        ceemReturnEmpty:
-          Exit('');
       end;
     end;
   until false;
@@ -68,22 +70,22 @@ end;
 
 function CP936ToUTF8(const s: string): string;
 begin
-  Result := DBCSToUTF8(s, Uni936C, CP936CC);
+  Result := DBCSToUTF8(s, 936);
 end;
 
 function CP950ToUTF8(const s: string): string;
 begin
-  Result := DBCSToUTF8(s, Uni950C, CP950CC);
+  Result := DBCSToUTF8(s, 950);
 end;
 
 function CP949ToUTF8(const s: string): string;
 begin
-  Result := DBCSToUTF8(s, Uni949C, CP949CC);
+  Result := DBCSToUTF8(s, 949);
 end;
 
 function CP932ToUTF8(const s: string): string;
 begin
-  Result := DBCSToUTF8(s, Uni932C, CP932CC);
+  Result := DBCSToUTF8(s, 932);
 end;
 
 {$IfNDef UseSystemCPConv}
@@ -190,7 +192,11 @@ var
   c: char;
   Unicode: longword;
 begin
-  if s = '' then exit('');
+  if s = '' then
+  begin
+    Result := '';
+    exit;
+  end;
   len := length(s);
   SetLength(Result, len); // DBCS needs at most space as UTF-8
   Src  := PChar(s);
@@ -223,19 +229,8 @@ begin
         Inc(Dest);
       end
       else
-      case ConvertEncodingErrorMode of
-        ceemSkip:
-          begin end;
-        ceemException:
-          raise EConvertError.Create('Cannot convert UTF8 to DBCS code page');
-        ceemReplace:
-          begin
-            Dest^ := '?';
-            Inc(Dest);
-          end;
-        ceemReturnEmpty:
-          Exit('');
-      end;
+      if ConvertEncodingFromUtf8RaisesException then
+        raise EConvertError.Create('Cannot convert UTF8 to DBCS code page');
     end;
   until false;
   //SetLength(Result, Dest - PChar(Result));

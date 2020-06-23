@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: gtkwsdialogs.pp 51798 2016-03-02 05:45:52Z ondrej $}
 {
  *****************************************************************************
  *                              GtkWSDialogs.pp                              * 
@@ -26,9 +26,11 @@ uses
   {$else}
   Gtk, gdk, Glib,
   {$endif}
-  SysUtils, Classes, Controls, Graphics, Dialogs, ExtDlgs, LCLType, LMessages,
-  InterfaceBase, LCLStrConsts, LCLProc, FileUtil, LazFileUtils, WSDialogs,
-  WSLCLClasses, GtkInt, GtkProc, GtkWSControls, GtkExtra, GtkDef, GtkGlobals;
+  SysUtils, Classes,
+  Controls, Graphics, Dialogs, ExtDlgs,
+  LCLType, LMessages, InterfaceBase, LCLStrConsts, LCLProc, FileUtil,
+  WSDialogs, WSLCLClasses,
+  GtkInt, GtkProc, GtkWSControls, GtkExtra, GtkDef, GtkGlobals;
 
 type
 

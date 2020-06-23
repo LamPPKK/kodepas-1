@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: graphtype.pp 58241 2018-06-13 08:33:10Z juha $  }
 {
  /***************************************************************************
                                 graphtype.pp
@@ -1552,7 +1552,7 @@ begin
   ADst.ReleaseData;
 
   // get intersection
-  IntersectRect(R{%H-}, Rect(0, 0, Description.Width, Description.Height), ARect);
+  IntersectRect(R, Rect(0, 0, Description.Width, Description.Height), ARect);
   ADst.Description.Width := R.Right - R.Left;
   ADst.Description.Height := R.Bottom - R.Top;
   if (ADst.Description.Width <= 0)

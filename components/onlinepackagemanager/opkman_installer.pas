@@ -200,7 +200,7 @@ begin
   if Assigned(FOnPackageInstallProgress) then
     FOnPackageInstallProgress(Self, FCnt, FTotCnt, FFileName, AInstallMessage);
   if AInstallMessage <> imPackageCompleted then
-    Sleep(50);
+    Sleep(1000);
 end;
 
 procedure TPackageInstaller.DoOnPackageInstallError(const AInstallMessage: TInstallMessage;
@@ -222,7 +222,7 @@ begin
   ALazarusPkg.PackageStates := ALazarusPkg.PackageStates + [psError];
   if Assigned(FOnPackageInstallError) then
     FOnPackageInstallError(Self, FFileName, ErrMsg);
-  Sleep(50);
+  Sleep(1000);
 end;
 
 procedure TPackageInstaller.Execute;
@@ -247,12 +247,12 @@ begin
     if CanGo then
     begin
       Inc(FCnt);
+      if not FNeedToRebuild then
+        FNeedToRebuild := LazarusPkg.PackageType in [lptRunAndDesignTime, lptDesigntime];
       DoOnPackageInstallProgress(imOpenPackage, LazarusPkg);
       IDEPackage := OpenPackage(LazarusPkg.PackageAbsolutePath);
       if IDEPackage <> nil then
       begin
-        if not FNeedToRebuild then
-          FNeedToRebuild := IDEPackage.PackageType in [lptRunAndDesignTime, lptDesigntime];
         DoOnPackageInstallProgress(imOpenPackageSuccess, LazarusPkg);
         CompRes := CompilePackage(IDEPAckage, LazarusPkg);
         case CompRes of
@@ -266,7 +266,7 @@ begin
                     if LazarusPkg.InternalVersion > LazarusPkg.InternalVersionOld then
                       LazarusPkg.InternalVersionOld := LazarusPkg.InternalVersion;
               end;
-              if IDEPackage.PackageType in [lptRunAndDesignTime, lptDesigntime] then
+              if LazarusPkg.PackageType in [lptRunAndDesignTime, lptDesigntime] then
               begin
                 DoOnPackageInstallProgress(imInstallPackage, LazarusPkg);
                 if InstallPackage then

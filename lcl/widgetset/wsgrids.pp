@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: wsgrids.pp 55146 2017-06-01 19:36:16Z sekelsenmat $}
 {
  *****************************************************************************
  *                                WSGrids.pp                                 * 
@@ -50,7 +50,6 @@ type
   published
     class procedure SendCharToEditor(AEditor:TWinControl; Ch: TUTF8Char); virtual;
     class function InvalidateStartY(const FixedHeight, RowOffset: Integer): integer; virtual;
-    class procedure Invalidate(sender: TCustomGrid); virtual; reintroduce;
     class function GetEditorBoundsFromCellRect(ACanvas: TCanvas;
       const ACellRect: TRect; const AColumnLayout: TTextLayout): TRect; virtual;
   end;
@@ -121,11 +120,6 @@ class function TWSCustomGrid.InvalidateStartY(const FixedHeight,
   RowOffset: Integer): integer;
 begin
   result := FixedHeight;
-end;
-
-class procedure TWSCustomGrid.Invalidate(sender: TCustomGrid);
-begin
-  // override in widgetset level if needed
 end;
 
 { WidgetSetRegistration }

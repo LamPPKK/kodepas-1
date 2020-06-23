@@ -376,13 +376,15 @@ type
     SelFont: TQtFont;
     SelBrush: TQtBrush;
     SelPen: TQtPen;
+    PenColor: TQColor;
     FMetrics: TQtFontMetrics;
     function GetMetrics: TQtFontMetrics;
     function GetRop: Integer;
     function DeviceSupportsComposition: Boolean;
     function DeviceSupportsRasterOps: Boolean;
     function R2ToQtRasterOp(AValue: Integer): QPainterCompositionMode;
-    procedure SetTextColor;
+    procedure RestorePenColor;
+    procedure RestoreTextColor;
     procedure SetRop(const AValue: Integer);
   public
     { public fields }
@@ -2470,10 +2472,8 @@ begin
   if AColor = nil then
     AColor := BackgroundBrush.getColor;
   // stop asserts from qtlib
-  {issue #36411. Seem that assert triggered in Qt4 < 4.7 only.
   if (w < x) or (h < y) then
     exit;
-  }
   q_DrawPlainRect(Widget, x, y, w, h, AColor, lineWidth, FillBrush);
 end;
 
@@ -2526,7 +2526,7 @@ begin
       Palette := QWidget_palette(Parent);
   end;
   // since q_DrawWinPanel doesnot supports lineWidth we should do it ourself
-  for i := 1 to lineWidth - 1 do
+  for i := 1 to lineWidth - 2 do
   begin
     q_DrawWinPanel(Widget, x, y, w, h, Palette, Sunken);
     inc(x);
@@ -2721,6 +2721,19 @@ begin
   end;
 end;
 
+{------------------------------------------------------------------------------
+  Function: TQtDeviceContext.RestorePenColor
+  Params:  None
+  Returns: Nothing
+ ------------------------------------------------------------------------------}
+procedure TQtDeviceContext.RestorePenColor;
+begin
+  {$ifdef VerboseQt}
+  writeln('TQtDeviceContext.RestorePenColor() ');
+  {$endif}
+  QPainter_setPen(Widget, @PenColor);
+end;
+
 function TQtDeviceContext.GetRop: Integer;
 begin
   Result := FRopMode;
@@ -2732,20 +2745,23 @@ begin
 end;
 
 {------------------------------------------------------------------------------
-  Function: TQtDeviceContext.SetTextColor
+  Function: TQtDeviceContext.RestoreTextColor
   Params:  None
   Returns: Nothing
  ------------------------------------------------------------------------------}
-procedure TQtDeviceContext.SetTextColor;
+procedure TQtDeviceContext.RestoreTextColor;
 var
+  CurPen: QPenH;
   TxtColor: TQColor;
 begin
   {$ifdef VerboseQt}
   writeln('TQtDeviceContext.RestoreTextColor() ');
   {$endif}
-  TxtColor := Default(TQColor);
+  CurPen := QPainter_Pen(Widget);
+  QPen_color(CurPen, @PenColor);
+  TxtColor := PenColor;
   ColorRefToTQColor(vTextColor, TxtColor);
-  QPainter_setPen(Widget, PQColor(@txtColor));
+  QPainter_setPen(Widget, @txtColor);
 end;
 
 procedure TQtDeviceContext.SetRop(const AValue: Integer);
@@ -2806,9 +2822,8 @@ end;
   To get a correct behavior we need to sum the text's height to the Y coordinate.
  ------------------------------------------------------------------------------}
 procedure TQtDeviceContext.drawText(x: Integer; y: Integer; s: PWideString);
-var
-  APen: QPenH;
 {$IFDEF DARWIN}
+var
   OldBkMode: Integer;
 {$ENDIF}
 begin
@@ -2827,8 +2842,7 @@ begin
   // what about Metrics.descent and Metrics.leading ?
   y := y + Metrics.ascent;
 
-  APen := QPen_create(QPainter_pen(Widget));
-  SetTextColor;
+  RestoreTextColor;
 
   // The ascent is only applied here, because it also needs
   // to be rotated
@@ -2845,9 +2859,9 @@ begin
   {$IFDEF DARWIN}
   SetBkMode(OldBkMode);
   {$ENDIF}
-  QPainter_setPen(Widget, APen);
-  QPen_destroy(APen);
-
+  
+  RestorePenColor;
+  
   // Restore previous angle
   if Font.Angle <> 0 then
   begin
@@ -2868,9 +2882,8 @@ end;
   Returns: Nothing
  ------------------------------------------------------------------------------}
 procedure TQtDeviceContext.drawText(x, y, w, h, flags: Integer; s: PWideString);
-var
-  APen: QPenH;
 {$IFDEF DARWIN}
+var
   OldBkMode: Integer;
 {$ENDIF}
 begin
@@ -2886,8 +2899,7 @@ begin
     Rotate(-0.1 * Font.Angle);
   end;
 
-  APen := QPen_create(QPainter_pen(Widget));
-  SetTextColor;
+  RestoreTextColor;
   {$IFDEF DARWIN}
   if getBKMode = OPAQUE then
     QPainter_fillRect(Widget, x, y, w, h, QPainter_brush(Widget));
@@ -2901,8 +2913,7 @@ begin
   {$IFDEF DARWIN}
   SetBkMode(OldBkMode);
   {$ENDIF}
-  QPainter_setPen(Widget, APen);
-  QPen_destroy(APen);
+  RestorePenColor;
 
   // Restore previous angle
   if Font.Angle <> 0 then
@@ -3132,9 +3143,8 @@ begin
   SelFont := AFont;
   if (AFont.FHandle <> nil) and (Widget <> nil) then
   begin
-    QFnt := QFont_Create(AFont.FHandle);
-    QPainter_setFont(Widget, QFnt);
-    QFont_destroy(QFnt);
+    QFnt := QPainter_font(Widget);
+    AssignQtFont(AFont.FHandle, QFnt);
     vFont.Angle := AFont.Angle;
   end;
 end;
@@ -4431,8 +4441,7 @@ var
   Str: WideString;
 begin
   Str := AValue;
-  if getPrinterName <> AValue then
-    QPrinter_setPrinterName(FHandle, @Str);
+  QPrinter_setPrinterName(FHandle, @Str);
 end;
 
 function TQtPrinter.getPrinterName: WideString;

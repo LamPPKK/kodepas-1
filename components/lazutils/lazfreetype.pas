@@ -828,10 +828,9 @@ uses
   var
     ins : PInstance;
   begin
-    {$push}
     {$hints off}
     fillchar(m, sizeof(m),0);
-    {$pop}
+    {$hints on}
     ins := _ins.z;
     if ins <> nil then
       begin

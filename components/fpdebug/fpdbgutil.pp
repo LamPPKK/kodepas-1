@@ -1,4 +1,4 @@
-{ $Id$ }
+{ $Id: fpdbgutil.pp 54031 2017-01-29 21:04:32Z joost $ }
 {
  ---------------------------------------------------------------------------
  fpdbgutil.pp  -  Native freepascal debugger - Utilities
@@ -9,7 +9,7 @@
  ---------------------------------------------------------------------------
 
  @created(Mon Apr 10th WET 2006)
- @lastmod($Date$)
+ @lastmod($Date: 2017-01-29 22:04:32 +0100 (So, 29 Jan 2017) $)
  @author(Marc Weustink <marc@@dommelstein.nl>)
 
  ***************************************************************************
@@ -56,7 +56,7 @@ function FormatAddress(const AAddress): String;
 implementation
 
 uses
-  LazLoggerBase,
+  LazLogger,
   FpDbgClasses;
 
 function CompareUtf8BothCase(AnUpper, AnLower, AnUnknown: PChar): Boolean;

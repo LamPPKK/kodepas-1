@@ -1321,9 +1321,15 @@ Var
 
 begin
   CheckClipBoardFormat;
-  S:=TMemoryStream.Create;
+  S:=TStringStream.Create;
   try
     FObjects.SaveSelectionToStream(S);
+    With TFileStream.Create('/tmp/clipbrd.json',fmCreate) do
+      try
+        CopyFrom(S,0);
+      finally
+        Free;
+      end;
     S.Position:=0;
     if not ClipBrd.Clipboard.AddFormat(ClipBoardFormat,S) then
       Raise EReportError.Create(SErrFailedToCopyToClipboard);

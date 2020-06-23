@@ -52,19 +52,20 @@ uses
   Forms, Controls, Dialogs, Menus, ComCtrls, LResources,
   // LazUtils
   LazUTF8, Laz2_XMLCfg, LazUTF8Classes, LazTracer, LazUtilities, LazStringUtils,
-  LazFileUtils, LazFileCache, StringHashList, AvgLvlTree, ObjectLists, Translations,
+  LazFileUtils, LazFileCache, StringHashList, Translations, AvgLvlTree,
   // Codetools
   CodeToolsConfig, CodeToolManager, CodeCache, BasicCodeTools,
   FileProcs, CodeTree, CTUnitGraph,
   // IDE Interface
-  IDECommands, NewItemIntf, ProjPackIntf, ProjectIntf, PackageIntf,
-  PackageDependencyIntf, PackageLinkIntf, CompOptsIntf, MenuIntf, IDEWindowIntf,
-  IDEExternToolIntf, MacroIntf, LazIDEIntf, IDEMsgIntf, SrcEditorIntf,
-  ComponentReg, ComponentEditors, PropEdits, IDEDialogs, UnitResources,
+  IDECommands, NewItemIntf, ProjPackIntf, ProjectIntf,
+  PackageIntf, PackageDependencyIntf, PackageLinkIntf,
+  CompOptsIntf, MenuIntf, IDEWindowIntf, IDEExternToolIntf, MacroIntf, LazIDEIntf,
+  IDEMsgIntf, SrcEditorIntf, ComponentReg, PropEdits, IDEDialogs, UnitResources,
   // IDE
-  IDECmdLine, LazarusIDEStrConsts, IDEProcs, DialogProcs, IDEOptionDefs,
-  EnvironmentOpts, MiscOptions, InputHistory, Project, PackageEditor,
-  AddToPackageDlg, PackageDefs, PackageLinks, PackageSystem, OpenInstalledPkgDlg,
+  IDECmdLine, LazarusIDEStrConsts, IDEProcs, ObjectLists,
+  DialogProcs, IDEOptionDefs, EnvironmentOpts,
+  MiscOptions, InputHistory, Project, PackageEditor, AddToPackageDlg,
+  PackageDefs, PackageLinks, PackageSystem, OpenInstalledPkgDlg,
   PkgGraphExplorer, BrokenDependenciesDlg, CompilerOptions, IDETranslations,
   TransferMacros, BuildLazDialog, NewDialog, FindInFilesDlg, ProjectInspector,
   SourceEditor, ProjPackChecks, AddFileToAPackageDlg, LazarusPackageIntf,
@@ -73,10 +74,6 @@ uses
   MainBar, MainIntf, MainBase, ModeMatrixOpts;
 
 type
-
-  TPackagePackageArray = specialize TObjectArray<TLazPackageID, TLazPackageID>;
-  TOwnerPackageArray = specialize TObjectArray<TObject, TLazPackageID>;
-
   { TPkgManager }
 
   TPkgManager = class(TBasePkgManager)
@@ -302,8 +299,6 @@ type
     procedure OnProjectInspectorCopyMoveFiles(Sender: TObject); override;
 
     // package editors
-    function CanClosePackageEditor(APackage: TLazPackage): TModalResult; override;
-    function CanCloseAllPackageEditors: TModalResult; override;
     function DoOpenPkgFile(PkgFile: TPkgFile): TModalResult;
     function DoNewPackage: TModalResult; override;
     function DoShowLoadedPkgDlg: TModalResult; override;
@@ -314,7 +309,6 @@ type
     function DoOpenPackageFile(AFilename: string;
                          Flags: TPkgOpenFlags;
                          ShowAbort: boolean): TModalResult; override;
-    function IsPackageEditorForm(AForm: TCustomForm): boolean; override;
     procedure OpenHiddenModifiedPackages; override;
     function DoSavePackage(APackage: TLazPackage;
                            Flags: TPkgSaveFlags): TModalResult; override;
@@ -363,14 +357,9 @@ type
     function AddUnitDependenciesForComponentClasses(const UnitFilename: string;
                          ComponentClassnames: TStrings;
                          Quiet: boolean = false): TModalResult; override;
-    function GetUnitsAndDependenciesForComponents(ComponentClassNames: TStrings;
-          out PackageList: TPackagePackageArray; out UnitList: TStringList): TModalResult;
     function GetMissingDependenciesForUnit(const UnitFilename: string;
                          ComponentClassnames: TStrings;
-                         var List: TOwnerPackageArray): TModalResult;
-    function FilterMissingDependenciesForUnit(const UnitFilename: string;
-                         InputPackageList: TPackagePackageArray;
-                         out OutputPackageList: TOwnerPackageArray): TModalResult;
+                         var List: TObjectArray): TModalResult;
     function GetUsableComponentUnits(CurRoot: TPersistent): TFPList; override; // list of TUnitInfo
     procedure IterateComponentNames(CurRoot: TPersistent; TypeData: PTypeData;
                                     Proc: TGetStrProc); override;
@@ -797,7 +786,7 @@ begin
     IconLRSFilename:=ChangeFileExt(Params.UnitFilename,'')+'_icon.lrs';
     CodeBuf:=CodeToolBoss.CreateFile(IconLRSFilename);
     if CodeBuf=nil then begin
-      debugln(['Error: (kode) [TPkgManager.OnPackageEditorCreateFile] file create failed: ',IconLRSFilename]);
+      debugln(['Error: (lazarus) [TPkgManager.OnPackageEditorCreateFile] file create failed: ',IconLRSFilename]);
       exit;
     end;
     FIconLRSSource:='';
@@ -1217,15 +1206,17 @@ begin
       if lowercase(NewPkgName) <> NewPkgName then
       begin
         LowerFilename:=ExtractFilePath(NewFilename)+lowercase(ExtractFileName(NewFilename));
-        case EnvironmentOptions.CharcaseFileAction of
-        ccfaAsk:
+        if EnvironmentOptions.CharcaseFileAction = ccfaAsk then
+        begin
           if IDEMessageDialog(lisPkgMangRenameFileLowercase,
             Format(lisPkgMangShouldTheFileRenamedLowercaseTo,[LineEnding, LowerFilename]),
             mtConfirmation,[mbYes,mbNo])=mrYes
           then
             NewFileName:=LowerFilename;
-        ccfaAutoRename: NewFileName:=LowerFilename;
-        ccfaIgnore: ;
+        end
+        else
+        begin
+          if EnvironmentOptions.CharcaseFileAction = ccfaAutoRename then NewFileName:=LowerFilename;
         end;
       end;
 
@@ -1588,14 +1579,14 @@ begin
     // check package name
     if not IsValidPkgName(StaticPackage^.Name)
     then begin
-      DebugLn('Warning: (kode) [TPkgManager.LoadStaticCustomPackages] Invalid Package Name: "',
+      DebugLn('Warning: (lazarus) [TPkgManager.LoadStaticCustomPackages] Invalid Package Name: "',
         BinaryStrToText(StaticPackage^.Name),'"');
       continue;
     end;
     
     // check RegisterFCLBaseComponents procedure
     if (StaticPackage^.RegisterProc=nil) then begin
-      DebugLn('Warning: (kode) [TPkgManager.LoadStaticCustomPackages]',
+      DebugLn('Warning: (lazarus) [TPkgManager.LoadStaticCustomPackages]',
         ' Package "',StaticPackage^.Name,'" has no register procedure.');
       continue;
     end;
@@ -2115,8 +2106,8 @@ var
 
       if CompareFilenames(NewFilename,OldFilename)<>0 then begin
         // file be copied/moved to another directory
-        debugln(['Hint: (kode) CollectFiles Old="',OldFilename,'"']);
-        debugln(['Hint: (kode) New="',NewFilename,'"']);
+        debugln(['Hint: (lazarus) CollectFiles Old="',OldFilename,'"']);
+        debugln(['Hint: (lazarus) New="',NewFilename,'"']);
         inc(MoveFileCount);
         ChangedFilenames[OldFilename]:=NewFilename;
         AllChangedFilenames[OldFilename]:=NewFilename;
@@ -2558,7 +2549,7 @@ var
         r:=CopyFileWithErrorDialogs(OldFilename,NewFilename,[mbAbort,mbIgnore]);
       end;
       if not (r in [mrIgnore,mrOK]) then begin
-        debugln(['Error: (kode) MoveOrCopyFile: rename/copy failed: "',OldFilename,'" to "',NewFilename,'"']);
+        debugln(['Error: (lazarus) MoveOrCopyFile: rename/copy failed: "',OldFilename,'" to "',NewFilename,'"']);
         exit;
       end;
     end else begin
@@ -2786,7 +2777,7 @@ begin
 
   // check TargetDirectory
   if CheckDirectoryIsWritable(TargetDirectory)<>mrOk then begin
-    debugln(['Warning: (kode) TPkgManager.MoveFiles not writable TargetDirectory=',TargetDirectory]);
+    debugln(['Warning: (lazarus) TPkgManager.MoveFiles not writable TargetDirectory=',TargetDirectory]);
     exit;
   end;
 
@@ -2919,7 +2910,7 @@ begin
   else if Sender is TProjectInspectorForm then
     FilesEdit:=TProjectInspectorForm(Sender)
   else begin
-    debugln(['Error: (kode) TPkgManager.CopyMoveFiles wrong Sender: ',DbgSName(Sender)]);
+    debugln(['Error: (lazarus) TPkgManager.CopyMoveFiles wrong Sender: ',DbgSName(Sender)]);
     exit;
   end;
   SelDirDlg:=TSelectDirectoryDialog.Create(nil);
@@ -3172,6 +3163,29 @@ var
     TranslateUnitResourceStrings(AnUnitName,AFilename);
   end;
 
+  function GetPOFilenameParts(const Filename: string;
+    out AUnitName, Language: string): boolean;
+  var
+    UnitNameEnd: Integer;
+    LangEnd: Integer;
+  begin
+    Result:=false;
+    AUnitName:='';
+    Language:='';
+    UnitNameEnd:=1;
+    while (UnitNameEnd<=length(Filename)) and (Filename[UnitNameEnd]<>'.') do
+      inc(UnitNameEnd);
+    if (UnitNameEnd=1) then exit;
+    LangEnd:=UnitNameEnd+1;
+    while (LangEnd<=length(Filename)) and (Filename[LangEnd]<>'.') do
+      inc(LangEnd);
+    if LangEnd<>length(Filename)-2 then exit;
+    AUnitName:=copy(Filename,1,UnitNameEnd-1);
+    Language:=copy(Filename,UnitNameEnd+1,LangEnd-UnitNameEnd-1);
+    Result:=IsValidUnitName(AUnitName) and (Language<>'');
+    //DebugLn(['GetPOFilenameParts AUnitName=',AUnitName,' Language=',Language,' Result=',Result]);
+  end;
+  
   procedure TranslateWithFileMask(APackage: TLazPackage;
     const Directory, Language: string);
   var
@@ -3185,8 +3199,8 @@ var
     try
       CodeToolBoss.DirectoryCachePool.GetListing(Directory,Files,false);
       for Filename in Files do begin
+        if CompareFileExt(Filename,'.po',false)<>0 then continue;
         if GetPOFilenameParts(Filename,CurUnitName,CurLang)
-        and IsValidUnitName(CurUnitName)
         and (CurLang=Language)
         and (not UnitTranslated(CurUnitName))
         and (APackage.FindUnit(CurUnitName)<>nil)
@@ -3284,7 +3298,7 @@ begin
   Link:=LazPackageLinks.AddUserLink(APackage);
   if Link<>nil then
   begin
-    //debugln(['Hint: (kode) TPkgManager.AddPackageToGraph LinkLastUsed=',DateToCfgStr(Link.LastUsed,DateTimeAsCfgStrFormat),' ',dbgs(Link.Origin)]);
+    //debugln(['Hint: (lazarus) TPkgManager.AddPackageToGraph LinkLastUsed=',DateToCfgStr(Link.LastUsed,DateTimeAsCfgStrFormat),' ',dbgs(Link.Origin)]);
     LazPackageLinks.SaveUserLinks;
   end;
 
@@ -3368,7 +3382,7 @@ begin
   ConflictDependency:=PackageGraph.FindConflictRecursively(
     AProject.FirstRequiredDependency,APackage);
   if ConflictDependency<>nil then begin
-    DebugLn(['Error: (kode) [TPkgManager.AddProjectDependency] ',APackage.IDAsString,' conflicts with ',ConflictDependency.AsString]);
+    DebugLn(['Error: (lazarus) [TPkgManager.AddProjectDependency] ',APackage.IDAsString,' conflicts with ',ConflictDependency.AsString]);
     Result:=mrCancel;
     exit;
   end;
@@ -3387,7 +3401,7 @@ begin
   if ProvidingAPackage<>nil then
   begin
     // package is already provided by another package
-    DebugLn(['Error: (kode) [TPkgManager.AddProjectDependency] ',APackage.Name,' is already provided by ',ProvidingAPackage.IDAsString]);
+    DebugLn(['Error: (lazarus) [TPkgManager.AddProjectDependency] ',APackage.Name,' is already provided by ',ProvidingAPackage.IDAsString]);
     Result:=mrOk;
     exit;
   end;
@@ -3432,7 +3446,7 @@ begin
       if not IsValidPkgName(PkgName) then continue;
       APackage:=PackageGraph.FindPackageWithName(PkgName,nil);
       if APackage=nil then begin
-        DebugLn(['Error: (kode) [TPkgManager.AddProjectDependencies] package not found: ',PkgName]);
+        DebugLn(['Error: (lazarus) [TPkgManager.AddProjectDependencies] package not found: ',PkgName]);
         if OnlyTestIfPossible then
           exit(mrCancel);
         continue;
@@ -3703,11 +3717,6 @@ begin
   MainIDEInterface.UpdateHighlighters;
 end;
 
-function TPkgManager.IsPackageEditorForm(AForm: TCustomForm): boolean;
-begin
-  Result:=AForm is TPackageEditorForm;
-end;
-
 procedure TPkgManager.OpenHiddenModifiedPackages;
 var
   i: Integer;
@@ -3924,7 +3933,7 @@ var
         // search path contains source directory of another package
         if Option=pcosIncludePath then;
         s:=aType+' of "'+aCompilerOptions.GetOwnerName+'" contains "'+Dir+'", which belongs to package "'+OtherPackage.Name+'"';
-        debugln(['Warning: (kode) [TPkgManager.CheckUserSearchPaths]: ',s]);
+        debugln(['Warning: (lazarus) [TPkgManager.CheckUserSearchPaths]: ',s]);
         { ToDo: find out
            - which path it is in the unparsed path
            - if there is already the dependency
@@ -3958,7 +3967,7 @@ var
           // warning: packages output path contain unit source
           s:=Format(lisOutputDirectoryOfContainsPascalUnitSource, [
             aCompilerOptions.GetOwnerName, aFilename]);
-          debugln(['Warning: (kode) [CheckOutPathContainsSources]: ',s]);
+          debugln(['Warning: (lazarus) [CheckOutPathContainsSources]: ',s]);
           { ToDo: if the OutPath is not the default: ask user and change it }
           IDEMessagesWindow.AddCustomMessage(mluWarning,s);
           exit;
@@ -3989,7 +3998,7 @@ var
         // Note: when changing this, update TQuickFixSrcPathOfPkgContains_OpenPkg
         s:=Format(lisOtherSourcesPathOfPackageContainsDirectoryWhichIsA, [
           aCompilerOptions.GetOwnerName, Dir]);
-        debugln(['Warning: (kode) [CheckSrcPathIsInUnitPath]: ',s]);
+        debugln(['Warning: (lazarus) [CheckSrcPathIsInUnitPath]: ',s]);
         { ToDo: ask user and remove dir from unit path }
         IDEMessagesWindow.AddCustomMessage(mluWarning,s);
         exit;
@@ -4096,7 +4105,7 @@ var
       if FileIsInPath(Filename,NewLazarusSrcDir)
       and FileExistsUTF8(Filename) then
       begin
-        DebugLn(['Hint: (kode) [TPkgManager.LazarusSrcDirChanged] load: ',Filename]);
+        DebugLn(['Hint: (lazarus) [TPkgManager.LazarusSrcDirChanged] load: ',Filename]);
         // open package in new lazarus source directory
         MsgResult:=DoOpenPackageFile(Filename,[pofDoNotOpenEditor,pofRevert],true);
         if MsgResult=mrAbort then exit(false);
@@ -4112,10 +4121,10 @@ begin
   NewLazarusSrcDir:=EnvironmentOptions.GetParsedLazarusDirectory;
   FLastLazarusSrcDir:=NewLazarusSrcDir;
   if CompareFilenames(OldLazarusSrcDir,NewLazarusSrcDir)=0 then exit;
-  debugln(['Hint: (kode) [TPkgManager.LazarusSrcDirChanged] loading new lpl files from ',
+  debugln(['Hint: (lazarus) [TPkgManager.LazarusSrcDirChanged] loading new lpl files from ',
            LazPackageLinks.GetGlobalLinkDirectory]);
   if LazPackageLinks.IsUpdating then
-    debugln(['Warning: (kode) [TPkgManager.LazarusSrcDirChanged] inconsistency: LazPackageLinks are locked']);
+    debugln(['Warning: (lazarus) [TPkgManager.LazarusSrcDirChanged] inconsistency: LazPackageLinks are locked']);
   LazPackageLinks.UpdateGlobalLinks;
 
   VisitedPkgs:=TStringToStringTree.Create(false);
@@ -4225,7 +4234,7 @@ function TPkgManager.DoCompilePackage(APackage: TIDEPackage;
 begin
   Result:=mrCancel;
 
-  DebugLn('Hint: (kode) compile package ',APackage.IDAsString,' Flags=',PkgCompileFlagsToString(Flags));
+  DebugLn('Hint: (lazarus) compile package ',APackage.IDAsString,' Flags=',PkgCompileFlagsToString(Flags));
   
   if APackage.IsVirtual then exit;
 
@@ -4285,7 +4294,7 @@ begin
   if (OldPkgFile=nil) or (OldPkgFile.LazPackage.ReadOnly) then
     exit;
   OldPackage:=OldPkgFile.LazPackage;
-  debugln('Hint: (kode) [TPkgManager.OnRenameFile] OldPackage="',OldPackage.Name);
+  debugln('Hint: (lazarus) [TPkgManager.OnRenameFile] OldPackage="',OldPackage.Name);
   NewPkgFile:=PackageGraph.FindFileInAllPackages(NewFilename,true,false);
   if (NewPkgFile<>nil) and (OldPackage<>NewPkgFile.LazPackage) then exit;
 
@@ -4310,8 +4319,10 @@ var
   i: Integer;
 begin
   Result:='';
-  if FilenameIsAbsolute(Filename) then
-    exit(Filename);
+  if FilenameIsAbsolute(Filename) then begin
+    Result:=Filename;
+    exit;
+  end;
   PkgList:=nil;
   PackageGraph.GetAllRequiredPackages(nil,aProject.FirstRequiredDependency,
     PkgList,[pirCompileOrder]);
@@ -4320,34 +4331,13 @@ begin
     for i:=0 to PkgList.Count-1 do begin
       APackage:=TLazPackage(PkgList[i]);
       IncPath:=APackage.CompilerOptions.GetIncludePath(false);
-      Result:=SearchFileInPath(Filename,APackage.Directory,IncPath,';',ctsfcDefault);
+      Result:=SearchFileInPath(Filename,APackage.Directory,IncPath,';',
+                               ctsfcDefault);
       if Result<>'' then exit;
     end;
   finally
     PkgList.Free;
   end;
-end;
-
-type
-  TPackageIterateHelper = class
-  public
-    PackageNames: TStrings;
-    PackageList: TStrings;
-    DefaultPackage: TLazPackageID;
-    procedure AddDependency(APackageID: TLazPackageID);
-  end;
-
-procedure TPackageIterateHelper.AddDependency(APackageID: TLazPackageID);
-begin
-  if Assigned(DefaultPackage) and (APackageID.IDAsString=DefaultPackage.IDAsString) then
-    Exit;
-  { are we looking for this package? }
-  if PackageNames.IndexOf(APackageID.Name)<0 then
-    Exit;
-  { was the package already added? }
-  if PackageList.IndexOf(APackageID.Name)>=0 then
-    Exit;
-  PackageList.AddObject(APackageID.Name,APackageID);
 end;
 
 function TPkgManager.AddUnitDependenciesForComponentClasses(
@@ -4356,8 +4346,9 @@ function TPkgManager.AddUnitDependenciesForComponentClasses(
 var
   UnitBuf: TCodeBuffer;
   UnitNames: TStringList;
-  MissingDependencies: TOwnerPackageArray;
-
+  Packages: TFPList;
+  MissingDependencies: TObjectArray;
+  
   function LoadAndParseUnitBuf: TModalResult;
   begin
     if not CodeToolBoss.GatherExternalChanges then begin
@@ -4371,6 +4362,49 @@ var
         Format(lisLoadingFailed, [UnitFilename]),
         mtError,[mbCancel,mbAbort]);
       exit;
+    end;
+    Result:=mrOk;
+  end;
+
+  function CollectNeededUnitnamesAndPackages: TModalResult;
+  var
+    i: Integer;
+    RegComp: TRegisteredComponent;
+    NewUnitName: String;
+    PkgFile: TPkgFile;
+    ClassUnitInfo: TUnitInfo;
+    APackage: TLazPackage;
+  begin
+    for i:=0 to ComponentClassnames.Count-1 do begin
+      //DebugLn(['CollectNeededUnitnamesAndPackages ComponentClassnames[i]=',ComponentClassnames[i]]);
+      RegComp:=IDEComponentPalette.FindComponent(ComponentClassnames[i]);
+      NewUnitName:='';
+      if (RegComp<>nil) then begin
+        if RegComp.ComponentClass<>nil then
+          NewUnitName:=GetClassUnitName(RegComp.ComponentClass);
+        //DebugLn(['CollectNeededUnitnamesAndPackages NewUnitName=',NewUnitName]);
+        if NewUnitName='' then
+          NewUnitName:=RegComp.GetUnitName;
+      end else begin
+        ClassUnitInfo:=Project1.UnitWithComponentClassName(ComponentClassnames[i]);
+        if ClassUnitInfo<>nil then
+          NewUnitName:=ClassUnitInfo.Unit_Name;
+      end;
+      if (NewUnitName<>'') and (UnitNames.IndexOf(NewUnitName)<0) then begin
+        // new needed unit
+        UnitNames.Add(NewUnitName);
+        // find package
+        PkgFile:=PackageGraph.FindUnitInAllPackages(NewUnitName,true);
+        //DebugLn(['CollectNeededUnitnamesAndPackages PkgFile=',PkgFile<>nil]);
+        if (PkgFile=nil) and (RegComp is TPkgComponent) then
+          PkgFile:=TPkgComponent(RegComp).PkgFile;
+        if (PkgFile<>nil) then begin
+          APackage:=PkgFile.LazPackage;
+          APackage:=TLazPackage(RedirectPackageDependency(APackage));
+          if (APackage<>nil) and (Packages.IndexOf(APackage)<0) then
+            Packages.Add(APackage);
+        end;
+      end;
     end;
     Result:=mrOk;
   end;
@@ -4408,7 +4442,7 @@ var
   var
     UsesAdditions: String;
     UnitOwner: TObject;
-    RequiredPackage: TLazPackageID;
+    RequiredPackage: TLazPackage;
     i: Integer;
     PackageAdditions: String;
     Msg: String;
@@ -4422,10 +4456,9 @@ var
     PackageAdditions:='';
     if MissingDependencies<>nil then begin
       for i:=0 to MissingDependencies.Count-1 do begin
-        UnitOwner:=MissingDependencies[i];
-        RequiredPackage:=MissingDependencies.Objects[i];
-        if RequiredPackage is TIDEPackage then
-          RequiredPackage:=RedirectPackageDependency(TIDEPackage(RequiredPackage));
+        UnitOwner:=TObject(MissingDependencies[i]);
+        RequiredPackage:=TLazPackage(MissingDependencies.Objects[i]);
+        RequiredPackage:=TLazPackage(RedirectPackageDependency(RequiredPackage));
         if UnitOwner is TProject then begin
           PackageAdditions:=Format(lisPkgMangAddingNewDependencyForProjectPackage,
             [PackageAdditions, TProject(UnitOwner).GetTitle, RequiredPackage.Name]) + LineEnding+LineEnding;
@@ -4455,26 +4488,18 @@ var
   var
     i: Integer;
     UnitOwner: TObject;
-    RequiredPackage: TLazPackageID;
-    PkgDependency: TPkgDependency;
+    RequiredPackage: TLazPackage;
   begin
     if MissingDependencies<>nil then begin
       for i:=0 to MissingDependencies.Count-1 do begin
-        UnitOwner:=MissingDependencies[i];
-        RequiredPackage:=MissingDependencies.Objects[i];
-        if RequiredPackage is TIDEPackage then
-          RequiredPackage:=RedirectPackageDependency(TIDEPackage(RequiredPackage));
+        UnitOwner:=TObject(MissingDependencies[i]);
+        RequiredPackage:=TLazPackage(MissingDependencies.Objects[i]);
+        RequiredPackage:=TLazPackage(RedirectPackageDependency(RequiredPackage));
         if UnitOwner is TProject then begin
-          DebugLn('Hint: (kode) [TPkgManager.AddUnitDependenciesForComponentClasses] Adding Project Dependency ',TProject(UnitOwner).GetTitle,' -> ',RequiredPackage.Name);
-          if RequiredPackage is TLazPackage then
-            AddProjectDependency(TProject(UnitOwner),TLazPackage(RequiredPackage))
-          else begin
-            PkgDependency:=TPkgDependency.Create;
-            PkgDependency.PackageName:=RequiredPackage.Name;
-            AddProjectDependency(TProject(UnitOwner),PkgDependency);
-          end;
+          DebugLn('Hint: (lazarus) [TPkgManager.AddUnitDependenciesForComponentClasses] Adding Project Dependency ',TProject(UnitOwner).GetTitle,' -> ',RequiredPackage.Name);
+          AddProjectDependency(TProject(UnitOwner),RequiredPackage);
         end else if UnitOwner is TLazPackage then begin
-          DebugLn('Hint: (kode) [TPkgManager.AddUnitDependenciesForComponentClasses] Adding Package Dependency ',TLazPackage(UnitOwner).Name,' -> ',RequiredPackage.Name);
+          DebugLn('Hint: (lazarus) [TPkgManager.AddUnitDependenciesForComponentClasses] Adding Package Dependency ',TLazPackage(UnitOwner).Name,' -> ',RequiredPackage.Name);
           AddPackageDependency(TLazPackage(UnitOwner),RequiredPackage.Name);
         end;
       end;
@@ -4489,32 +4514,29 @@ var
     Result:=LoadAndParseUnitBuf;
     if Result<>mrOk then exit;
     for i:=0 to UnitNames.Count-1 do begin
-      DebugLn('Hint: (kode) [TPkgManager.AddUnitDependenciesForComponentClasses] Extending Uses ',UnitBuf.Filename,' ',UnitNames[i]);
+      DebugLn('Hint: (lazarus) [TPkgManager.AddUnitDependenciesForComponentClasses] Extending Uses ',UnitBuf.Filename,' ',UnitNames[i]);
       if not CodeToolBoss.AddUnitToMainUsesSection(UnitBuf,UnitNames[i],'') then
         MainIDE.DoJumpToCodeToolBossError;
     end;
     Result:=mrOk;
   end;
 
-var
-  Dependencies: TPackagePackageArray;
-
 begin
   Result:=mrCancel;
-  UnitNames:=nil;
-  Dependencies:=nil;
+  UnitNames:=TStringList.Create;
+  Packages:=TFPList.Create;
   MissingDependencies:=nil;
   try
-    Result:=GetUnitsAndDependenciesForComponents(ComponentClassnames,
-                                          Dependencies,UnitNames);
+  
+    Result:=CollectNeededUnitnamesAndPackages;
     if Result<>mrOk then exit;
-
-    Result:=FilterMissingDependenciesForUnit(UnitFilename,Dependencies,MissingDependencies);
-    if Result<>mrOk then exit;
-
+    
     Result:=RemoveExistingUnitnames;
     if Result<>mrOk then exit;
-
+    
+    Result:=GetMissingDependenciesForUnit(UnitFilename,ComponentClassnames,
+                                          MissingDependencies);
+    if Result<>mrOk then exit;
     if (UnitNames.Count=0)                                   // no change needed
     and ((MissingDependencies=nil) or (MissingDependencies.Count=0)) then exit;
 
@@ -4532,128 +4554,29 @@ begin
     Result:=mrOk;
   finally
     UnitNames.Free;
-    Dependencies.Free;
+    Packages.Free;
     MissingDependencies.Free;
   end;
 end;
 
-function TPkgManager.GetUnitsAndDependenciesForComponents(
-  ComponentClassNames: TStrings; out PackageList: TPackagePackageArray;
-  out UnitList: TStringList): TModalResult;
-// returns a list of packages and units needed to use the Component in the unit
-var
-  CurClassID: Integer;
-  CurUnitIdx, CurPackageIdx: Integer;
-  CurCompClass: string;
-  CurRegisteredComponent: TRegisteredComponent;
-  PkgFile: TPkgFile;
-  RequiredPackage: TLazPackageID;
-  CurUnitName: String;
-  CurUnitNames: TStrings;
-  CurPackages, AllPackages: TStringList;
-  CurCompReq: TComponentRequirements;
-  Helper: TPackageIterateHelper;
-begin
-  Result:=mrCancel;
-  PackageList:=nil;
-  UnitList:=nil;
-  CurPackages:=nil;
-  AllPackages:=nil;
-  CurUnitNames:=TStringList.Create;
-  try
-    for CurClassID:=0 to ComponentClassnames.Count-1 do begin
-      CurCompClass:=ComponentClassnames[CurClassID];
-      CurRegisteredComponent:=IDEComponentPalette.FindComponent(CurCompClass);
-      if CurRegisteredComponent is TPkgComponent then begin
-        CurUnitName:='';
-        CurUnitNames.Clear;
-        CurCompReq:=nil;
-        try
-          if CurRegisteredComponent.ComponentClass<>nil then begin
-            CurUnitName:=GetClassUnitName(CurRegisteredComponent.ComponentClass);
-            CurCompReq:=GetComponentRequirements(CurRegisteredComponent.ComponentClass);
-          end;
-          //DebugLn(['TPkgManager.GetUnitsAndDependenciesForComponents CurUnitName=',CurUnitName]);
-          if CurUnitName='' then
-            CurUnitName:=CurRegisteredComponent.GetUnitName;
-          CurUnitNames.Add(CurUnitName);
-          if CurCompReq<>nil then
-            CurCompReq.RequiredUnits(CurUnitNames);
-          for CurUnitIdx:=0 to CurUnitNames.Count-1 do begin
-            if UnitList=nil then begin
-              UnitList:=TStringList.Create;
-              UnitList.CaseSensitive:=False;
-              UnitList.Duplicates:=dupIgnore;
-            end;
-            CurUnitName:=CurUnitNames[CurUnitIdx];
-            UnitList.Add(CurUnitName);
-            PkgFile:=PackageGraph.FindUnitInAllPackages(CurUnitName,true);
-            //DebugLn(['TPkgManager.GetUnitsAndDependenciesForComponents PkgFile=',PkgFile<>nil]);
-            if PkgFile=nil then
-              PkgFile:=TPkgComponent(CurRegisteredComponent).PkgFile;
-            if PkgFile<>nil then begin
-              RequiredPackage:=PkgFile.LazPackage;
-              RequiredPackage:=RedirectPackageDependency(TIDEPackage(RequiredPackage));
-              if RequiredPackage<>nil then begin
-                if CurPackages=nil then begin
-                  CurPackages:=TStringList.Create;
-                  CurPackages.Duplicates:=dupIgnore;
-                  CurPackages.CaseSensitive:=False;
-                end else
-                  CurPackages.Clear;
-                CurPackages.Add(RequiredPackage.Name);
-                if Assigned(CurCompReq) then
-                  CurCompReq.RequiredPkgs(CurPackages);
-                Helper:=TPackageIterateHelper.Create;
-                try
-                  if AllPackages=nil then begin
-                    AllPackages:=TStringList.Create;
-                    AllPackages.CaseSensitive:=False;
-                    AllPackages.Duplicates:=dupIgnore;
-                  end;
-                  Helper.PackageNames:=CurPackages;
-                  Helper.PackageList:=AllPackages;
-                  Helper.DefaultPackage:=RequiredPackage;
-                  PackageGraph.IteratePackages(fpfSearchAllExisting,@Helper.AddDependency);
-                finally
-                  Helper.Free;
-                end;
-              end;
-            end;
-          end;
-        finally
-          CurCompReq.Free;
-        end;
-      end;
-    end;
-    if AllPackages.Count>0 then begin
-      if AllPackages.Count>0 then
-        PackageList:=TPackagePackageArray.Create;
-      for CurPackageIdx:=0 to AllPackages.Count-1 do
-        PackageList.Add(TLazPackageID(AllPackages.Objects[CurPackageIdx]));
-    end;
-  finally
-    CurUnitNames.Free;
-    CurPackages.Free;
-    AllPackages.Free;
-  end;
-  Result:=mrOk;
-end;
-
-function TPkgManager.FilterMissingDependenciesForUnit(const UnitFilename: string;
-                     InputPackageList: TPackagePackageArray;
-                     out OutputPackageList: TOwnerPackageArray): TModalResult;
-// returns a list of packages that are not yet used by the project the unit
-// belongs to
+function TPkgManager.GetMissingDependenciesForUnit(
+  const UnitFilename: string; ComponentClassnames: TStrings;
+  var List: TObjectArray): TModalResult;
+// returns a list of packages needed to use the Component in the unit
 var
   UnitOwners: TFPList;
   UnitOwner: TObject;
   FirstDependency: TPkgDependency;
-  CurOwnerID, CurPackageIdx: Integer;
-  RequiredPackage: TLazPackageID;
+  CurClassID: Integer;
+  CurOwnerID: Integer;
+  CurCompClass: string;
+  CurRegisteredComponent: TRegisteredComponent;
+  PkgFile: TPkgFile;
+  RequiredPackage: TLazPackage;
+  CurUnitName: String;
 begin
   Result:=mrCancel;
-  OutputPackageList:=nil;
+  List:=nil;
   UnitOwners:=GetOwnersOfUnit(UnitFilename);
   if (UnitOwners<>nil) then begin
     for CurOwnerID:=0 to UnitOwners.Count-1 do begin
@@ -4664,46 +4587,45 @@ begin
         FirstDependency:=TLazPackage(UnitOwner).FirstRequiredDependency
       else
         FirstDependency:=nil;
-      for CurPackageIdx:=0 to InputPackageList.Count-1 do begin
-        RequiredPackage:=InputPackageList.Items[CurPackageIdx];
-        if (RequiredPackage<>nil)
-        and (RequiredPackage<>UnitOwner)
-        and (FindCompatibleDependencyInList(FirstDependency,pdlRequires,RequiredPackage)=nil)
-        and (PackageGraph.FindPackageProvidingName(FirstDependency,RequiredPackage.Name)=nil)
-        then begin
-          if OutputPackageList=nil then
-            OutputPackageList:=TOwnerPackageArray.Create;
-          OutputPackageList.AddObject(UnitOwner,RequiredPackage);
-          //debugln(['TPkgManager.FilterMissingDependenciesForUnit A ',UnitOwner.ClassName,' ',RequiredPackage.Name]);
-          //if TObject(OutputPackageList[OutputPackageList.Count-1])<>UnitOwner then RaiseGDBException('A');
-          //if TObject(OutputPackageList.Objects[OutputPackageList.Count-1])<>RequiredPackage then RaiseGDBException('B');
+      for CurClassID:=0 to ComponentClassnames.Count-1 do begin
+        CurCompClass:=ComponentClassnames[CurClassID];
+        CurRegisteredComponent:=IDEComponentPalette.FindComponent(CurCompClass);
+        if CurRegisteredComponent is TPkgComponent then begin
+          CurUnitName:='';
+          if CurRegisteredComponent.ComponentClass<>nil then
+            CurUnitName:=GetClassUnitName(CurRegisteredComponent.ComponentClass);
+          //DebugLn(['TPkgManager.GetMissingDependenciesForUnit CurUnitName=',CurUnitName]);
+          if CurUnitName='' then
+            CurUnitName:=CurRegisteredComponent.GetUnitName;
+          PkgFile:=PackageGraph.FindUnitInAllPackages(CurUnitName,true);
+          //DebugLn(['TPkgManager.GetMissingDependenciesForUnit PkgFile=',PkgFile<>nil]);
+          if PkgFile=nil then
+            PkgFile:=TPkgComponent(CurRegisteredComponent).PkgFile;
+          if PkgFile<>nil then begin
+            RequiredPackage:=PkgFile.LazPackage;
+            RequiredPackage:=TLazPackage(RedirectPackageDependency(RequiredPackage));
+            if (RequiredPackage<>nil)
+            and (RequiredPackage<>UnitOwner)
+            and (FindCompatibleDependencyInList(FirstDependency,pdlRequires,
+              RequiredPackage)=nil)
+            and (PackageGraph.FindPackageProvidingName(FirstDependency,
+              RequiredPackage.Name)=nil)
+            then begin
+              if List=nil then List:=TObjectArray.Create;
+              List.AddObject(UnitOwner,RequiredPackage);
+              //debugln(['TPkgManager.GetMissingDependenciesForUnit A ',UnitOwner.ClassName,' ',RequiredPackage.Name]);
+              //if TObject(List[List.Count-1])<>UnitOwner then RaiseGDBException('A');
+              //if TObject(List.Objects[List.Count-1])<>RequiredPackage then RaiseGDBException('B');
+            end;
+          end;
         end;
       end;
     end;
     UnitOwners.Free;
   end else begin
-    DebugLn(['Warning: (kode) [TPkgManager.FilterMissingDependenciesForUnit] unit has no owner: ',UnitFilename]);
+    DebugLn(['Warning: (lazarus) [TPkgManager.GetMissingDependenciesForUnit] unit has no owner: ',UnitFilename]);
   end;
   Result:=mrOk;
-end;
-
-function TPkgManager.GetMissingDependenciesForUnit(
-  const UnitFilename: string; ComponentClassnames: TStrings;
-  var List: TOwnerPackageArray): TModalResult;
-// returns a list of packages needed to use the Component in the unit
-var
-  AllPackages: TPackagePackageArray;
-  AllUnits: TStringList;
-begin
-  List:=nil;
-  Result:=GetUnitsAndDependenciesForComponents(ComponentClassnames,AllPackages,AllUnits);
-  try
-    if Result<>mrOK then Exit;
-    Result:=FilterMissingDependenciesForUnit(UnitFilename,AllPackages,List);
-  finally
-    AllPackages.Free;
-    AllUnits.Free;
-  end;
 end;
 
 function TPkgManager.GetOwnersOfUnit(const UnitFilename: string): TFPList;
@@ -5216,7 +5138,7 @@ begin
   // find needed package
   RequiredPkgFile:=SearchUnitInDesigntimePackages(RequiredUnitName,nil);
   if RequiredPkgFile=nil then begin
-    DebugLn(['Note: (kode) [TPkgManager.AddDependencyToUnitOwners] unit not in designtime package: ',RequiredUnitName]);
+    DebugLn(['Note: (lazarus) [TPkgManager.AddDependencyToUnitOwners] unit not in designtime package: ',RequiredUnitName]);
     exit;
   end;
   RequiredPkg:=RequiredPkgFile.LazPackage;
@@ -5225,7 +5147,7 @@ begin
   OwnersList:=GetOwnersOfUnit(OwnedFilename);
   try
     if (OwnersList=nil) or (OwnersList.Count=0) then begin
-      DebugLn(['Note: (kode) TPkgManager.AddDependencyToUnitOwners Owner not found of unit ',OwnedFilename]);
+      DebugLn(['Note: (lazarus) TPkgManager.AddDependencyToUnitOwners Owner not found of unit ',OwnedFilename]);
       exit;
     end;
     // add package dependency
@@ -5256,7 +5178,7 @@ begin
     Filename:=APackageList[i];
     if Filename='' then
       Filename:=APackage.Filename;
-    debugln(['Hint: (kode) [TPkgManager.RevertPackages] BEFORE Old=',APackage.Filename,' New=',Filename,' ',FileExistsCached(Filename)]);
+    debugln(['Hint: (lazarus) [TPkgManager.RevertPackages] BEFORE Old=',APackage.Filename,' New=',Filename,' ',FileExistsCached(Filename)]);
     if FileExistsCached(Filename) then
       Result:=DoOpenPackageFile(Filename,[pofRevert],true)
     else begin
@@ -5264,7 +5186,7 @@ begin
       APackage.Missing:=true;
       Result:=mrCancel;
     end;
-    debugln(['Hint: (kode) [TPkgManager.RevertPackages] AFTER ',PackageGraph.FindPackageWithFilename(Filename)<>nil]);
+    debugln(['Hint: (lazarus) [TPkgManager.RevertPackages] AFTER ',PackageGraph.FindPackageWithFilename(Filename)<>nil]);
     if Result=mrAbort then exit;
   end;
   Result:=mrOk;
@@ -5368,7 +5290,7 @@ begin
     Result:=LazarusIDE.DoSaveEditorFile(SrcEdit,SaveFlags);
     if Result=mrIgnore then Result:=mrOk;
     if Result<>mrOk then begin
-      debugln(['Error: (kode) [TPkgManager.SavePackageFiles] failed writing "',AFilename,'"']);
+      debugln(['Error: (lazarus) [TPkgManager.SavePackageFiles] failed writing "',AFilename,'"']);
       exit;
     end;
   end;
@@ -6098,7 +6020,7 @@ begin
                             EnvironmentOptions.GetParsedLazarusDirectory,false);
     if Result<>mrOk then begin
       if ConsoleVerbosity>0 then
-        debugln(['Error: (kode) [TPkgManager.DoCompileAutoInstallPackages] CheckPackageGraphForCompilation failed']);
+        debugln(['Error: (lazarus) [TPkgManager.DoCompileAutoInstallPackages] CheckPackageGraphForCompilation failed']);
       exit;
     end;
     //DebugLn(['TPkgManager.DoCompileAutoInstallPackages LCLUnitPath=',PackageGraph.LCLPackage.CompilerOptions.GetUnitPath(true)]);
@@ -6108,7 +6030,7 @@ begin
       Result:=MainIDE.DoSaveForBuild(crCompile);
       if Result<>mrOk then begin
         if ConsoleVerbosity>0 then
-          debugln(['Error: (kode) [TPkgManager.DoCompileAutoInstallPackages] MainIDE.DoSaveForBuild failed']);
+          debugln(['Error: (lazarus) [TPkgManager.DoCompileAutoInstallPackages] MainIDE.DoSaveForBuild failed']);
         exit;
       end;
     end;
@@ -6121,7 +6043,7 @@ begin
                                                  CompilePolicy);
     if Result<>mrOk then begin
       if ConsoleVerbosity>0 then
-        debugln(['Error: (kode) [TPkgManager.DoCompileAutoInstallPackages] PackageGraph.CompileRequiredPackages failed']);
+        debugln(['Error: (lazarus) [TPkgManager.DoCompileAutoInstallPackages] PackageGraph.CompileRequiredPackages failed']);
       exit;
     end;
 
@@ -6347,7 +6269,7 @@ begin
     for i := 0 to UnitList.Count - 1 do 
     begin
       ARoot := TUnitInfo(UnitList[i]).Component;
-      DebugLn(['Hint: (kode) [TPkgManager.FindReferencedRootComponent] Root=',dbgsName(CurRoot),' Searched="',ComponentName,'" other root=',dbgsName(ARoot)]);
+      DebugLn(['Hint: (lazarus) [TPkgManager.FindReferencedRootComponent] Root=',dbgsName(CurRoot),' Searched="',ComponentName,'" other root=',dbgsName(ARoot)]);
       if (ARoot <> nil) and (SysUtils.CompareText(ComponentName, ARoot.Name) = 0) then
       begin
         Result := ARoot;
@@ -6503,24 +6425,6 @@ end;
 procedure TPkgManager.OnProjectInspectorCopyMoveFiles(Sender: TObject);
 begin
   CopyMoveFiles(Sender);
-end;
-
-function TPkgManager.CanClosePackageEditor(APackage: TLazPackage): TModalResult;
-begin
-  Result:=APackage.Editor.CanCloseEditor;
-end;
-
-function TPkgManager.CanCloseAllPackageEditors: TModalResult;
-var
-  APackage: TLazPackage;
-  i: Integer;
-begin
-  for i:=0 to PackageEditors.Count-1 do begin
-    APackage:=PackageEditors.Editors[i].LazPackage;
-    Result:=CanClosePackageEditor(APackage);
-    if Result<>mrOk then exit;
-  end;
-  Result:=mrOk;
 end;
 
 function TPkgManager.CanOpenDesignerForm(AnUnitInfo: TUnitInfo;

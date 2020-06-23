@@ -897,10 +897,14 @@ var
 begin
   if ALine < 0 then exit(-1);
   c := Max(1, TextBuffer.Count);
-  Result := (Int64(ALine - 1) * Int64(Height)) div c;
-  n      := (Int64(ALine)     * Int64(Height)) div c - 1; // next line - 1 pix
-  if n > Result then
-    Result := n;
+  if c = 0 then
+    Result := -1
+  else begin
+    Result := (Int64(ALine - 1) * Int64(Height)) div c;
+    n      := (Int64(ALine)     * Int64(Height)) div c - 1; // next line - 1 pix
+    if n > Result then
+      Result := n;
+  end;
 end;
 
 function TSynGutterLineOverviewProvider.PixelLineToText(ALineIdx: Integer): Integer;
@@ -1415,10 +1419,14 @@ var
 begin
   if ALine < 0 then exit(-1);
   c := Max(1, TextBuffer.Count);
-  Result := (Int64(ALine - 1) * Int64(Height)) div c;
-  n      := (Int64(ALine)     * Int64(Height)) div c - 1; // next line - 1 pix
-  if n > Result then
-    Result := n;
+  if c = 0 then
+    Result := -1
+  else begin
+    Result := (Int64(ALine - 1) * Int64(Height)) div c;
+    n      := (Int64(ALine)     * Int64(Height)) div c - 1; // next line - 1 pix
+    if n > Result then
+      Result := n;
+  end;
 end;
 
 procedure TSynGutterLineOverview.DoResize(Sender: TObject);

@@ -28,7 +28,7 @@ unit opkman_createrepositorypackagefrm;
 interface
 
 uses
-  Classes, SysUtils, md5, fpjson, laz.VirtualTrees,
+  Classes, SysUtils, md5, fpjson, VirtualTrees,
   // LCL
   Forms, Controls, ExtCtrls, StdCtrls, Dialogs, Graphics, Buttons, EditBtn,
   // IDEIntf
@@ -51,14 +51,15 @@ type
     bSubmit: TButton;
     cbJSONForUpdates: TCheckBox;
     edCategories: TEdit;
-    edFPCCompatibility: TEdit;
-    edSupportedWidgetset: TEdit;
-    edLazCompatibility: TEdit;
     edPackageDir: TDirectoryEdit;
     edDownloadURL: TEdit;
     edDisplayName: TEdit;
     edSVNURL: TEdit;
+    edFPCCompatibility: TEdit;
     edHomePageURL: TEdit;
+    edLazCompatibility: TEdit;
+    edSupportedWidgetset: TEdit;
+    imTree: TImageList;
     lbCategory: TLabel;
     lbDownloadURL: TLabel;
     lbDisplayName: TLabel;
@@ -77,9 +78,6 @@ type
     pnB: TPanel;
     pnButtons: TPanel;
     pnCategories: TPanel;
-    pnFPCCompatibility: TPanel;
-    pnSupportedWidgetset: TPanel;
-    pnLazCompatibility: TPanel;
     pnPackageData: TPanel;
     pnBrowse: TPanel;
     pnCategory: TPanel;
@@ -88,9 +86,6 @@ type
     pnData: TPanel;
     SDD: TSelectDirectoryDialog;
     spCategories: TSpeedButton;
-    spFPCCompatibility: TSpeedButton;
-    spSupportedWidgetset: TSpeedButton;
-    spLazCompatibility: TSpeedButton;
     spMain: TSplitter;
     procedure bCancelClick(Sender: TObject);
     procedure bCreateClick(Sender: TObject);
@@ -104,8 +99,8 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure spCategoriesClick(Sender: TObject);
   private
-    FVSTPackages: TLazVirtualStringTree;
-    FVSTPackageData: TLazVirtualStringTree;
+    FVSTPackages: TVirtualStringTree;
+    FVSTPackageData: TVirtualStringTree;
     FPackageZipper: TPackageZipper;
     FPackageDir: String;
     FPackageName: String;
@@ -160,14 +155,9 @@ var
 implementation
 
 uses opkman_const, opkman_common, opkman_options, opkman_categoriesfrm,
-     opkman_mainfrm, opkman_maindm, opkman_updates;
+     opkman_mainfrm, opkman_updates;
 
 {$R *.lfm}
-
-const
-  IMAGE_INDEX_MAP: array[0..7] of Integer = (
-    IMG_PKG_PLUS, IMG_PKG_FILE, IMG_REPO_FILE, IMG_DESCRIPTION, IMG_AUTHOR,
-    IMG_PKG_TYPE, IMG_DEPENDENCIES, IMG_LICENSE);
 
 { TCreateRepositoryPackagesFrm }
 
@@ -225,25 +215,25 @@ begin
   if not Options.UseDefaultTheme then
     Self.Color := clBtnFace;
 
-  FVSTPackages := TLazVirtualStringTree.Create(nil);
+  FVSTPackages := TVirtualStringTree.Create(nil);
   with FVSTPackages do
   begin
     Parent := pnPackages;
     Align := alClient;
     Anchors := [akLeft, akTop, akRight];
-    Images := MainDM.Images;
+    Images := imTree;
     if not Options.UseDefaultTheme then
       Color := clBtnFace;
-    DefaultNodeHeight := Scale96ToForm(25);
-    Indent := Scale96ToForm(15);
+    DefaultNodeHeight := 25;
+    Indent := 15;
     TabOrder := 1;
     DefaultText := '';
     Header.AutoSizeIndex := 0;
-    Header.Height := Scale96ToForm(25);
+    Header.Height := 25;
     Colors.BorderColor := clBlack;
     with Header.Columns.Add do begin
       Position := 0;
-      Width := Scale96ToForm(250);
+      Width := 250;
       Text := rsCreateRepositoryPackageFrm_pnCaption_Caption0;
     end;
     Header.Options := [hoAutoResize, hoColumnResize, hoRestrictDrag, hoVisible, hoAutoSpring];
@@ -262,31 +252,31 @@ begin
   end;
   FVSTPackages.NodeDataSize := SizeOf(TData);
 
-  FVSTPackageData := TLazVirtualStringTree.Create(nil);
+  FVSTPackageData := TVirtualStringTree.Create(nil);
   with FVSTPackageData do
   begin
     Parent := pnData;
     Align := alTop;
-    Height := Scale96ToForm(200);
+    Height := 200;
     Anchors := [akLeft, akTop, akRight];
-    Images := MainDM.Images;
+    Images := imTree;
     if not Options.UseDefaultTheme then
       Color := clBtnFace;
-    DefaultNodeHeight := Scale96ToForm(25);
-    Indent := Scale96ToForm(15);
+    DefaultNodeHeight := 25;
+    Indent := 15;
     TabOrder := 1;
     DefaultText := '';
     Header.AutoSizeIndex := 1;
-    Header.Height := Scale96ToForm(25);
+    Header.Height := 25;
     Colors.BorderColor := clBlack;
     with Header.Columns.Add do begin
       Position := 0;
-      Width := Scale96ToForm(150);
+      Width := 150;
       Text := rsCreateRepositoryPackageFrm_pnCaption_Caption1;
     end;
     with Header.Columns.Add do begin
       Position := 1;
-      Width := Scale96ToForm(250);
+      Width := 250;
       Text := rsCreateRepositoryPackageFrm_pnCaption_Caption2;
     end;
     Header.Options := [hoAutoResize, hoColumnResize, hoRestrictDrag, hoVisible, hoAutoSpring];
@@ -490,9 +480,9 @@ begin
           Data^.FFullPath := TPackageData(PackageList.Objects[I]).FFullPath;
           if not LoadPackageData(Data^.FFullPath, Data) then
             MessageDlgEx(rsCreateRepositoryPackageFrm_Error0, mtError, [mbOk], Self);
-          Data^.FLazCompatibility := LazDefVersions;
-          Data^.FFPCCompatibility := FPCDefVersion;
-          Data^.FSupportedWidgetSet := DefWidgetSets;
+          Data^.FLazCompatibility := '1.6, 1.8, Trunk';
+          Data^.FFPCCompatibility := '2.6.4, 3.0.0, 3.0.2, 3.0.4';
+          Data^.FSupportedWidgetSet := 'win32/64, gtk2, carbon';
           Data^.FDataType := 1;
         end;
         FVSTPackages.FullExpand;
@@ -503,7 +493,7 @@ begin
           FVSTPackages.Selected[RootNode] := True;
           CanGo := True;
         end;
-        FVSTPackages.SortTree(0, laz.VirtualTrees.sdAscending);
+        FVSTPackages.SortTree(0, VirtualTrees.sdAscending);
       end
       else
         MessageDlgEx(rsCreateRepositoryPackageFrm_NoPackage, mtInformation, [mbOk], Self);
@@ -530,21 +520,11 @@ procedure TCreateRepositoryPackagesFrm.spCategoriesClick(Sender: TObject);
 begin
   CategoriesFrm := TCategoriesFrm.Create(Self);
   try
-    CategoriesFrm.SetupControls(TButton(Sender).Tag);
-    case TButton(Sender).Tag of
-      1: CategoriesFrm.CategoriesCSV := edCategories.Text;
-      2: CategoriesFrm.LazCompatibility := edLazCompatibility.Text;
-      3: CategoriesFrm.FPCCompatibility := edFPCCompatibility.Text;
-      4: CategoriesFrm.SupportedWidgetSets := edSupportedWidgetset.Text;
-    end;
-    CategoriesFrm.PopulateTree(TButton(Sender).Tag);
+    CategoriesFrm.SetupControls;
+    CategoriesFrm.CategoriesCSV := edCategories.Text;
+    CategoriesFrm.PopulateTree;
     if CategoriesFrm.ShowModal = mrOK then
-      case TButton(Sender).Tag of
-        1: edCategories.Text := CategoriesFrm.CategoriesCSV;
-        2: edLazCompatibility.Text := CategoriesFrm.LazCompatibility;
-        3: edFPCCompatibility.Text := CategoriesFrm.FPCCompatibility;
-        4: edSupportedWidgetset.Text := CategoriesFrm.SupportedWidgetSets;
-      end;
+      edCategories.Text := CategoriesFrm.CategoriesCSV;
   finally
     CategoriesFrm.Free;
   end;
@@ -702,11 +682,7 @@ end;
 
 procedure TCreateRepositoryPackagesFrm.bOptionsClick(Sender: TObject);
 begin
-  {$IFDEF MSWINDOWS}
-  MainFrm.ShowOptions(4);
-  {$ELSE}
   MainFrm.ShowOptions(3);
-  {$ENDIF}
 end;
 
 procedure TCreateRepositoryPackagesFrm.bCancelClick(Sender: TObject);
@@ -732,7 +708,7 @@ procedure TCreateRepositoryPackagesFrm.VSTPackagesGetImageIndex(
   Column: TColumnIndex; var Ghosted: Boolean; var ImageIndex: Integer);
 begin
   if Column = 0 then
-    ImageIndex := IMAGE_INDEX_MAP[FVSTPackages.GetNodeLevel(Node)];
+    ImageIndex := FVSTPackages.GetNodeLevel(Node);
 end;
 
 procedure TCreateRepositoryPackagesFrm.SaveExtraInfo(const ANode: PVirtualNode);
@@ -895,7 +871,7 @@ begin
   if Column = 0 then
   begin
     Data := FVSTPackageData.GetNodeData(Node);
-    ImageIndex := IMAGE_INDEX_MAP[Data^.FDataType];
+    ImageIndex := Data^.FDataType;
   end;
 end;
 
@@ -1066,10 +1042,7 @@ begin
       MetaPkg.RepositoryDate := now;
       MetaPkg.PackageBaseDir := RootData^.FPackageBaseDir;
       if Trim(RootData^.FDisplayName) <> '' then
-      begin
-        MetaPkg.Name := RootData^.FDisplayName;
-        MetaPkg.DisplayName := RootData^.FDisplayName;
-      end
+        MetaPkg.DisplayName := RootData^.FDisplayName
       else
         MetaPkg.DisplayName := RootData^.FName;
       MetaPkg.HomePageURL := RootData^.FHomePageURL;

@@ -65,7 +65,6 @@ type
     FTabPosition: TTabPosition;
     FWindowState: TWindowState;
     FControlLocation: TADLControlLocation;
-    FMinimized: Boolean;
     function GetAnchors(Site: TAnchorKind): string;
     function GetBottom: integer;
     function GetHeight: integer;
@@ -93,14 +92,13 @@ type
     procedure SetTop(const AValue: integer);
     procedure SetWidth(const AValue: integer);
     procedure SetWindowState(const AValue: TWindowState);
-    procedure SetMinimized(const AValue: boolean);
   public
     constructor Create;
     destructor Destroy; override;
     procedure Clear;
     function IsEqual(Node: TAnchorDockLayoutTreeNode): boolean;
     procedure Assign(Node: TAnchorDockLayoutTreeNode); overload;
-    procedure Assign(AControl: TControl; OverrideBoundsRect, AMinimized: boolean); overload;
+    procedure Assign(AControl: TControl; OverrideBoundsRect: Boolean=false); overload;
     procedure LoadFromConfig(Config: TConfigStorage); overload;
     procedure LoadFromConfig(Path: string; Config: TRttiXMLConfig); overload;
     procedure SaveToConfig(Config: TConfigStorage); overload;
@@ -110,7 +108,7 @@ type
     procedure CheckConsistency; virtual;
 
     // simplifying
-    procedure Simplify(ExistingNames: TStrings; ParentMinimized: boolean);
+    procedure Simplify(ExistingNames: TStrings);
     procedure DeleteNode(ChildNode: TAnchorDockLayoutTreeNode);
     function FindNodeBoundSplitter(ChildNode: TAnchorDockLayoutTreeNode;
                                    Side: TAnchorKind): TAnchorDockLayoutTreeNode;
@@ -140,7 +138,6 @@ type
     property HeaderPosition: TADLHeaderPosition read FHeaderPosition write SetHeaderPosition;
     property TabPosition: TTabPosition read FTabPosition write SetTabPosition;
     property PageIndex: integer read FPageIndex write SetPageIndex;
-    property Minimized: Boolean read FMinimized write SetMinimized;
     function Count: integer;
     function IsSplitter: boolean;
     function IsRootWindow: boolean;
@@ -1001,13 +998,6 @@ begin
   IncreaseChangeStamp;
 end;
 
-procedure TAnchorDockLayoutTreeNode.SetMinimized(const AValue: boolean);
-begin
-  if FMinimized=AValue then exit;
-  FMinimized:=AValue;
-  IncreaseChangeStamp;
-end;
-
 procedure TAnchorDockLayoutTreeNode.SetTop(const AValue: integer);
 begin
   if Top=AValue then exit;
@@ -1107,7 +1097,6 @@ begin
   BoundSplitterPos:=Node.BoundSplitterPos;
   WorkAreaRect:=Node.WorkAreaRect;
   Monitor:=Node.Monitor;
-  Minimized:=Node.Minimized;
   for a:=low(TAnchorKind) to high(TAnchorKind) do
     Anchors[a]:=Node.Anchors[a];
   while Count>Node.Count do Nodes[Count-1].Free;
@@ -1122,10 +1111,9 @@ begin
   end;
 end;
 
-procedure TAnchorDockLayoutTreeNode.Assign(AControl: TControl; OverrideBoundsRect, AMinimized: boolean);
+procedure TAnchorDockLayoutTreeNode.Assign(AControl: TControl; OverrideBoundsRect: Boolean=false);
 var
   AnchorControl: TControl;
-  ParentForm: TCustomForm;
   a: TAnchorKind;
 begin
   Name:=AControl.Name;
@@ -1134,18 +1122,12 @@ begin
   else
     BoundsRect:=AControl.BoundsRect;
   Align:=AControl.Align;
-  Minimized:=AMinimized;
   if (AControl.Parent=nil) and (AControl is TCustomForm) then begin
     WindowState:=TCustomForm(AControl).WindowState;
     Monitor:=TCustomForm(AControl).Monitor.MonitorNum;
     WorkAreaRect:=TCustomForm(AControl).Monitor.WorkareaRect;
-  end else begin
-    ParentForm:=GetParentForm(AControl);
-    if Assigned(ParentForm) then
-      WindowState:=ParentForm.WindowState
-    else
-      WindowState:=wsNormal;
-  end;
+  end else
+    WindowState:=GetParentForm(AControl).WindowState;
   if AControl is TCustomTabControl then begin
     TabPosition:=TCustomTabControl(AControl).TabPosition;
     PageIndex:=TCustomTabControl(AControl).PageIndex;
@@ -1171,7 +1153,6 @@ begin
   Clear;
   Name:=Config.GetValue('Name','');
   NodeType:=NameToADLTreeNodeType(Config.GetValue('Type',ADLTreeNodeTypeNames[adltnNone]));
-  Minimized:=Config.GetValue('Minimized',false);
   Left:=Config.GetValue('Bounds/Left',0);
   Top:=Config.GetValue('Bounds/Top',0);
   Width:=Config.GetValue('Bounds/Width',0);
@@ -1207,7 +1188,6 @@ begin
   Clear;
   Name:=Config.GetValue(Path+'Name','');
   NodeType:=NameToADLTreeNodeType(Config.GetValue(Path+'Type',ADLTreeNodeTypeNames[adltnNone]));
-  Minimized:=Config.GetValue(Path+'Minimized',false);
   Left:=Config.GetValue(Path+'Bounds/Left',0);
   Top:=Config.GetValue(Path+'Bounds/Top',0);
   Width:=Config.GetValue(Path+'Bounds/Width',0);
@@ -1258,7 +1238,6 @@ begin
   Config.SetDeleteValue('Header/TabPosition',ADLTabPostionNames[TabPosition],
                                              ADLTabPostionNames[tpTop]);
   Config.SetDeleteValue('Header/PageIndex',PageIndex,0);
-  Config.SetDeleteValue('Minimized',Minimized,False);
   Config.SetDeleteValue('Monitor',Monitor,0);
   Config.SetDeleteValue('ChildCount',Count,0);
   for i:=1 to Count do begin
@@ -1293,7 +1272,6 @@ begin
   Config.SetDeleteValue(Path+'Header/TabPosition',ADLTabPostionNames[TabPosition],
                                                   ADLTabPostionNames[tpTop]);
   Config.SetDeleteValue(Path+'Header/PageIndex',PageIndex,0);
-  Config.SetDeleteValue(Path+'Minimized',Minimized,False);
   Config.SetDeleteValue(Path+'Monitor',Monitor,0);
   Config.SetDeleteValue(Path+'ChildCount',Count,0);
   for i:=1 to Count do
@@ -1439,7 +1417,7 @@ begin
   end;
 end;
 
-procedure TAnchorDockLayoutTreeNode.Simplify(ExistingNames: TStrings; ParentMinimized: boolean);
+procedure TAnchorDockLayoutTreeNode.Simplify(ExistingNames: TStrings);
 { Simplification rules:
    1. Control nodes without existing name are deleted.
    2. Empty layouts and pages are deleted
@@ -1448,18 +1426,16 @@ procedure TAnchorDockLayoutTreeNode.Simplify(ExistingNames: TStrings; ParentMini
 var
   i: Integer;
   ChildNode: TAnchorDockLayoutTreeNode;
-  NodeMinimized: Boolean;
 begin
   // simplify children
   i:=Count-1;
   while i>=0 do begin
     ChildNode:=Nodes[i];
-    NodeMinimized:=ParentMinimized or ChildNode.Minimized;
-    ChildNode.Simplify(ExistingNames,NodeMinimized);
+    ChildNode.Simplify(ExistingNames);
 
     if (ChildNode.NodeType=adltnControl) then begin
       // leaf node => check if there is a control
-      if (ChildNode.Name='') or ((ExistingNames.IndexOf(ChildNode.Name)<0) and (not NodeMinimized)) then
+      if (ChildNode.Name='') or (ExistingNames.IndexOf(ChildNode.Name)<0) then
         DeleteNode(ChildNode);
     end else if ChildNode.IsSplitter then begin
       // splitter
@@ -1468,7 +1444,7 @@ begin
         ChildNode[0].Free;
     end else if ChildNode.NodeType=adltnCustomSite then begin
       // custom dock site
-    end else if (ChildNode.Count=0) and (not NodeMinimized) then begin
+    end else if ChildNode.Count=0 then begin
       // inner node without child => delete
       DeleteNode(ChildNode);
     end else if (ChildNode.Count=1)
@@ -1490,9 +1466,7 @@ var
   Side: TAnchorKind;
   Splitter: TAnchorDockLayoutTreeNode;
 begin
-  {$IFDEF VerboseAnchorDocking}
   WriteDebugLayout('TAnchorDockLayoutTreeNode.DeleteNode BEFORE DELETE Self='+Name+' Child='+ChildNode.Name+' ',Self);
-  {$ENDIF}
   ChildNode.Parent:=nil;
   try
     if not ChildNode.IsSplitter then begin
@@ -1523,9 +1497,7 @@ begin
         if Sibling.Anchors[Side]=ChildNode.Name then
           Sibling.Anchors[Side]:='';
     end;
-    {$IFDEF VerboseAnchorDocking}
     WriteDebugLayout('TAnchorDockLayoutTreeNode.DeleteNode AFTER DELETE Self='+Name+' Child='+ChildNode.Name+' ',Self);
-    {$ENDIF}
     // free node
     ChildNode.Free;
   end;
@@ -1648,9 +1620,7 @@ var
   GrandChild: TAnchorDockLayoutTreeNode;
   Side: TAnchorKind;
 begin
-  {$IFDEF VerboseAnchorDocking}
   WriteDebugLayout('TAnchorDockLayoutTreeNode.ReplaceWithChildren BEFORE REPLACE Self='+Name+' Child='+ChildNode.Name+' ',Self);
-  {$ENDIF}
   DebugWriteChildAnchors(Self);
   while ChildNode.Count>0 do begin
     GrandChild:=ChildNode[0];
@@ -1668,9 +1638,7 @@ begin
       end;
     end;
   end;
-  {$IFDEF VerboseAnchorDocking}
   WriteDebugLayout('TAnchorDockLayoutTreeNode.ReplaceWithChildren AFTER REPLACE Self='+Name+' Child='+ChildNode.Name+' ',Self);
-  {$ENDIF}
   ChildNode.Free;
   DebugWriteChildAnchors(Self);
 end;

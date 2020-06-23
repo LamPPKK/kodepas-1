@@ -30,7 +30,7 @@ unit opkman_visualtree;
 interface
 
 uses
-  Classes, SysUtils, contnrs, Math, dateutils, laz.VirtualTrees,
+  Classes, SysUtils, contnrs, Math, dateutils, VirtualTrees,
   // LCL
   Controls, Graphics, Menus, Dialogs, Forms, LCLType, Buttons,
   // IDEIntf
@@ -90,7 +90,7 @@ type
   TOnChecking = procedure(Sender: TObject; const AIsAllChecked: Boolean) of object;
   TVisualTree = class
   private
-    FVST: TLazVirtualStringTree;
+    FVST: TVirtualStringTree;
     FHoverNode: PVirtualNode;
     FHoverNodeOld: PVirtualNode;
     FHoverP: TPoint;
@@ -98,7 +98,7 @@ type
     FLink: String;
     FLinkClicked: Boolean;
     FSortCol: Integer;
-    FSortDir: laz.VirtualTrees.TSortDirection;
+    FSortDir: VirtualTrees.TSortDirection;
     FCheckingNodes: Boolean;
     FLeaving: Boolean;
     FOnChecking: TOnChecking;
@@ -106,7 +106,6 @@ type
     FMouseEnter: Boolean;
     FShowHintFrm: TShowHintFrm;
     FOldButtonNode: PVirtualNode;
-    FStarSize: Integer;
     procedure VSTBeforeCellPaint(Sender: TBaseVirtualTree;
       TargetCanvas: TCanvas; Node: PVirtualNode; {%H-}Column: TColumnIndex;
       {%H-}CellPaintMode: TVTCellPaintMode; CellRect: TRect; var {%H-}ContentRect: TRect);
@@ -169,7 +168,7 @@ type
   published
     property OnChecking: TOnChecking read FOnChecking write FOnChecking;
     property OnChecked: TNotifyEvent read FOnChecked write FOnChecked;
-    property VST: TLazVirtualStringTree read FVST;
+    property VST: TVirtualStringTree read FVST;
     property ShowHintFrm: TShowHintFrm read FShowHintFrm;
   end;
 
@@ -178,15 +177,12 @@ var
 
 implementation
 
-uses
-  imgList;
-
 { TVisualTree }
 
 constructor TVisualTree.Create(const AParent: TWinControl; const AImgList: TImageList;
   APopupMenu: TPopupMenu);
 begin
-  FVST := TLazVirtualStringTree.Create(nil);
+  FVST := TVirtualStringTree.Create(nil);
   with FVST do
    begin
      Parent := AParent;
@@ -194,24 +190,24 @@ begin
      Anchors := [akLeft, akTop, akRight];
      Images := AImgList;
      PopupMenu := APopupMenu;
-     DefaultNodeHeight := FVST.Scale96ToForm(25);
-     Indent := FVST.Scale96ToForm(22);
+     DefaultNodeHeight := MulDiv(25, Screen.PixelsPerInch, 96);
+     Indent := 22;
      TabOrder := 1;
      DefaultText := '';
      Header.AutoSizeIndex := 4;
-     Header.Height := FVST.Scale96ToForm(25);
+     Header.Height := MulDiv(25, Screen.PixelsPerInch, 96);
      Colors.DisabledColor := clBlack;
      with Header.Columns.Add do
      begin
        Position := 0;
-       Width := FVST.Scale96ToForm(270);
+       Width := MulDiv(270, Screen.PixelsPerInch, 96);
        Text := rsMainFrm_VSTHeaderColumn_PackageName;
      end;
      with Header.Columns.Add do
      begin
        Position := 1;
        Alignment := taCenter;
-       Width := FVST.Scale96ToForm(90);
+       Width := MulDiv(90, Screen.PixelsPerInch, 96);
        {$IFDEF LCLCarbon}
        Options := Options - [coResizable];
        {$ENDIF}
@@ -221,28 +217,26 @@ begin
      begin
        Position := 2;
        Alignment := taCenter;
-       Width := FVST.Scale96ToForm(110);
+       Width := MulDiv(90, Screen.PixelsPerInch, 96);
        {$IFDEF LCLCarbon}
        Options := Options - [coResizable];
        {$ENDIF}
        Text := rsMainFrm_VSTHeaderColumn_Repository;
-       Hint := rsMainFrm_VSTHeaderColumn_Repository_Hint;
      end;
      with Header.Columns.Add do
      begin
        Position := 3;
        Alignment := taCenter;
-       Width := FVST.Scale96ToForm(110);
+       Width := MulDiv(90, Screen.PixelsPerInch, 96);
        {$IFDEF LCLCarbon}
        Options := Options - [coResizable];
        {$ENDIF}
        Text := rsMainFrm_VSTHeaderColumn_Update;
-       Hint := rsMainFrm_VSTHeaderColumn_Update_Hint;
      end;
      with Header.Columns.Add do
      begin
         Position := 4;
-        Width := FVST.Scale96ToForm(280);
+        Width := MulDiv(280, Screen.PixelsPerInch, 96);
         {$IFDEF LCLCarbon}
         Options := Options - [coResizable];
         {$ENDIF}
@@ -252,7 +246,7 @@ begin
      begin
         Position := 5;
         Alignment := taCenter;
-        Width := FVST.Scale96ToForm(88);
+        Width := 88;
         Options := Options - [coResizable];
         Text := rsMainFrm_VSTHeaderColumn_Rating;
       end;
@@ -260,10 +254,10 @@ begin
      begin
         Position := 6;
         Alignment := taCenter;
-        Width := FVST.Scale96ToForm(20);
+        Width := MulDiv(20, Screen.PixelsPerInch, 96);
         Options := Options - [coResizable];
      end;
-     Header.Options := [hoAutoResize, hoColumnResize, hoRestrictDrag, hoShowSortGlyphs, hoVisible, hoShowHint];
+     Header.Options := [hoAutoResize, hoColumnResize, hoRestrictDrag, hoShowSortGlyphs, hoVisible];
      {$IFDEF LCLCarbon}
      Header.Options := Header.Options - [hoShowSortGlyphs];
      {$ENDIF}
@@ -300,10 +294,6 @@ begin
      OnScroll := @VSTScroll;
    end;
   FShowHintFrm := TShowHintFrm.Create(nil);
-  if AImgList <> nil then
-    FStarSize := AImgList.WidthForPPI[FVSt.ImagesWidth, FVST.Font.PixelsPerInch]
-  else
-    FStarSize := 0;
 end;
 
 destructor TVisualTree.Destroy;
@@ -480,7 +470,7 @@ begin
      GrandChildData^.ButtonID := UniqueID;
      Data^.CommunityDescription := SerializablePackages.Items[I].CommunityDescription;;
   end;
-  FVST.SortTree(0, laz.VirtualTrees.sdAscending);
+  FVST.SortTree(0, VirtualTrees.sdAscending);
   ExpandEx;
   CollapseEx;
   RootNode := VST.GetFirst;
@@ -655,15 +645,24 @@ end;
 
 procedure TVisualTree.DrawStars(ACanvas: TCanvas; AStartIndex: Integer;
   P: TPoint; AAvarage: Double);
-var
-  imgres: TScaledImageListResolution;
 
-  procedure Draw(const AX, AY: Integer; ATyp, ACnt, AWidth: Integer);
+  procedure Draw(const AX, AY: Integer; ATyp, ACnt: Integer);
   var
+    Bmp: TBitMap;
     I: Integer;
   begin
-    for I := 0 to ACnt - 1 do
-      imgres.Draw(ACanvas, AX + I*AWidth + 5, AY, AStartIndex + ATyp);
+    Bmp := TBitmap.Create;
+    try
+      Bmp.Width := 16;
+      Bmp.Height := 16;
+      if AStartIndex + ATyp > 25 then
+        ShowMessage('crap');
+      TImageList(FVST.Images).GetBitmap(AStartIndex + ATyp, Bmp);
+      for I := 0 to ACnt - 1 do
+        ACanvas.Draw(AX + I*16 + 5, AY, Bmp);
+    finally
+      Bmp.Free;
+    end;
   end;
 
 var
@@ -672,8 +671,6 @@ var
   Stars, NoStars: Integer;
   HalfStar: Boolean;
 begin
-  imgres := FVST.Images.ResolutionForPPI[FVST.ImagesWidth, FVST.Font.PixelsPerInch, FVST.GetCanvasScaleFactor];
-
   HalfStar := False;
   F := Frac(AAvarage);
   I := Trunc(AAvarage);
@@ -700,14 +697,14 @@ begin
   end;
   X := P.X;
   Y := P.Y;
-  Draw(X, Y, 0, Stars, FStarSize);
-  Inc(X, Stars*FStarSize);
+  Draw(X, Y, 0, Stars);
+  Inc(X, Stars*16);
   if HalfStar then
   begin
-    Draw(X, Y, 2, 1, FStarSize);
-    Inc(X, FStarSize);
+    Draw(X, Y, 2, 1);
+    Inc(X, 16);
   end;
-  Draw(X, Y, 1, NoStars, FStarSize);
+  Draw(X, Y, 1, NoStars);
 end;
 
 procedure TVisualTree.VSTAfterCellPaint(Sender: TBaseVirtualTree;
@@ -726,10 +723,10 @@ begin
     begin
       R := FVST.GetDisplayRect(Node, Column, False);
       P.X := R.Left + 1;
-      P.Y := ((R.Bottom - R.Top - FStarSize) div 2) + 1;
+      P.Y := ((R.Bottom - R.Top - 16) div 2) + 1;
       if (Node = FHoverNode) and (not FLeaving) and (FHoverP.X >= P.X + 1) and (Abs(FHoverP.X - P.X) <= R.Right - R.Bottom) then
       begin
-        Stars := Trunc((FHoverP.X - P.X)/FStarSize) + 1;
+        Stars := Trunc((FHoverP.X - P.X)/16) + 1;
         if Stars > 5 then
           Stars := 5;
         DrawStars(TargetCanvas, 23, P, Stars)
@@ -1122,9 +1119,6 @@ var
   MetaPkg: TMetaPackage;
   LazarusPkg: TLazarusPackage;
 begin
-  if VisualTree = nil then
-    exit;
-
   Node := FVST.GetFirst;
   while Assigned(Node) do
   begin
@@ -1597,14 +1591,14 @@ begin
       if (SortColumn = NoColumn) or (SortColumn <> HitInfo.Column) then
       begin
         SortColumn    := HitInfo.Column;
-        SortDirection := laz.VirtualTrees.sdAscending;
+        SortDirection := VirtualTrees.sdAscending;
       end
       else
       begin
-        if SortDirection = laz.VirtualTrees.sdAscending then
-          SortDirection := laz.VirtualTrees.sdDescending
+        if SortDirection = VirtualTrees.sdAscending then
+          SortDirection := VirtualTrees.sdDescending
         else
-          SortDirection := laz.VirtualTrees.sdAscending;
+          SortDirection := VirtualTrees.sdAscending;
         FSortDir := SortDirection;
       end;
       SortTree(SortColumn, SortDirection, False);
@@ -1620,8 +1614,6 @@ procedure TVisualTree.VSTPaintText(Sender: TBaseVirtualTree;
  function GetTextColor(const ADefColor: TColor; AIsFocusedNode: Boolean): TColor;
  begin
    Result := ADefColor;
-   if Result = clDefault then
-     Result := Sender.GetDefaultColor(dctFont);
    if AIsFocusedNode then
    {$IFDEF WINDOWS}
      Result := clWhite;

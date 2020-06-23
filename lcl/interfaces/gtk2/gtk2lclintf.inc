@@ -1,5 +1,5 @@
 {%MainUnit gtk2int.pas}
-{ $Id$ }
+{ $Id: gtk2lclintf.inc 56872 2017-12-29 20:22:29Z michl $ }
 {******************************************************************************
                  All GTK2 interface communication implementations.
                    Initial Revision  : Sat Jan 17 19:00:00 2004
@@ -187,6 +187,16 @@ function TGtk2WidgetSet.TextUTF8Out(DC: HDC; X, Y: Integer; Str: PChar; Count: L
 begin
   // all fonts are UTF-8 under gtk2 => no mapping needed
   Result := TextOut(DC, X, Y, Str, Count);
+end;
+
+{------------------------------------------------------------------------------
+  function TGtk2WidgetSet.FontCanUTF8(Font: HFont): boolean;
+  
+  True if font recognizes Unicode UTF8 encoding.
+ ------------------------------------------------------------------------------}
+function TGtk2WidgetSet.FontCanUTF8(Font: HFont): boolean;
+begin
+  Result:=IsValidGDIObject(Font);
 end;
 
 {------------------------------------------------------------------------------
@@ -816,15 +826,9 @@ begin
       if TCustomTrackBar(SizeConstraints.Control).Orientation=trHorizontal then
       begin
         Widget:=GetStyleWidget(lgsHScale);
-        gtk_scale_set_draw_value(PGtkScale(Widget),
-                                 TCustomTrackBar(SizeConstraints.Control).TickStyle <> tsNone);
-        gtk_widget_size_request(Widget, @Widget^.Requisition);
         MinHeight:=Widget^.requisition.height;
       end else begin
         Widget:=GetStyleWidget(lgsVScale);
-        gtk_scale_set_draw_value(PGtkScale(Widget),
-                                 TCustomTrackBar(SizeConstraints.Control).TickStyle <> tsNone);
-        gtk_widget_size_request(Widget, @Widget^.Requisition);
         MinWidth:=Widget^.requisition.width;
       end;
       //DebugLn(['TGtk2WidgetSet.GetControlConstraints ',DbgSName(SizeConstraints.Control),' ',MinWidth,',',MinHeight]);
@@ -1277,7 +1281,7 @@ var
   Requisition: TGtkRequisition;
 begin
   Result:=True;
-  p := GetWidgetInfo({%H-}Pointer(Handle))^.CoreWidget;
+  p := GetWidgetInfo({%H-}Pointer(Handle), False)^.CoreWidget;
   
   Menu := PGtkWidget(g_object_get_data(G_OBJECT(p), 'Menu'));
   if Menu<>nil then begin

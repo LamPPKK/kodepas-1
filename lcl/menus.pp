@@ -212,6 +212,8 @@ type
     procedure SetShortCut(const AValue : TShortCut);
     procedure SetShortCutKey2(const AValue : TShortCut);
     procedure SetVisible(AValue: Boolean);
+    procedure UpdateImage;
+    procedure UpdateImages;
     procedure UpdateWSIcon;
     procedure ImageListChange(Sender: TObject);
   protected
@@ -244,8 +246,6 @@ type
     procedure Insert(Index: Integer; Item: TMenuItem);
     procedure RecreateHandle; virtual;
     procedure Remove(Item: TMenuItem);
-    procedure UpdateImage(forced: Boolean = false);
-    procedure UpdateImages(forced: Boolean = false);
     function IsCheckItem: boolean; virtual;
     function IsLine: Boolean;
     function IsInMenuBar: boolean; virtual;

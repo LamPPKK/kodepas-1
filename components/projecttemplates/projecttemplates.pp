@@ -12,7 +12,6 @@ uses
 type
 
   { TProjectTemplates }
-
   TProjectTemplate = Class(TCollectionItem)
   private
     FAuthor: String;

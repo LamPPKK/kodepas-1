@@ -55,7 +55,7 @@
                         Added BaseStyle property to TheFontFont class.
  ==============================================================================}
 
-// $Id$
+// $Id: syntextdrawer.pp 58255 2018-06-14 09:05:50Z juha $
 
 // SynEdit note: The name had to be changed to get SynEdit to install 
 //   together with mwEdit into the same Delphi installation
@@ -964,8 +964,8 @@ end;
 function TheTextDrawer.GetUseUTF8: boolean;
 begin
   FFontStock.BaseFont.Reference;
-  Result:=True;
-  //debugln('TheTextDrawer.GetUseUTF8 ',FFontStock.BaseFont.Name,' ',dbgs(FFontStock.BaseFont.HandleAllocated));
+  Result:=FFontStock.BaseFont.CanUTF8;
+  //debugln('TheTextDrawer.GetUseUTF8 ',FFontStock.BaseFont.Name,' ',dbgs(FFontStock.BaseFont.CanUTF8),' ',dbgs(FFontStock.BaseFont.HandleAllocated));
 end;
 
 function TheTextDrawer.GetMonoSpace: boolean;

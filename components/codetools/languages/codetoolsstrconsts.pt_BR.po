@@ -24,7 +24,6 @@ msgid "closing bracket not found"
 msgstr "parênteses de fechamento não encontrado"
 
 #: codetoolsstrconsts.crsfoundunexpectedat
-#, object-pascal-format
 msgid "%s, found unexpected %s at %s"
 msgstr "%s, inesperadamente encontrado %s em %s"
 
@@ -33,12 +32,10 @@ msgid "record end not found"
 msgstr "final de registro não encontrado"
 
 #: codetoolsstrconsts.ctsaddsdirtoincludepath
-#, object-pascal-format
 msgid "adds %s to IncPath"
 msgstr "adiciona %s ao \"IncPath\""
 
 #: codetoolsstrconsts.ctsaddsdirtosourcepath
-#, object-pascal-format
 msgid "adds %s to SrcPath"
 msgstr "adicionar %s ao \"SrcPath\""
 
@@ -51,22 +48,18 @@ msgid "an LCL project"
 msgstr "um projeto LCL"
 
 #: codetoolsstrconsts.ctsanonymdefinitionsarenotallowed
-#, object-pascal-format
 msgid "Anonymous %s definitions are not allowed"
 msgstr "Definição anônima %s não é permitida"
 
 #: codetoolsstrconsts.ctsawithoutb
-#, object-pascal-format
 msgid "%s without %s"
 msgstr "%s sem %s"
 
 #: codetoolsstrconsts.ctsbasetypeofnotfound
-#, object-pascal-format
 msgid "base type of \"%s\" not found"
 msgstr "tipo base de \"%s\" não encontrada"
 
 #: codetoolsstrconsts.ctsbeginatwithoutend
-#, object-pascal-format
 msgid "begin at %s without end"
 msgstr "\"begin\" em %s sem \"end\""
 
@@ -75,17 +68,14 @@ msgid "binary operator"
 msgstr "operador binário"
 
 #: codetoolsstrconsts.ctsbracketcloseexpectedbutatomfound
-#, object-pascal-format
 msgid "bracket close expected, but %s found"
 msgstr "esperado parentêses de fechamento, mas %s encontrado"
 
 #: codetoolsstrconsts.ctsbracketnotfound
-#, object-pascal-format
 msgid "bracket %s not found"
 msgstr "parentêses %s não encontrado"
 
 #: codetoolsstrconsts.ctsbracketopenexpectedbutatomfound
-#, object-pascal-format
 msgid "bracket open expected, but %s found"
 msgstr "esperado parentêses de abertura, mas %s encontrado"
 
@@ -110,22 +100,18 @@ msgid "class node without parent node"
 msgstr "nó classe sem nó pai"
 
 #: codetoolsstrconsts.ctsclassnotfound
-#, object-pascal-format
 msgid "class \"%s\" not found"
 msgstr "classe \"%s\" não encontrada"
 
 #: codetoolsstrconsts.ctsclassnotfound2
-#, object-pascal-format
 msgid "class not found \"%s\""
 msgstr "classe não encontrada \"%s\""
 
 #: codetoolsstrconsts.ctsclassofdefinitionnotresolved
-#, object-pascal-format
 msgid "\"class of\" definition not resolved: %s"
 msgstr "\"classe de\" definição não resolvida: %s"
 
 #: codetoolsstrconsts.ctsclasssnotfound
-#, object-pascal-format
 msgid "Class %s not found"
 msgstr "Classe %s não encontrada"
 
@@ -174,7 +160,6 @@ msgid "Debugger Directory"
 msgstr "Diretório Depurador"
 
 #: codetoolsstrconsts.ctsdefaultancestornotfound
-#, object-pascal-format
 msgid "default ancestor %s not found"
 msgstr "ancestral padrão %s não encontrado"
 
@@ -215,7 +200,6 @@ msgid "default java class ancestor JLObject not found"
 msgstr "classe ancestral padrão java \"JLObject\" não encontrada"
 
 #: codetoolsstrconsts.ctsdefaultparameterexpectedbutatomfound
-#, object-pascal-format
 msgid "default parameter expected, but %s found"
 msgstr "parâmetro padrão esperado, mas %s encontrado"
 
@@ -240,7 +224,6 @@ msgid "Define LCLwidgetset, e.g. LCLgtk"
 msgstr "Definição LCLwidgetset, ex. LCLgtk"
 
 #: codetoolsstrconsts.ctsdefinemacroname
-#, object-pascal-format
 msgid "Define Macro %s"
 msgstr "Definir Macro %s"
 
@@ -257,7 +240,6 @@ msgid "Designer Directory"
 msgstr "Diretório Projeto"
 
 #: codetoolsstrconsts.ctsdispidparameterexpectedbutatomfound
-#, object-pascal-format
 msgid "dispid parameter expected, but %s found"
 msgstr "esperado parâmetro \"dispid\", mas %s encontrado"
 
@@ -270,7 +252,6 @@ msgid "Doc Editor Directory"
 msgstr "Diretorio Editor Documentação"
 
 #: codetoolsstrconsts.ctsduplicateidentifier
-#, object-pascal-format
 msgid "duplicate identifier: %s"
 msgstr "identificador duplicado: %s"
 
@@ -291,7 +272,6 @@ msgid "end of file"
 msgstr "fim do arquivo"
 
 #: codetoolsstrconsts.ctsendofsourceexpectedbutatomfound
-#, object-pascal-format
 msgid "expected end., but %s found"
 msgstr "esperado \"end.\", mas %s encontrado"
 
@@ -324,37 +304,30 @@ msgid "error in paramlist"
 msgstr "erro lista parâmetro"
 
 #: codetoolsstrconsts.ctsexpected
-#, object-pascal-format
 msgid "\"%s\" expected"
 msgstr "esperado \"%s\""
 
 #: codetoolsstrconsts.ctsexpectedamethodtypebutfound
-#, object-pascal-format
 msgid "expected a method type, but found %s"
 msgstr "esperado um tipo método, mas encontrado %s"
 
 #: codetoolsstrconsts.ctsexpectedbutfound
-#, object-pascal-format
 msgid "expected (, but found %s"
 msgstr "\"(\" esperado, mas encontrado %s"
 
 #: codetoolsstrconsts.ctsexpectedbutfound2
-#, object-pascal-format
 msgid "expected ), but found %s"
 msgstr "\")\" esperado, mas encontrado %s"
 
 #: codetoolsstrconsts.ctsexpectedbutfound3
-#, object-pascal-format
 msgid "expected :=, but %s found"
 msgstr "\":=\" esperado, mas %s encontrado"
 
 #: codetoolsstrconsts.ctsexpectedidentifierbutfound
-#, object-pascal-format
 msgid "expected identifier, but found %s"
 msgstr "identificador esperado, mas encontrado %s"
 
 #: codetoolsstrconsts.ctsexpectedsemicolonofstatementbutfound
-#, object-pascal-format
 msgid "expected ; of statement, but found %s"
 msgstr "esperado ; da declaração, mas %s encontrado"
 
@@ -375,7 +348,6 @@ msgid "Forward"
 msgstr "Adiante"
 
 #: codetoolsstrconsts.ctsforwardclassdefinitionnotresolved
-#, object-pascal-format
 msgid "Forward class definition not resolved: %s"
 msgstr "Definição posterior de classe não resolvida: %s"
 
@@ -396,7 +368,6 @@ msgid "Free Pascal Source Directory"
 msgstr "Diretório Fonte Free Pascal"
 
 #: codetoolsstrconsts.ctsfreepascalsourcesplusdesc
-#, object-pascal-format
 msgid "Free Pascal Sources, %s"
 msgstr "Fontes Free Pascal, %s"
 
@@ -419,7 +390,6 @@ msgid "HasError"
 msgstr "Há Erros"
 
 #: codetoolsstrconsts.ctshelperisnotallowed
-#, object-pascal-format
 msgid "Helper after %s is not allowed"
 msgstr "Helper após %s não é permitido"
 
@@ -428,7 +398,6 @@ msgid "IDE Directory"
 msgstr "Diretório do IDE"
 
 #: codetoolsstrconsts.ctsidentexpectedbutatomfound
-#, object-pascal-format
 msgid "identifier expected, but %s found"
 msgstr "identificador esperado, mas %s encontrado"
 
@@ -437,7 +406,6 @@ msgid "unexpected end of file (identifier expected)"
 msgstr "final arquivo inesperado (identificador esperado)"
 
 #: codetoolsstrconsts.ctsidentexpectedbutkeywordfound
-#, object-pascal-format
 msgid "identifier expected, but keyword %s found"
 msgstr "identificador esperado, mas palavra-chave %s encontrada"
 
@@ -446,12 +414,10 @@ msgid "identifier"
 msgstr "identificador"
 
 #: codetoolsstrconsts.ctsidentifieralreadydefined
-#, object-pascal-format
 msgid "Identifier %s already defined"
 msgstr "Identificador %s já definido"
 
 #: codetoolsstrconsts.ctsidentifiernotfound
-#, object-pascal-format
 msgid "identifier not found: %s"
 msgstr "identificador não encontrado: %s"
 
@@ -484,12 +450,10 @@ msgid "If TargetOS<>win32 then"
 msgstr "Se \"TargetOS<>win32\" então"
 
 #: codetoolsstrconsts.ctsillegalcircleinusedunits
-#, object-pascal-format
 msgid "illegal circle using unit: %s"
 msgstr "referência circular ilegal usando unidade: %s"
 
 #: codetoolsstrconsts.ctsillegalqualifier
-#, object-pascal-format
 msgid "illegal qualifier %s found"
 msgstr "qualificador ilegal %s encontrado"
 
@@ -502,22 +466,18 @@ msgid "Include circle detected"
 msgstr "Referência circular de inclusões detetado"
 
 #: codetoolsstrconsts.ctsincludedirectoriesplusdirs
-#, object-pascal-format
 msgid "include directories: %s"
 msgstr "diretórios inclusões: %s"
 
 #: codetoolsstrconsts.ctsincludefilenotfound
-#, object-pascal-format
 msgid "include file not found \"%s\""
 msgstr "arquivo inclusões não encontrado \"%s\""
 
 #: codetoolsstrconsts.ctsincompatibletypesgotexpected
-#, object-pascal-format
 msgid "incompatibles types: expected \"%s\" but got \"%s\""
 msgstr "tipos incompatíveis: esperado \"%s\" mas obtido \"%s\""
 
 #: codetoolsstrconsts.ctsindexparameterexpectedbutatomfound
-#, object-pascal-format
 msgid "index parameter expected, but %s found"
 msgstr "índice parâmetro esperado, mas %s encontrado"
 
@@ -542,32 +502,26 @@ msgid "interface section not found"
 msgstr "seção interface não encontrada"
 
 #: codetoolsstrconsts.ctsinvalidclassname
-#, object-pascal-format
 msgid "invalid class name=\"%s\""
 msgstr "nome de classe inválida=\"%s\""
 
 #: codetoolsstrconsts.ctsinvalidclassname2
-#, object-pascal-format
 msgid "invalid class name \"%s\""
 msgstr "nome de classe inválida \"%s\""
 
 #: codetoolsstrconsts.ctsinvalidflagvaluefordirective
-#, object-pascal-format
 msgid "invalid flag value \"%s\" for directive %s"
 msgstr "valor \"flag\" inválido \"%s\" para diretiva %s"
 
 #: codetoolsstrconsts.ctsinvalidmode
-#, object-pascal-format
 msgid "invalid mode \"%s\""
 msgstr "modo inválido \"%s\""
 
 #: codetoolsstrconsts.ctsinvalidmodeswitch
-#, object-pascal-format
 msgid "invalid mode switch \"%s\""
 msgstr "opção \"modo\" inválida \"%s\""
 
 #: codetoolsstrconsts.ctsinvalidoperator
-#, object-pascal-format
 msgid "invalid operator %s"
 msgstr "operador %s inválido"
 
@@ -584,12 +538,10 @@ msgid "invalid type"
 msgstr "tipo inválido"
 
 #: codetoolsstrconsts.ctsinvalidvariablename
-#, object-pascal-format
 msgid "invalid variable name \"%s\""
 msgstr "nome de variável inválida \"%s\""
 
 #: codetoolsstrconsts.ctsinvalidvariabletype
-#, object-pascal-format
 msgid "invalid variable type \"%s\""
 msgstr "tipo variável inválido \"%s\""
 
@@ -598,7 +550,6 @@ msgid "keyword"
 msgstr "palavra-chave"
 
 #: codetoolsstrconsts.ctskeywordexampleexpectedbutatomfound
-#, object-pascal-format
 msgid "keyword (e.g. %s) expected, but %s found"
 msgstr "palavra-chave (ex: %S) esperada, mas %s encontrado"
 
@@ -615,7 +566,6 @@ msgid "Lazarus Sources"
 msgstr "Fontes do Lazarus"
 
 #: codetoolsstrconsts.ctsmethodhasnodeclaration
-#, object-pascal-format
 msgid "method \"%s\" has no declaration"
 msgstr "método \"%s\" não tem declaração"
 
@@ -624,7 +574,6 @@ msgid "method name"
 msgstr "nome de método"
 
 #: codetoolsstrconsts.ctsmethodsignaturesnotfoundinclass
-#, object-pascal-format
 msgid "Method signature %s not found in class"
 msgstr "Assinatura método %s não encontrado na classe"
 
@@ -649,22 +598,18 @@ msgid "missing type identifier"
 msgstr "tipo identificador faltando"
 
 #: codetoolsstrconsts.ctsnameddirectory
-#, object-pascal-format
 msgid "%s Directory"
 msgstr "Diretório %s"
 
 #: codetoolsstrconsts.ctsnamedproject
-#, object-pascal-format
 msgid "%s Project"
 msgstr "Projeto %s"
 
 #: codetoolsstrconsts.ctsneededbymode
-#, object-pascal-format
 msgid " (needed by mode \"%s\")"
 msgstr " (requerido pelo modo \"%s\")"
 
 #: codetoolsstrconsts.ctsnesteddefinitionsarenotallowed
-#, object-pascal-format
 msgid "Nested %s definitions are not allowed"
 msgstr "Definições aninhadas %s não são permitidas"
 
@@ -681,7 +626,6 @@ msgid "nodefault specifier defined twice"
 msgstr "especificador \"nodefault\" duplicado"
 
 #: codetoolsstrconsts.ctsnopascalcodefound
-#, object-pascal-format
 msgid "no pascal code found (first token is %s)"
 msgstr "nenhum código pascal encontrado (primeira sílaba é %s)"
 
@@ -690,7 +634,6 @@ msgid "No scanner available"
 msgstr "Nenhum \"scanner\" disponível"
 
 #: codetoolsstrconsts.ctsnoscannerfound
-#, object-pascal-format
 msgid "No scanner found for \"%s\". If this is an include file, please open the main source first."
 msgstr "Nenhum \"scanner\" encontrado para \"%s\". Se este é um arquivo de inclusões, favor abrir o fonte principal primeiro."
 
@@ -699,22 +642,18 @@ msgid "Not enough actual generic parameters"
 msgstr "Parâmetros presentes insuficientes para genérico"
 
 #: codetoolsstrconsts.ctsoldmethodnotfound
-#, object-pascal-format
 msgid "old method not found: %s"
 msgstr "método antigo não encontrado: %s"
 
 #: codetoolsstrconsts.ctsoperandexpectedbutfound
-#, object-pascal-format
 msgid "operand expected but %s found"
 msgstr "operando esperado, mas %s encontrado"
 
 #: codetoolsstrconsts.ctsoperandexpectedbutfound2
-#, object-pascal-format
 msgid "operand expected, but %s found"
 msgstr "operando esperado, mas %s encontrado"
 
 #: codetoolsstrconsts.ctsoperatorexpectedbutatomfound
-#, object-pascal-format
 msgctxt "codetoolsstrconsts.ctsoperatorexpectedbutatomfound"
 msgid "operator expected, but %s found"
 msgstr "operador esperado, mas %s encontrado"
@@ -724,18 +663,15 @@ msgid "unexpected end of file (operator expected)"
 msgstr "fim de arquivo inesperado (esperado operador)"
 
 #: codetoolsstrconsts.ctsoperatorexpectedbutfound
-#, object-pascal-format
 msgid "operator expected but %s found"
 msgstr "operador esperado, mas %s encontrado"
 
 #: codetoolsstrconsts.ctsoperatorexpectedbutfound2
-#, object-pascal-format
 msgctxt "codetoolsstrconsts.ctsoperatorexpectedbutfound2"
 msgid "operator expected, but %s found"
 msgstr "operador esperado, mas %s encontrado"
 
 #: codetoolsstrconsts.ctsothercompilerdefines
-#, object-pascal-format
 msgid "%s Compiler Defines"
 msgstr "%s Definições Compilador"
 
@@ -776,7 +712,6 @@ msgid "processor specific"
 msgstr "específico do processador"
 
 #: codetoolsstrconsts.ctsproperttypeexpectedbutatomfound
-#, object-pascal-format
 msgid "property type expected, but %s found"
 msgstr "esperado tipo de propriedade, mas %s encontrado"
 
@@ -785,12 +720,10 @@ msgid "property Current not found"
 msgstr "propriedade \"Current\" não encontrada"
 
 #: codetoolsstrconsts.ctspropertyspecifieralreadydefined
-#, object-pascal-format
 msgid "property specifier already defined: %s"
 msgstr "especificador de propriedade já definido: %s"
 
 #: codetoolsstrconsts.ctsqualifierexpectedbutatomfound
-#, object-pascal-format
 msgid "qualifier expected but %s found"
 msgstr "qualificador esperado mas %s encontrado"
 
@@ -807,12 +740,10 @@ msgid "Runtime library"
 msgstr "Biblioteca Tempo Execução"
 
 #: codetoolsstrconsts.ctsscannedfiles
-#, object-pascal-format
 msgid "Scanned files: %s"
 msgstr "Arquivos escaneados: %s"
 
 #: codetoolsstrconsts.ctssemicolonafterpropspecmissing
-#, object-pascal-format
 msgid "; expected after \"%s\" property specifier, but %s found"
 msgstr "\";\" esperado após especificador de propriedade \"%s\", mas %s encontrado"
 
@@ -821,12 +752,10 @@ msgid "semicolon not found"
 msgstr "ponto e vírgula não encontrado"
 
 #: codetoolsstrconsts.ctssetsincpathto
-#, object-pascal-format
 msgid "sets IncPath to %s"
 msgstr "configura \"IncPath\" para %s"
 
 #: codetoolsstrconsts.ctssetssrcpathto
-#, object-pascal-format
 msgid "sets SrcPath to %s"
 msgstr "configura \"SrcPath\" para %s"
 
@@ -839,7 +768,6 @@ msgid "source is not unit"
 msgstr "fonte não é uma unidade"
 
 #: codetoolsstrconsts.ctssourcenotfoundunit
-#, object-pascal-format
 msgid "source not found: unit %s. Check your FPC source directory."
 msgstr "fonte não encontrado: unidade %s. Verifique o seu diretório dos fontes FPC."
 
@@ -848,7 +776,6 @@ msgid "SrcPath Initialization"
 msgstr "Inicialização \"SrcPath\""
 
 #: codetoolsstrconsts.ctsstrexpectedbutatomfound
-#, object-pascal-format
 msgid "expected %s, but %s found"
 msgstr "esperando %s, mas %s encontrado"
 
@@ -857,7 +784,6 @@ msgid "string constant"
 msgstr "constante sequência caracteres"
 
 #: codetoolsstrconsts.ctssyntaxerrorinexpr
-#, object-pascal-format
 msgid "Syntax Error in expression \"%s\""
 msgstr "Erro de Sintaxe na expressão \"%s\""
 
@@ -866,7 +792,6 @@ msgid "Term has no simple type"
 msgstr "Termo não tem tipo simples"
 
 #: codetoolsstrconsts.ctsthenexpectedbutfound
-#, object-pascal-format
 msgid "then expected, but %s found"
 msgstr "\"then\" esperado, mas %s encontrado"
 
@@ -907,32 +832,26 @@ msgid "unexpected end of source"
 msgstr "final inesperado do fonte"
 
 #: codetoolsstrconsts.ctsunexpectedkeyword
-#, object-pascal-format
 msgid "unexpected keyword \"%s\""
 msgstr "palavra-chave inesperada \"%s\""
 
 #: codetoolsstrconsts.ctsunexpectedkeyword2
-#, object-pascal-format
 msgid "unexpected keyword %s"
 msgstr "palavra-chave %s inesperada"
 
 #: codetoolsstrconsts.ctsunexpectedkeywordinasmblock
-#, object-pascal-format
 msgid "unexpected keyword \"%s\" in asm block found"
 msgstr "palavra-chave inesperada \"%s\" encontrada em bloco ASM"
 
 #: codetoolsstrconsts.ctsunexpectedkeywordinbeginendblock
-#, object-pascal-format
 msgid "unexpected keyword \"%s\" in begin..end found"
 msgstr "palavra-chave inesperada \"%s\" encontrada em \"begin..end\""
 
 #: codetoolsstrconsts.ctsunexpectedkeywordwhilereadingbackwards
-#, object-pascal-format
 msgid "unexpected keyword \"%s\" found while reading blocks backwards"
 msgstr "palavra-chave inesperada \"%s\" encontrada durante leitura reversa dos blocos"
 
 #: codetoolsstrconsts.ctsunexpectedsectionkeyword
-#, object-pascal-format
 msgid "unexpected section keyword %s found"
 msgstr "palavra-chave de seção inesperada %s encontrada"
 
@@ -941,7 +860,6 @@ msgid "unexpected subrange operator '..' found"
 msgstr "operador subfaixa \"..\" encontrado inexperadamente"
 
 #: codetoolsstrconsts.ctsunitnotfound
-#, object-pascal-format
 msgid "unit not found: %s"
 msgstr "unidade não encontrada: %s"
 
@@ -950,7 +868,6 @@ msgid "UnitPath Initialization"
 msgstr "Inicialização \"UnitPath\""
 
 #: codetoolsstrconsts.ctsunknownfunction
-#, object-pascal-format
 msgid "Unknown function %s"
 msgstr "Função desconhecida %s"
 
@@ -959,7 +876,6 @@ msgid "(unknown mainfilename)"
 msgstr "(arquivo principal desconhecido)"
 
 #: codetoolsstrconsts.ctsunknownsubdescriptor
-#, object-pascal-format
 msgid "(unknown subdescriptor %s)"
 msgstr "(sub-descritor desconhecido %s)"
 
@@ -980,7 +896,6 @@ msgid "var is only allowed in generics, end of class not found"
 msgstr "\"var\" é permitido apenas em genéricos, fim de classe não encontrado"
 
 #: codetoolsstrconsts.ctswordnotfound
-#, object-pascal-format
 msgid "\"%s\" not found"
 msgstr "\"%s\" nâo encontrado"
 

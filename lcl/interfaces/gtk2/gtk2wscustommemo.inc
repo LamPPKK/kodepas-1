@@ -141,7 +141,7 @@ begin
     BorderStyleShadowMap[TCustomEdit(AWinControl).BorderStyle]);
   
   SetMainWidget(Widget, TempWidget);
-  GetOrCreateWidgetInfo(Widget)^.CoreWidget := TempWidget;
+  GetWidgetInfo(Widget, True)^.CoreWidget := TempWidget;
 
   gtk_text_buffer_set_text(gtk_text_view_get_buffer(PGtkTextView(TempWidget)), PChar(TCustomMemo(AWinControl).Text), -1);
   gtk_text_view_set_editable(PGtkTextView(TempWidget), not TCustomMemo(AWinControl).ReadOnly);
@@ -161,11 +161,12 @@ begin
   SetCallbacks(Widget, WidgetInfo);
 end;
 
-class function TGtk2WSCustomMemo.GetStrings(const ACustomMemo: TCustomMemo): TStrings;
+class function TGtk2WSCustomMemo.GetStrings(const ACustomMemo: TCustomMemo
+  ): TStrings;
 var
-  TextView: PGtkTextView;
+TextView: PGtkTextView;
 begin
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomMemo.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomMemo.Handle), False)^.CoreWidget);
   Result := TGtk2MemoStrings.Create(TextView, ACustomMemo);
 end;
 
@@ -174,7 +175,7 @@ class procedure TGtk2WSCustomMemo.SetAlignment(const ACustomEdit: TCustomEdit;
 var
   TextView: PGtkTextView;
 begin
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle), False)^.CoreWidget);
   gtk_text_view_set_justification(TextView, aGtkJustification[AAlignment]);
 end;
 
@@ -186,14 +187,15 @@ begin
   if not WSCheckHandleAllocated(AWinControl, 'SetColor') then
     Exit;
   AWidget := {%H-}PGtkWidget(AWinControl.Handle);
-  AWidget := GetOrCreateWidgetInfo(AWidget)^.CoreWidget;
+  AWidget := GetWidgetInfo(AWidget, True)^.CoreWidget;
   Gtk2WidgetSet.SetWidgetColor(AWidget,
     AWinControl.Font.Color,
     AWinControl.Color,
     [GTK_STATE_NORMAL, GTK_STATE_ACTIVE, GTK_STATE_PRELIGHT, GTK_STYLE_BASE]);
 end;
 
-class procedure TGtk2WSCustomMemo.SetFont(const AWinControl: TWinControl; const AFont: TFont);
+class procedure TGtk2WSCustomMemo.SetFont(const AWinControl: TWinControl;
+  const AFont: TFont);
 var
   AWidget: PGTKWidget;
 begin
@@ -245,7 +247,7 @@ begin
   if not WSCheckHandleAllocated(ACustomMemo, 'SetWantTabs') then
     Exit;
 
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomMemo.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomMemo.Handle), False)^.CoreWidget);
   gtk_text_view_set_accepts_tab(TextView, NewWantTabs);
 end;
 
@@ -268,7 +270,7 @@ var
 begin
   if not WSCheckHandleAllocated(ACustomMemo, 'SetWordWrap') then
     Exit;
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomMemo.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomMemo.Handle), False)^.CoreWidget);
   if NewWordWrap then
     gtk_text_view_set_wrap_mode(PGtkTextView(TextView), GTK_WRAP_WORD)
   else
@@ -311,7 +313,7 @@ begin
   if not WSCheckHandleAllocated(ACustomEdit, 'SetReadOnly') then
     Exit;
 
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle), False)^.CoreWidget);
   if TextView <> nil then
     gtk_text_view_set_editable(TextView, not NewReadOnly);
 end;
@@ -327,7 +329,7 @@ begin
   if not WSCheckHandleAllocated(ACustomEdit, 'SetSelText') then
     Exit;
   MemoStrings := TCustomMemo(ACustomEdit).Lines as TGtk2MemoStrings;
-  with GetOrCreateWidgetInfo({%H-}Pointer(ACustomEdit.Handle))^ do
+  with GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle), True)^ do
     TextBuf := gtk_text_view_get_buffer(PGtkTextView(CoreWidget));
   SelStart := GetSelStart(ACustomEdit);
   SelLength := GetSelLength(ACustomEdit);
@@ -350,14 +352,15 @@ begin
   gtk_text_buffer_insert(TextBuf, @StartIter, PChar(NewSelText), -1);
 end;
 
-class procedure TGtk2WSCustomMemo.SetText(const AWinControl: TWinControl; const AText: string);
+class procedure TGtk2WSCustomMemo.SetText(const AWinControl: TWinControl;
+  const AText: string);
 var
   TextBuf: PGtkTextBuffer;
   StartIter: TGtkTextIter;
 begin
   if not WSCheckHandleAllocated(AWinControl, 'SetText') then
     Exit;
-  TextBuf := gtk_text_view_get_buffer(PGtkTextView(GetOrCreateWidgetInfo({%H-}Pointer(AWinControl.Handle))^.CoreWidget));
+  TextBuf := gtk_text_view_get_buffer(PGtkTextView(GetWidgetInfo({%H-}Pointer(AWinControl.Handle), True)^.CoreWidget));
   gtk_text_buffer_set_text(TextBuf, PChar(AText), -1);
   gtk_text_buffer_get_start_iter(TextBuf, @StartIter);
   gtk_text_buffer_place_cursor(TextBuf, @StartIter);
@@ -371,7 +374,8 @@ begin
                           WithThemeSpace);
 end;
 
-class function TGtk2WSCustomMemo.GetSelStart(const ACustomEdit: TCustomEdit): integer;
+class function TGtk2WSCustomMemo.GetSelStart(const ACustomEdit: TCustomEdit
+  ): integer;
 var
   MemoStrings: TGtk2MemoStrings;
   TextView: PGtkTextView;
@@ -390,7 +394,7 @@ begin
   if Result > -1 then
     Exit;
 
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle), False)^.CoreWidget);
   TextBuffer := gtk_text_view_get_buffer(TextView);
   TextMark := gtk_text_buffer_get_insert(TextBuffer);
   gtk_text_buffer_get_iter_at_mark(TextBuffer, @TextIter, TextMark);
@@ -423,7 +427,7 @@ begin
   if Result = -1 then
   begin
     Result := 0;
-    TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle))^.CoreWidget);
+    TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle), False)^.CoreWidget);
     TextBuffer := gtk_text_view_get_buffer(TextView);
     if not gtk_text_buffer_get_selection_bounds(TextBuffer, @StartIter, @EndIter) then Exit;
 
@@ -441,7 +445,7 @@ begin
   Result := Point(0, 0);
   if not WSCheckHandleAllocated(ACustomEdit, 'GetCaretPos') then
     Exit;
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle), False)^.CoreWidget);
   TextBuffer := gtk_text_view_get_buffer(TextView);
   Offset := GetSelStart(ACustomEdit) + GetSelLength(ACustomEdit);
   gtk_text_buffer_get_iter_at_offset(TextBuffer, @TextIter, Offset);
@@ -459,7 +463,7 @@ var
 begin
   if not WSCheckHandleAllocated(ACustomEdit, 'SetCaretPos') then
     Exit;
-  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle))^.CoreWidget);
+  TextView := PGtkTextView(GetWidgetInfo({%H-}Pointer(ACustomEdit.Handle), False)^.CoreWidget);
   TextBuffer := gtk_text_view_get_buffer(TextView);
 
   if (NewPos.X < 0) or (NewPos.Y < 0)

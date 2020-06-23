@@ -20,6 +20,7 @@ type
     FOnTestEnd: TTestEndEvent;
     FOnTestStart: TTestStartEvent;
     FPoFamilyStats: TPoFamilyStats;
+    FTestOptions: TPoTestOptions;
     FTestTypes: TPoTestTypes;
     function GetItem(Index: Integer): TPoFamily;
     //procedure SetItem(Index: Integer; AValue: TPoFamily);
@@ -27,18 +28,17 @@ type
     procedure DoTestStart(const ATestName, APoFileName: String);
     procedure DoTestEnd(const ATestName: String; const ErrorCount: Integer);
   public
-    InfoLog: TStringList;
-    StatLog: TStringList;
-    DupLog: TStringList;
-    constructor Create(AMasterList: TStrings; ALangID: TLangID);
+    constructor Create(AMasterList: TStrings; ALangID: TLangID; out Msg: String);
     destructor Destroy; override;
     procedure Add(PoFamily: TPofamily);
     function Count: Integer;
-    procedure RunTests(out TotalTranslatedCount, TotalUntranslatedCount, TotalFuzzyCount: Integer; out TotalPercTranslated: Double);
-    property LangID: TLangID read FLangID;
+    procedure RunTests(out ErrorCount, NonFuzzyErrorCount, WarningCount,
+      TotalTranslatedCount, TotalUntranslatedCount, TotalFuzzyCount: Integer;
+  ErrorLog, StatLog, DupLog: TStringList);
     property Items[Index: Integer]: TPoFamily read GetItem; // write SetItem;
     property PoFamilyStats: TPoFamilyStats read FPoFamilyStats;
     property TestTypes: TPoTestTypes read FTestTypes write FTestTypes;
+    property TestOptions: TPoTestOptions read FTestOptions write FTestOptions;
     property OnTestStart: TTestStartEvent read FOnTestStart write FOnTestStart;
     property OnTestEnd: TTestEndEvent read FOnTestEnd write FOnTestEnd;
   end;
@@ -63,18 +63,14 @@ begin
   if Assigned(FOnTestEnd) then FOnTestEnd(ATestName, ErrorCount);
 end;
 
-constructor TPoFamilyList.Create(AMasterList: TStrings; ALangID: TLangID);
+constructor TPoFamilyList.Create(AMasterList: TStrings; ALangID: TLangID; out Msg: String);
 var
   i: Integer;
-  MasterName, ChildName, MasterMsg, ChildMsg: String;
+  MasterName, ChildName: String;
   APoFamily: TPoFamily;
 begin
-  InfoLog := TStringList.Create;
-  StatLog := TStringList.Create;
-  DupLog := TStringList.Create;
   FList := TFPObjectList.Create(True);
-  MasterMsg := '';
-  ChildMsg := '';
+  Msg := '';
   FPoFamilyStats := TPoFamilyStats.Create;
   FLangID := ALangID;
   for i :=  0 to AMasterList.Count - 1 do
@@ -89,31 +85,21 @@ begin
       //        ''',',ExtractFileName(ChildName),''')');
       if (ALangID = lang_all) or FileExistsUtf8(ChildName) then
       begin
-        APoFamily := TPoFamily.Create(MasterName, ChildName, ALangID);
+        APoFamily := TPoFamily.Create(MasterName, ChildName);
         Add(APoFamily);
       end
       else
-        ChildMsg := ChildMsg + Format('"%s"',[ChildName]) + LineEnding;
+        Msg := Msg + Format('"%s"',[ChildName]) + LineEnding;
     end
     else
-      MasterMsg := MasterMsg + Format('"%s"',[MasterName]) + LineEnding;
+      Msg := Msg + Format('"%s"',[MasterName]) + LineEnding;
   end;
-  if MasterMsg <> '' then
-    MasterMsg := MasterMsg + LineEnding;
-  if ChildMsg <> '' then
-    ChildMsg := ChildMsg + LineEnding;
-  MasterMsg := MasterMsg + ChildMsg;
-  if MasterMsg <> '' then
-    InfoLog.AddText(Format(sFilesNotFoundAndRemoved,[MasterMsg]));
 end;
 
 destructor TPoFamilyList.Destroy;
 begin
   //debugln('TPoFamilyList.Destroy: FList.Count = ',DbgS(FList.Count));
   PoFamilyStats.Free;
-  InfoLog.Free;
-  StatLog.Free;
-  DupLog.Free;
   FList.Free;
   inherited Destroy;
 end;
@@ -128,13 +114,17 @@ begin
   Result := FList.Count;
 end;
 
-procedure TPoFamilyList.RunTests(out TotalTranslatedCount, TotalUntranslatedCount, TotalFuzzyCount: Integer; out TotalPercTranslated: Double);
+procedure TPoFamilyList.RunTests(out ErrorCount, NonFuzzyErrorCount, WarningCount, TotalTranslatedCount, TotalUntranslatedCount, TotalFuzzyCount: Integer;
+  ErrorLog, StatLog, DupLog: TStringList);
 var
-  ErrorCount, NonFuzzyErrorCount, WarningCount: Integer;
   Index, ThisErrorCount, ThisNonFuzzyErrorCount, ThisWarningCount: Integer;
   ThisTranslatedCount, ThisUntranslatedCount, ThisFuzzyCount: Integer;
   PoFamily: TPoFamily;
 begin
+  if (FLangID = lang_all) then
+    Include(FTestOptions,ptoFindAllChildren)
+  else
+    Exclude(FTestOptions,ptoFindAllChildren);
   ErrorCount := NoError;
   NonFuzzyErrorCount := NoError;
   WarningCount := NoError;
@@ -148,7 +138,8 @@ begin
     PoFamily.OnTestStart := FOnTestStart;
     PoFamily.OnTestEnd := FOnTestEnd;
     PoFamily.TestTypes := FTesttypes;
-    PoFamily.RunTests(ThisErrorCount, ThisNonFuzzyErrorCount, ThisWarningCount, ThisTranslatedCount, ThisUntranslatedCount, ThisFuzzyCount, InfoLog, StatLog, DupLog);
+    PoFamily.TestOptions := FTestOptions;
+    PoFamily.RunTests(ThisErrorCount, ThisNonFuzzyErrorCount, ThisWarningCount, ThisTranslatedCount, ThisUntranslatedCount, ThisFuzzyCount, ErrorLog, StatLog, DupLog);
     PoFamily.PoFamilyStats.AddItemsTo(FPoFamilyStats);
     ErrorCount := ErrorCount + ThisErrorCount;
     NonFuzzyErrorCount := NonFuzzyErrorCount + ThisNonFuzzyErrorCount;
@@ -157,28 +148,6 @@ begin
     TotalUntranslatedCount := TotalUntranslatedCount + ThisUntranslatedCount;
     TotalFuzzyCount := TotalFuzzyCount + ThisFuzzyCount;
   end;
-
-  TotalPercTranslated := 100 * TotalTranslatedCount / (TotalTranslatedCount + TotalUntranslatedCount + TotalFuzzyCount);
-
-  if NonFuzzyErrorCount > 0 then
-    InfoLog.Add(Format(sTotalErrorsNonFuzzy, [ErrorCount, NonFuzzyErrorCount]))
-  else
-    InfoLog.Add(Format(sTotalErrors, [ErrorCount]));
-
-  if FLangID <> lang_all then
-  begin
-    InfoLog.Add(Format(sTotalUntranslatedStrings, [IntToStr(TotalUntranslatedCount)]));
-    InfoLog.Add(Format(sTotalFuzzyStrings, [IntToStr(TotalFuzzyCount)]));
-    InfoLog.Add('');
-    InfoLog.Add(Format(sTotalTranslatedStrings, [IntToStr(TotalTranslatedCount), TotalPercTranslated]));
-
-    StatLog.Add(Format(sTotalUntranslatedStrings, [IntToStr(TotalUntranslatedCount)]));
-    StatLog.Add(Format(sTotalFuzzyStrings, [IntToStr(TotalFuzzyCount)]));
-    StatLog.Add('');
-    StatLog.Add(Format(sTotalTranslatedStrings, [IntToStr(TotalTranslatedCount), TotalPercTranslated]));
-  end;
-
-  DupLog.Add(Format(sTotalWarnings, [WarningCount]));
 end;
 
 end.

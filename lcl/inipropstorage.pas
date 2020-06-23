@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: inipropstorage.pas 57220 2018-02-02 11:46:07Z ondrej $  }
 {
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

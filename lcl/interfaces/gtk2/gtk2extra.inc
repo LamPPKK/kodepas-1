@@ -1,5 +1,5 @@
 {%MainUnit Gtk2Extra.pp}
-{ $Id$ }
+{ $Id: gtk2extra.inc 55913 2017-09-24 16:07:20Z zeljko $ }
 {
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

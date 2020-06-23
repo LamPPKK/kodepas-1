@@ -66,7 +66,6 @@ implementation
 
 uses LR_Const;
 
-{$PUSH}
 {$WARNINGS OFF}
 procedure TfrFmtForm.ComboBox2Select(Sender: TObject);
 begin
@@ -142,7 +141,7 @@ procedure TfrFmtForm.SplEditEnter(Sender: TObject);
 begin
   SplEdit.SelectAll;
 end;
-{$POP}
+{$WARNINGS ON}
 
 procedure TfrFmtForm.FormCreate(Sender: TObject);
 begin

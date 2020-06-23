@@ -106,8 +106,6 @@ type
     procedure OnProjectInspectorCopyMoveFiles(Sender: TObject); virtual; abstract;
 
     // package editors
-    function CanClosePackageEditor(APackage: TLazPackage): TModalResult; virtual; abstract;
-    function CanCloseAllPackageEditors: TModalResult; virtual; abstract;
     function DoNewPackage: TModalResult; virtual; abstract;
     function DoOpenPackage(APackage: TLazPackage; Flags: TPkgOpenFlags;
                            ShowAbort: boolean): TModalResult; virtual; abstract;
@@ -118,7 +116,6 @@ type
     function DoCloseAllPackageEditors: TModalResult; virtual; abstract;
     function AddPackageDependency(APackage: TLazPackage; const ReqPackage: string;
                                   OnlyTestIfPossible: boolean = false): TModalResult; virtual; abstract;
-    function IsPackageEditorForm(AForm: TCustomForm): boolean; virtual; abstract;
     procedure OpenHiddenModifiedPackages; virtual; abstract;
 
     // package graph

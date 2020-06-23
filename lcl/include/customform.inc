@@ -16,8 +16,6 @@
 
 const
   BorderStylesAllowAutoScroll = [bsSizeable, bsSizeToolWin];
-  ShowCommands: array[TWindowState] of Integer =
-    (SW_SHOWNORMAL, SW_MINIMIZE, SW_SHOWMAXIMIZED, SW_SHOWFULLSCREEN);
 
 { TCustomForm }
 
@@ -71,18 +69,99 @@ end;
  ------------------------------------------------------------------------------}
 procedure TCustomForm.AfterConstruction;
 var
-  MonPPI: Integer;
+  NewWidth, NewHeight: Integer;
+  OldWindowState: TWindowState;
+
+  procedure ChangeFormDimensions(AIsBeforeOnCreate: Boolean);
+  begin
+    if (WindowState = wsMaximized) and (FormStyle <> fsMDIChild) then
+    begin
+      {$IFDEF DEBUG_SM_LCLMAXIMIZED}
+      DebugLn('TCustomForm.AfterConstruction: SM_CYCAPTION ',
+        dbgs(GetSystemMetrics(SM_CYCAPTION)),
+      ' SM_CYSIZEFRAME ',dbgs(GetSystemMetrics(SM_CYSIZEFRAME)),
+      ' SM_CXMAXIMIZED ',dbgs(GetSystemMetrics(SM_CXMAXIMIZED)),
+      ' SM_CYMAXIMIZED ',dbgs(GetSystemMetrics(SM_CYMAXIMIZED)),
+      ' SM_LCLMAXIMIZEDHEIGHT ',dbgs(GetSystemMetrics(SM_LCLMAXIMIZEDHEIGHT)),
+      ' SM_LCLMAXIMIZEDWIDTH ',dbgs(GetSystemMetrics(SM_LCLMAXIMIZEDWIDTH)),
+      ' AIsBeforeOnCreate ',dbgs(AIsBeforeOnCreate));
+      {$ENDIF}
+
+      if (BorderStyle <> bsNone) and (FormStyle <> fsSplash) then
+      begin
+        NewHeight := GetSystemMetrics(SM_LCLMAXIMIZEDHEIGHT);
+        NewWidth := GetSystemMetrics(SM_LCLMAXIMIZEDWIDTH);
+        // if some ws does not implement this then provide normal metrics.
+        if NewHeight <= 0 then
+          NewHeight := GetSystemMetrics(SM_CYMAXIMIZED);
+        if NewWidth <= 0 then
+          NewHeight := GetSystemMetrics(SM_CXMAXIMIZED);
+      end else
+      begin
+        NewHeight := GetSystemMetrics(SM_CYMAXIMIZED);
+        NewWidth := GetSystemMetrics(SM_CXMAXIMIZED);
+      end;
+
+      if Constraints.MaxWidth > 0 then
+        NewWidth := Min(Constraints.MaxWidth, NewWidth);
+      if Constraints.MaxHeight > 0 then
+        NewHeight := Min(Constraints.MaxHeight, NewHeight);
+
+      // for unknown reasons on some systems SM_*MAXIMIZED* system metrics
+      // (tested xubuntu,64bits) return 0 or negative values, in this case
+      // a maximized window is expected to have at least WorkArea width/height.
+      //
+      // Reproduced again under Debian Wheezy.
+      // mistery solved, it ocurrs under gtk2/64-bit, fixed at the place
+      // the checks doesn't hurt though
+      //
+      // see bug #21634
+      if NewWidth<=0 then
+        NewWidth := Screen.WorkAreaWidth;
+      if NewHeight<=0 then
+        NewHeight := Screen.WorkAreaHeight;
+
+      if NewWidth>0 then
+        Width := NewWidth;
+      if NewHeight>0 then
+        Height := NewHeight;
+    end;
+
+    if (WindowState = wsFullScreen) and (FormStyle <> fsMDIChild) then
+    begin
+      NewWidth := LCLIntf.GetSystemMetrics(SM_CXFULLSCREEN);
+      NewHeight := LCLIntf.GetSystemMetrics(SM_CYFULLSCREEN);
+      if Constraints.MaxWidth > 0 then
+        NewWidth := Min(Constraints.MaxWidth, NewWidth);
+      if Constraints.MaxHeight > 0 then
+        NewHeight := Min(Constraints.MaxHeight, NewHeight);
+      Width := NewWidth;
+      Height := NewHeight;
+    end;
+  end;
 begin
-  SetRestoredBounds(Left, Top, Width, Height, True);
+  // issue #21119, prepare maximized or fullscreen form to accurate dimensions.
+  // we avoid flickering also in this case.
+  if not (csDesigning in ComponentState) then
+    ChangeFormDimensions(True);
+
+  OldWindowState := WindowState;
   DoCreate;
+
+  // if we change WindowState in constructor and handle isn't allocated
+  // then change our dimensions to accurate one
+  if not (csDesigning in ComponentState) and not HandleAllocated and
+    (OldWindowState <> WindowState) and
+    not (OldWindowState in [wsMaximized, wsFullScreen]) and
+    (WindowState in [wsMaximized, wsFullScreen]) then
+      ChangeFormDimensions(False);
+
   EndFormUpdate; // the BeginFormUpdate is in CreateNew
   inherited AfterConstruction;
 
-  MonPPI := Monitor.PixelsPerInch;
-  if Application.Scaled and Scaled and (MonPPI > 0) and (MonPPI <> PixelsPerInch)
-  and not (csDesigning in ComponentState) then
-    AutoAdjustLayout(lapAutoAdjustForDPI, PixelsPerInch, MonPPI,
-                     Width, MulDiv(Width, MonPPI, PixelsPerInch));
+  if Application.Scaled and Scaled and (Monitor.PixelsPerInch<>PixelsPerInch) then
+    AutoAdjustLayout(lapAutoAdjustForDPI, PixelsPerInch, Monitor.PixelsPerInch,
+      Width, MulDiv(Width, Monitor.PixelsPerInch, PixelsPerInch));
 end;
 
 {------------------------------------------------------------------------------
@@ -425,19 +504,17 @@ begin
 end;
 
 procedure TCustomForm.AutoScale;
-var
-  MonPPI: Integer;
 begin
   if not Scaled then
   begin
     Scaled := True; // will execute AutoScale
     Exit;
   end;
-  MonPPI := Monitor.PixelsPerInch;
-  if Application.Scaled and (MonPPI > 0) and (MonPPI <> PixelsPerInch) then
-    AutoAdjustLayout(lapAutoAdjustForDPI, PixelsPerInch, MonPPI,
-                     MulDiv(Width, MonPPI, PixelsPerInch),
-                     MulDiv(Height, MonPPI, PixelsPerInch));
+
+  if Application.Scaled and (PixelsPerInch<>Monitor.PixelsPerInch) then
+    AutoAdjustLayout(lapAutoAdjustForDPI, PixelsPerInch, Monitor.PixelsPerInch,
+      MulDiv(Width, Monitor.PixelsPerInch, PixelsPerInch),
+      MulDiv(Height, Monitor.PixelsPerInch, PixelsPerInch));
 end;
 
 {------------------------------------------------------------------------------
@@ -600,9 +677,6 @@ end;
  ------------------------------------------------------------------------------}
 procedure TCustomForm.Activate;
 begin
-  if FIsFirstOnActivate and (WindowState = wsMaximized) then
-    Exit;
-  FIsFirstOnActivate := False;
   if Assigned(FOnActivate) then FOnActivate(Self);
 end;
 
@@ -659,58 +733,27 @@ begin
 
   inherited WMSize(Message);
 
-  FDelayedWMSize := True;
-  Inc(FDelayedEventCtr);
-  Application.QueueAsyncCall(@DelayedEvent, 0);
+  if (Message.SizeType and not SIZE_SourceIsInterface) = SIZE_RESTORED then
+  begin
+    FRestoredWidth := Width;
+    FRestoredHeight := Height;
+    //DebugLn('[TCustomForm.WMSize] saving restored bounds ',DbgSName(Self),' ',dbgs(FRestoredWidth),'x',dbgs(FRestoredHeight));
+  end;
 end;
 
 procedure TCustomForm.WMMove(var Message: TLMMove);
 begin
   inherited WMMove(Message);
-
-  FDelayedWMMove := True;
-  Inc(FDelayedEventCtr);
-  Application.QueueAsyncCall(@DelayedEvent, 0);
+  Application.QueueAsyncCall(@Moved, 0);
 end;
 
-procedure TCustomForm.DelayedEvent(Data: PtrInt);
+procedure TCustomForm.Moved(Data: PtrInt);
 begin
-  { discard duplicate calls, accept last call only }
-  Dec(FDelayedEventCtr);
-  if FDelayedEventCtr > 0 then
-    Exit;
-  { update restored bounds }
   if WindowState = wsNormal then
-    begin
-      if FDelayedWMMove then
-        begin
-          FRestoredLeft := Left;
-          FRestoredTop := Top;
-        end;
-      if FDelayedWMSize then
-        begin
-          FRestoredWidth := Width;
-          FRestoredHeight := Height;
-          DoOnResize;     // delayed onResize()
-        end;
-      DoOnChangeBounds;     // delayed onChangeBounds()
-    end;
-  { call onShow() or onActivate() for the first time, after first WMSize }
-  if FDelayedWMSize then
-    begin
-      if FIsFirstOnShow then
-        begin
-          FIsFirstOnShow := False;
-          DoShow;
-        end;
-      if FIsFirstOnActivate then
-        begin
-          FIsFirstOnActivate := False;
-          Activate;
-        end;
-    end;
-  FDelayedWMMove := False;
-  FDelayedWMSize := False;
+  begin
+    FRestoredLeft := Left;
+    FRestoredTop := Top;
+  end;
 end;
 
 procedure TCustomForm.WMWindowPosChanged(var Message: TLMWindowPosChanged);
@@ -973,9 +1016,6 @@ end;
  ------------------------------------------------------------------------------}
 procedure TCustomForm.DoShow;
 begin
-  if FIsFirstOnShow and (WindowState = wsMaximized) then
-    Exit;
-  FIsFirstOnShow := False;
   if Assigned(FOnShow) then FOnShow(Self);
 end;
 
@@ -1298,7 +1338,7 @@ begin
           AForm := TCustomForm(Owner)
         else
           AForm := Application.MainForm;
-        if (Self <> AForm) and Assigned(AForm) then
+        if (Self <> AForm) then
         begin
           if FormStyle = fsMDIChild then
           begin
@@ -1445,6 +1485,18 @@ end;
 function TCustomForm.ColorIsStored: boolean;
 begin
   Result := (Color <> {$ifdef UseCLDefault}clDefault{$else}clBtnFace{$endif});
+end;
+
+procedure TCustomForm.DoSendBoundsToInterface;
+begin
+  inherited DoSendBoundsToInterface;
+  if WindowState = wsNormal then
+  begin
+    FRestoredLeft := Left;
+    FRestoredTop := Top;
+    FRestoredWidth := Width;
+    FRestoredHeight := Height;
+  end;
 end;
 
 procedure TCustomForm.GetPreferredSize(var PreferredWidth,
@@ -1799,6 +1851,9 @@ end;
        TCustomForm SetWindowState
 ------------------------------------------------------------------------------}
 procedure TCustomForm.SetWindowState(Value : TWindowState);
+const
+  ShowCommands: array[TWindowState] of Integer =
+    (SW_SHOWNORMAL, SW_MINIMIZE, SW_SHOWMAXIMIZED, SW_SHOWFULLSCREEN);
 begin
   if FWindowState <> Value then
   begin
@@ -1809,8 +1864,7 @@ begin
   end;
 end;
 
-procedure TCustomForm.SetRestoredBounds(ALeft, ATop, AWidth, AHeight: integer;
-  const ADefaultPosition: Boolean);
+procedure TCustomForm.SetRestoredBounds(ALeft, ATop, AWidth, AHeight: integer);
 var
   prevWindowState: TWindowState;
 begin
@@ -1820,14 +1874,7 @@ begin
   prevWindowState := WindowState;
   WindowState := wsNormal;
   SetBounds(ALeft, ATop, AWidth, AHeight);
-  // override
-  if ADefaultPosition then
-    MoveToDefaultPosition;
   WindowState := prevWindowState;
-  FRestoredLeft := Left;
-  FRestoredTop := Top;
-  FRestoredWidth := Width;
-  FRestoredHeight := Height;
 end;
 
 procedure TCustomForm.SetScaled(const AScaled: Boolean);
@@ -2000,11 +2047,6 @@ end;
 ------------------------------------------------------------------------------}
 constructor TCustomForm.Create(AOwner: TComponent);
 begin
-  FDelayedEventCtr := 0;
-  FDelayedWMMove := False;
-  FDelayedWMSize := False;
-  FIsFirstOnShow := True;
-  FIsFirstOnActivate := True;
   GlobalNameSpace.BeginWrite;
   try
     CreateNew(AOwner, 1); // this calls BeginFormUpdate, which is ended in AfterConstruction
@@ -2280,18 +2322,12 @@ end;
   procedure TCustomForm.Show;
 ------------------------------------------------------------------------------}
 procedure TCustomForm.Show;
-var
-  MonPPI: Integer;
 begin
-  MonPPI := Monitor.PixelsPerInch;
-  if Application.Scaled and Scaled and (MonPPI > 0) and (MonPPI <> PixelsPerInch) then
-    AutoAdjustLayout(lapAutoAdjustForDPI, PixelsPerInch, MonPPI,
-                     Width, MulDiv(Width, MonPPI, PixelsPerInch));
+  if Application.Scaled and Scaled and (Monitor.PixelsPerInch<>PixelsPerInch) then
+    AutoAdjustLayout(lapAutoAdjustForDPI, PixelsPerInch, Monitor.PixelsPerInch,
+      Width, MulDiv(Width, Monitor.PixelsPerInch, PixelsPerInch));
 
   Visible := True;
-  { wxMaximized secondary forms are not being shown maximized }
-  if (not (csDesigning in ComponentState)) and Showing then
-    ShowWindow(Handle, ShowCommands[WindowState]);
   BringToFront;
 end;
 
@@ -2363,12 +2399,8 @@ begin
       Result := nil;
   end else
   begin
-    if HandleAllocated then begin
-      // ensure widgetset has latest coordinates // invisible forms are not updated by DoSendBoundsToInterface
-      if (not HandleObjectShouldBeVisible) then
-        TWSWinControlClass(WidgetSetClass).SetBounds(Self, Left, Top, Width, Height);
-      Result := Screen.MonitorFromWindow(Handle, mdNearest);
-    end
+    if HandleAllocated then
+      Result := Screen.MonitorFromWindow(Handle, mdNearest)
     else
       Result := Screen.MonitorFromPoint(point(Left,Top));
   end;
@@ -2657,8 +2689,14 @@ begin
   end;
 end;
 
+{------------------------------------------------------------------------------
+  Method:  TCustomForm.CreateWnd
+  Params:  None
+  Returns: Nothing
+
+  Creates the interface object.
+ ------------------------------------------------------------------------------}
 procedure TCustomForm.CreateWnd;
-// Creates the interface object.
 begin
   //DebugLn('TCustomForm.CreateWnd START ',ClassName);
   FFormState := FFormState - [fsBorderStyleChanged, fsFormStyleChanged];
@@ -2688,8 +2726,6 @@ begin
   {$ENDIF}
   DisableAlign;
   try
-    if Application.Scaled and Scaled then
-      FixDesignFontsPPIWithChildren(FDesignTimePPI);
     inherited Loaded;
   finally
     EnableAlign;
@@ -2711,14 +2747,21 @@ begin
     Visible := True;
 end;
 
+{------------------------------------------------------------------------------
+  procedure TCustomForm.BeginFormUpdate;
+
+  Called after all children handles are created.
+ ------------------------------------------------------------------------------}
 procedure TCustomForm.ChildHandlesCreated;
-// Called after all children handles are created.
 begin
   inherited ChildHandlesCreated;
   if Parent=nil then
     ParentFormHandleInitialized;
 end;
 
+{------------------------------------------------------------------------------
+  procedure TCustomForm.BeginFormUpdate;
+ ------------------------------------------------------------------------------}
 procedure TCustomForm.BeginFormUpdate;
 begin
   inc(FFormUpdateCount);
@@ -2726,8 +2769,14 @@ begin
     DisableAutoSizing{$IFDEF DebugDisableAutoSizing}('TCustomForm.BeginFormUpdate'){$ENDIF};
 end;
 
+{------------------------------------------------------------------------------
+  Method:  TCustomForm.UpdateShowing
+  Params:  None
+  Returns: Nothing
+
+  Here the initial form left and top are determined.
+ ------------------------------------------------------------------------------}
 procedure TCustomForm.UpdateShowing;
-// Here the initial form left and top are determined.
 begin
   if csLoading in ComponentState then exit;
   {$IF defined(CHECK_POSITION) or defined(VerboseFormUpdateShowing) or defined(VerboseShowing)}
@@ -3113,15 +3162,6 @@ end;
 function TForm.LCLVersionIsStored: boolean;
 begin
   Result:=Parent=nil;
-end;
-
-class procedure TForm.WSRegisterClass;
-begin
-  inherited WSRegisterClass;
-  RegisterPropertyToSkip(TForm, 'OldCreateOrder', 'VCL compatibility property', '');
-  RegisterPropertyToSkip(TForm, 'TextHeight', 'VCL compatibility property', '');
-  RegisterPropertyToSkip(TForm, 'Scaled', 'VCL compatibility property', '');
-  RegisterPropertyToSkip(TForm, 'TransparentColorValue', 'VCL compatibility property', '');
 end;
 
 procedure TForm.CreateWnd;

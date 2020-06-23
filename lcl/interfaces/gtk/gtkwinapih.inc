@@ -1,5 +1,5 @@
 {%MainUnit gtkint.pp}
-{ $Id$ }
+{ $Id: gtkwinapih.inc 41387 2013-05-24 18:30:06Z juha $ }
 
 (******************************************************************************
   All GTK Winapi related stuff goes here.

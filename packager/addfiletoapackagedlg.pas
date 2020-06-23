@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: addfiletoapackagedlg.pas 54524 2017-04-05 08:34:48Z juha $  }
 {
  /***************************************************************************
                          addfiletoapackagedlg.pas
@@ -47,7 +47,7 @@ uses
   // IdeIntf
   IDEWindowIntf, PackageIntf, IDEHelpIntf,
   // IDE
-  LazarusIDEStrConsts, PackageDefs, PackageSystem, EnvironmentOpts;
+  LazarusIDEStrConsts, PackageDefs, PackageSystem;
 
 type
 
@@ -62,7 +62,6 @@ type
     ShowAllCheckBox: TCheckBox;
     procedure AddFileToAPackageDlgClose(Sender: TObject;
       var {%H-}CloseAction: TCloseAction);
-    procedure FormCreate(Sender: TObject);
     procedure HelpButtonClick(Sender: TObject);
     procedure OkButtonClick(Sender: TObject);
     procedure PackagesGroupBoxResize(Sender: TObject);
@@ -209,11 +208,6 @@ destructor TAddFileToAPackageDialog.Destroy;
 begin
   FreeAndNil(fPackages);
   inherited Destroy;
-end;
-
-procedure TAddFileToAPackageDialog.FormCreate(Sender: TObject);
-begin
-  PackagesComboBox.DropDownCount:=EnvironmentOptions.DropDownCount;
 end;
 
 procedure TAddFileToAPackageDialog.UpdateAvailablePackages;

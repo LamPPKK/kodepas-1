@@ -593,23 +593,12 @@ var
   helper: TDateTimeIntervalsHelper;
   prevSt: TSystemTime;
 
-  function DoFormatDateTime(AFormat: String; AValue: TDateTime): String;
-  var
-    optn: TFormatDateTimeOptions;
-  begin
-    if pos('[', AFormat) > 0 then
-      optn := [fdoInterval]
-    else
-      optn := [];
-    Result := FormatDateTime(AFormat, AValue, optn);
-  end;
-
   function FormatLabel(AValue: TDateTime): String;
   var
     st: TSystemTime;
   begin
     if DateTimeFormat <> '' then
-      exit(DoFormatDateTime(DateTimeFormat, AValue));
+      exit(FormatDateTime(DateTimeFormat, AValue));
     DateTimeToSystemTime(AValue, st);
     case helper.FBestStep of
       dtsYear:
@@ -619,36 +608,30 @@ var
           FormatDateTime(DateTimeStepFormat.YearFormat, AValue);
       dtsMonth:
         if FSuppressPrevUnit and (st.Year = prevSt.Year) then
-          Result := FormatDateTime('mm', AValue)
-        else
+          Result := FormatDateTime('mm', AValue) else
           Result := FormatDateTime(DateTimeStepFormat.MonthFormat, AValue);
       dtsWeek:
         Result := FormatDateTime(DateTimeStepFormat.WeekFormat, AValue);
       dtsDay:
         if FSuppressPrevUnit and (st.Month = prevSt.Month) then
-          Result := DoFormatDateTime('dd', AValue)
-        else
-          Result := DoFormatDateTime(DateTimeStepFormat.DayFormat, AValue);
+          Result := FormatDateTime('dd', AValue) else
+          Result := FormatDateTime(DateTimeStepFormat.DayFormat, AValue);
       dtsHour:
         if FSuppressPrevUnit and (st.Day = prevSt.Day) then
-          Result := DoFormatDateTime('hh:00', AValue)
-        else
-          Result := DoFormatDateTime(DateTimeStepFormat.HourFormat, AValue);
+          Result := FormatDateTime('hh:00', AValue) else
+          Result := FormatDateTime(DateTimeStepFormat.HourFormat, AValue);
       dtsMinute:
         if FSuppressPrevUnit and (st.Hour = prevSt.Hour) then
-          Result := DoFormatDateTime('nn', AValue)
-        else
-          Result := DoFormatDateTime(DateTimeStepFormat.MinuteFormat, AValue);
+          Result := FormatDateTime('nn', AValue) else
+          Result := FormatDateTime(DateTimeStepFormat.MinuteFormat, AValue);
       dtsSecond:
         if FSuppressPrevUnit and (st.Minute = prevSt.Minute) then
-          Result := DoFormatDateTime('ss', AValue)
-        else
-          Result := DoFormatDateTime(DateTimeStepFormat.SecondFormat, AValue);
+          Result := FormatDateTime('ss', AValue) else
+          Result := FormatDateTime(DateTimeStepFormat.SecondFormat, AValue);
       dtsMillisecond:
         if FSuppressPrevUnit and (st.Second = prevSt.Second) then
-          Result := IntToStr(st.Millisecond) + 'ms'
-        else
-          Result := DoFormatDateTime(DateTimeStepFormat.MillisecondFormat, AValue);
+          Result := IntToStr(st.Millisecond) + 'ms' else
+          Result := FormatDateTime(DateTimeStepFormat.MillisecondFormat, AValue);
     end;
     if InRange(AValue, helper.FOrigParams.FMin, helper.FOrigParams.FMax) then
       prevSt := st;

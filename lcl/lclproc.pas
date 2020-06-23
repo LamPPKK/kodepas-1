@@ -80,20 +80,19 @@ function CompareItemWithDebugLCLItemInfo(Item, DebugItemInfo: Pointer): integer;
 type
   TStringsSortCompare = function(const Item1, Item2: string): Integer;
 
-// sort so that for each i is OnCompare(List[i],List[i+1])<=0
-procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare); overload; inline;
-procedure MergeSort(List: TFPList; StartIndex, EndIndex: integer; const OnCompare: TListSortCompare); overload;
-procedure MergeSort(List: TStrings; const OnCompare: TStringsSortCompare); overload;
+procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare); overload;// sort so that for each i is OnCompare(List[i],List[i+1])<=0
+procedure MergeSort(List: TFPList; StartIndex, EndIndex: integer; const OnCompare: TListSortCompare); overload;// sort so that for each i is OnCompare(List[i],List[i+1])<=0
+procedure MergeSort(List: TStrings; const OnCompare: TStringsSortCompare); overload;// sort so that for each i is OnCompare(List[i],List[i+1])<=0
 
 function GetEnumValueDef(TypeInfo: PTypeInfo; const Name: string;
                          const DefaultValue: Integer): Integer;
 
 function KeyAndShiftStateToKeyString(Key: word; ShiftState: TShiftState): String;
 function KeyStringIsIrregular(const s: string): boolean;
-function ShortCutToText(ShortCut: TShortCut): string; inline;    // localized output
-function ShortCutToTextRaw(ShortCut: TShortCut): string; inline; // NOT localized output
-function TextToShortCut(const ShortCutText: string): TShortCut; inline;   // localized input
-function TextToShortCutRaw(const ShortCutText: string): TShortCut; inline;// NOT localized input
+function ShortCutToText(ShortCut: TShortCut): string;// localized output
+function ShortCutToTextRaw(ShortCut: TShortCut): string;// NOT localized output
+function TextToShortCut(const ShortCutText: string): TShortCut;// localized input
+function TextToShortCutRaw(const ShortCutText: string): TShortCut;// NOT localized input
 
 function GetCompleteText(const sText: string; iSelStart: Integer;
   bCaseSensitive, bSearchAscending: Boolean; slTextList: TStrings): string;
@@ -113,7 +112,7 @@ var
 
 function SendApplicationMessage(Msg: Cardinal; WParam: WParam; LParam: LParam):Longint;
 procedure OwnerFormDesignerModified(AComponent: TComponent);
-procedure FreeThenNil(var obj); inline;
+procedure FreeThenNil(var obj);
 
 { the LCL interfaces finalization sections are called before the finalization
   sections of the LCL. Those parts, that should be finalized after the LCL, can
@@ -130,10 +129,7 @@ procedure MakeMinMax(var i1, i2: integer);
 procedure CalculateLeftTopWidthHeight(X1,Y1,X2,Y2: integer;
   out Left,Top,Width,Height: integer);
 
-// Ampersands
-function DeleteAmpersands(var Str : String) : Integer;
-function RemoveAmpersands(const ASource: String): String;
-function RemoveAmpersands(Src: PChar; var LineLength: Longint): PChar;
+function DeleteAmpersands(var Str : String) : Longint;
 
 function ComparePointers(p1, p2: Pointer): integer; inline;
 function CompareHandles(h1, h2: THandle): integer;
@@ -142,11 +138,11 @@ function ComparePoints(const p1, p2: TPoint): integer;
 function CompareCaret(const FirstCaret, SecondCaret: TPoint): integer;
 function CompareMethods(const m1, m2: TMethod): boolean; inline;
 
-function RoundToInt(const e: Extended): integer; inline;
-function RoundToCardinal(const e: Extended): cardinal; inline;
-function TruncToInt(const e: Extended): integer; inline;
-function TruncToCardinal(const e: Extended): cardinal; inline;
-function StrToDouble(const s: string): double; inline;
+function RoundToInt(const e: Extended): integer;
+function RoundToCardinal(const e: Extended): cardinal;
+function TruncToInt(const e: Extended): integer;
+function TruncToCardinal(const e: Extended): cardinal;
+function StrToDouble(const s: string): double;
 
 // Call debugging procedure in LazLoggerBase.
 procedure RaiseGDBException(const Msg: string); inline;
@@ -192,7 +188,7 @@ procedure DebugLnExit (const s1, s2: string; const s3: string = '';
                        const s13: string = ''; const s14: string = ''; const s15: string = '';
                        const s16: string = ''; const s17: string = ''; const s18: string = ''); inline; overload;
 
-procedure CloseDebugOutput; inline;
+procedure CloseDebugOutput;
 {$ELSE}
 procedure DebugLn(Args: array of const); overload;
 procedure DebugLn(const S: String; Args: array of const); overload;// similar to Format(s,Args)
@@ -288,7 +284,18 @@ procedure DbgSaveData(FileName: String; AData: PChar; ADataSize: PtrUInt);
 procedure DbgAppendToFile(FileName, S: String);
 procedure DbgAppendToFileWithoutLn(FileName, S: String);
 
+// some string manipulation functions
+function StripLN(const ALine: String): String;
+function GetPart(const ASkipTo, AnEnd: String; var ASource: String;
+  const AnIgnoreCase: Boolean = False; const AnUpdateSource: Boolean = True): String; overload;
+function GetPart(const ASkipTo, AnEnd: array of String; var ASource: String;
+  const AnIgnoreCase: Boolean = False; const AnUpdateSource: Boolean = True): String; overload;
+function TextToSingleLine(const AText: string): string;
+function SwapCase(Const S: String): String;
+
 // case..of utility functions
+function StringCase(const AString: String; const ACase: array of String {; const AIgnoreCase = False, APartial = false: Boolean}): Integer; overload;
+function StringCase(const AString: String; const ACase: array of String; const AIgnoreCase, APartial: Boolean): Integer; overload;
 function ClassCase(const AClass: TClass; const ACase: array of TClass {; const ADescendant: Boolean = True}): Integer; overload;
 function ClassCase(const AClass: TClass; const ACase: array of TClass; const ADecendant: Boolean): Integer; overload;
 
@@ -302,7 +309,7 @@ type
 // Felipe: Don't substitute with calls to lazutf16 because lazutf16 includes
 // some initialization code and tables, which are not necessary for the LCL
 function UTF16CharacterLength(p: PWideChar): integer;
-function UTF16Length(const s: UTF16String): PtrInt; inline;
+function UTF16Length(const s: UTF16String): PtrInt;
 function UTF16Length(p: PWideChar; WordCount: PtrInt): PtrInt;
 function UTF16CharacterToUnicode(p: PWideChar; out CharLen: integer): Cardinal;
 function UnicodeToUTF16(u: cardinal): UTF16String;
@@ -347,10 +354,10 @@ var
   DebugNestAtBOL: Boolean;
   {$ENDIF}
 
-function DeleteAmpersands(var Str : String) : Integer;
-// Replace all &x with x and return the position of the first accelerator letter in
-//  the resulting Str, meaning the letter following the first & in the original Str.
-// Double ampersands && are converted to a single & and ignored.
+function DeleteAmpersands(var Str : String) : Longint;
+// Replace all &x with x
+// and return the position of the first ampersand letter in the resulting Str.
+// double ampersands && are converted to a single & and are ignored.
 var
   SrcPos, DestPos, SrcLen: Integer;
 begin
@@ -359,10 +366,10 @@ begin
   SrcPos:=1;
   DestPos:=1;
   while SrcPos<=SrcLen do begin
-    if (Str[SrcPos]='&') and (SrcPos<SrcLen) then
-    begin
+    if (Str[SrcPos]='&') and (SrcPos<SrcLen) then begin
+      // & found
       inc(SrcPos); // skip &
-      if (Str[SrcPos]<>'&') and (Result<1) then  // Ignore && as accelerator
+      if (Str[SrcPos]<>'&') and (Result<1) then
         Result:=DestPos;
     end;
     if DestPos<SrcPos then
@@ -372,38 +379,6 @@ begin
   end;
   if DestPos<SrcPos then
     SetLength(Str,DestPos-1);
-end;
-
-function RemoveAmpersands(const ASource: String): String;
-var
-  n: Integer;
-  DoubleAmp: Boolean;
-begin
-  Result := ASource;
-  n := 1;
-  while n <= Length(Result) do
-  begin
-    if Result[n] = '&' then
-    begin
-      DoubleAmp := (n < Length(Result)) and (Result[n+1] = '&');
-      Delete(Result, n, 1);
-      if DoubleAmp then
-        Inc(n);            // skip the second & of &&
-    end;
-    Inc(n);
-  end;
-end;
-
-function RemoveAmpersands(Src: PChar; var LineLength: Longint): PChar;
-var
-  s: String;
-begin
-  SetLength(s, LineLength);
-  strlcopy(PChar(s), Src, LineLength);
-  s := RemoveAmpersands(s);
-  LineLength := Length(s);
-  Result := StrAlloc(LineLength+1); // +1 for #0 char at end
-  strcopy(Result, PChar(s));
 end;
 
 //-----------------------------------------------------------------------------
@@ -604,7 +579,7 @@ const
     '', // 0xb8
     '', // 0xb9
     ';', // 0xba - VK_OEM_1 - Can vary by keyboard, US keyboard, the ';:' key
-    '=', // 0xbb - VK_OEM_PLUS - For any country/region, the '+/=' key Delphi returns '=' Issue #0036489
+    '+', // 0xbb - VK_OEM_PLUS - For any country/region, the '+' key
     ',', // 0xbc - VK_OEM_COMMA - For any country/region, the ',' key
     '-', // 0xbd - VK_OEM_MINUS - For any country/region, the '-' key
     '.', // 0xbe - VK_OEM_PERIOD - For any country/region, the '.' key
@@ -913,7 +888,8 @@ begin
  Result := (((Key >= VK_A) and (Key <= VK_Z)) or
             ((Key >= VK_NUMPAD0) and (Key <= VK_DIVIDE)) or
             ((Key >= VK_0) and (Key <= VK_9)) or
-            ((Key >= 186) and (Key <= 192)) or
+            ((Key >= 186) and (Key <= 188)) or
+            ((Key >= 190) and (Key <= 192)) or
             ((Key >= 219) and (Key <= 222)));
 end;
 
@@ -2344,6 +2320,193 @@ begin
   {$I+}
   Write(F, S);
   CloseFile(F);
+end;
+
+function StripLN(const ALine: String): String;
+var
+  idx: Integer;
+begin
+  Result := ALine;
+  idx := Pos(#10, Result);
+  if idx = 0
+  then begin
+    idx := Pos(#13, Result);
+    if idx = 0 then Exit;
+  end
+  else begin
+    if (idx > 1)
+    and (Result[idx - 1] = #13)
+    then Dec(idx);
+  end;
+  SetLength(Result, idx - 1);
+end;
+
+function GetPart(const ASkipTo, AnEnd: String; var ASource: String;
+  const AnIgnoreCase, AnUpdateSource: Boolean): String;
+begin
+  Result := GetPart([ASkipTo], [AnEnd], ASource, AnIgnoreCase, AnUpdateSource);
+end;
+
+function GetPart(const ASkipTo, AnEnd: array of String; var ASource: String;
+  const AnIgnoreCase: Boolean = False; const AnUpdateSource: Boolean = True): String;
+var
+  n, i, idx: Integer;
+  S, Source, Match: String;
+  HasEscape: Boolean;
+begin
+  Source := ASource;
+
+  if High(ASkipTo) >= 0
+  then begin
+    idx := 0;
+    Match := '';
+    HasEscape := False;
+    if AnIgnoreCase
+    then S := UpperCase(Source)
+    else S := Source;
+    for n := Low(ASkipTo) to High(ASkipTo) do
+    begin
+      if ASkipTo[n] = ''
+      then begin
+        HasEscape := True;
+        Continue;
+      end;
+      if AnIgnoreCase
+      then i := Pos(UpperCase(ASkipTo[n]), S)
+      else i := Pos(ASkipTo[n], S);
+      if i > idx
+      then begin
+        idx := i;
+        Match := ASkipTo[n];
+      end;
+    end;
+    if (idx = 0) and not HasEscape
+    then begin
+      Result := '';
+      Exit;
+    end;
+    if idx > 0
+    then Delete(Source, 1, idx + Length(Match) - 1);
+  end;
+
+  if AnIgnoreCase
+  then S := UpperCase(Source)
+  else S := Source;
+  idx := MaxInt;
+  for n := Low(AnEnd) to High(AnEnd) do
+  begin
+    if AnEnd[n] = '' then Continue;
+    if AnIgnoreCase
+    then i := Pos(UpperCase(AnEnd[n]), S)
+    else i := Pos(AnEnd[n], S);
+    if (i > 0) and (i < idx) then idx := i;
+  end;
+
+  if idx = MaxInt
+  then begin
+    Result := Source;
+    Source := '';
+  end
+  else begin
+    Result := Copy(Source, 1, idx - 1);
+    Delete(Source, 1, idx - 1);
+  end;
+
+  if AnUpdateSource
+  then ASource := Source;
+end;
+
+{
+  Ensures the covenient look of multiline string
+  when displaying it in the single line
+  * Replaces CR and LF with spaces
+  * Removes duplicate spaces
+}
+function TextToSingleLine(const AText: string): string;
+var
+  str: string;
+  i, wstart, wlen: Integer;
+begin
+  str := Trim(AText);
+  wstart := 0;
+  wlen := 0;
+  i := 1;
+  while i < Length(str) - 1 do
+  begin
+    if (str[i] in [' ', #13, #10]) then
+    begin
+      if (wstart = 0) then
+      begin
+        wstart := i;
+        wlen := 1;
+      end else
+        Inc(wlen);
+    end else
+    begin
+      if wstart > 0 then
+      begin
+        str[wstart] := ' ';
+        Delete(str, wstart+1, wlen-1);
+        Dec(i, wlen-1);
+        wstart := 0;
+      end;
+    end;
+    Inc(i);
+  end;
+  Result := str;
+end;
+
+function SwapCase(Const S: String): String;
+// Inverts the character case. Like LowerCase and UpperCase combined.
+var
+  i : Integer;
+  P : PChar;
+begin
+  Result := S;
+  if not assigned(pointer(result)) then exit;
+  UniqueString(Result);
+  P:=Pchar(pointer(Result));
+  for i := 1 to Length(Result) do begin
+    if (P^ in ['a'..'z']) then
+      P^ := char(byte(p^) - 32)
+    else if (P^ in ['A'..'Z']) then
+      P^ := char(byte(p^) + 32);
+    Inc(P);
+  end;
+end;
+
+function StringCase(const AString: String; const ACase: array of String {; const AIgnoreCase = False, APartial = false: Boolean}): Integer;
+begin
+  Result := StringCase(AString, ACase, False, False);
+end;
+
+function StringCase(const AString: String; const ACase: array of String; const AIgnoreCase, APartial: Boolean): Integer;
+var
+  Search, S: String;
+begin
+  if High(ACase) = -1
+  then begin
+    Result := -1;
+    Exit;
+  end;
+
+  if AIgnoreCase
+  then Search := UpperCase(AString)
+  else Search := AString;
+
+  for Result := Low(ACase) to High(ACase) do
+  begin
+    if AIgnoreCase
+    then S := UpperCase(ACase[Result])
+    else S := ACase[Result];
+
+    if Search = S then Exit;
+    if not APartial then Continue;
+    if Length(Search) >= Length(S) then Continue;
+    if StrLComp(PChar(Search), PChar(S), Length(Search)) = 0 then Exit;
+  end;
+
+  Result := -1;
 end;
 
 function ClassCase(const AClass: TClass; const ACase: array of TClass {; const ADecendant: Boolean = True}): Integer;

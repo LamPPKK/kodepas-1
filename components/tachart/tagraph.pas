@@ -1,4 +1,4 @@
-﻿{
+{
  /***************************************************************************
                                TAGraph.pas
                                -----------
@@ -29,6 +29,12 @@ uses
 type
   TChart = class;
 
+  TReticuleMode = (rmNone, rmVertical, rmHorizontal, rmCross);
+
+  TDrawReticuleEvent = procedure(
+    ASender: TChart; ASeriesIndex, AIndex: Integer;
+    const AData: TDoublePoint) of object;
+
   TChartDrawLegendEvent = procedure(
     ASender: TChart; ADrawer: IChartDrawer; ALegendItems: TChartLegendItems;
     ALegendItemSize: TPoint; const ALegendRect: TRect;
@@ -52,7 +58,6 @@ type
     procedure BeforeDraw; virtual;
     procedure GetLegendItemsBasic(AItems: TChartLegendItems); virtual; abstract;
     function GetShowInLegend: Boolean; virtual; abstract;
-    function RequestValidChartScaling: Boolean; virtual;
     procedure SetActive(AValue: Boolean); virtual; abstract;
     procedure SetDepth(AValue: TChartDistance); virtual; abstract;
     procedure SetShadow(AValue: TChartShadow); virtual; abstract;
@@ -167,8 +172,6 @@ type
     var ADoDefaultDrawing: Boolean) of object;
   TChartDrawEvent = procedure (
     ASender: TChart; ADrawer: IChartDrawer) of object;
-  TChartExtentValidateEvent = procedure (
-    ASender: TChart; var ALogicalExtent: TDoubleRect; var AllowChange: Boolean) of object;
 
   TChartRenderingParams = record
     FClipRect: TRect;
@@ -182,7 +185,6 @@ type
   TChart = class(TCustomChart, ICoordTransformer)
   strict private // Property fields
     FAllowZoom: Boolean;
-    FAllowPanning: Boolean;
     FAntialiasingMode: TChartAntialiasingMode;
     FAxisList: TChartAxisList;
     FAxisVisible: Boolean;
@@ -212,10 +214,10 @@ type
     FOnBeforeDrawBackground: TChartBeforeDrawEvent;
     FOnBeforeDrawBackWall: TChartBeforeDrawEvent;
     FOnChartPaint: TChartPaintEvent;
+    FOnDrawReticule: TDrawReticuleEvent;
     FOnDrawLegend: TChartDrawLegendEvent;
     FProportional: Boolean;
     FSeries: TChartSeriesList;
-    FSetLogicalExtentCounter: Integer;
     FTitle: TChartTitle;
     FToolset: TBasicChartToolset;
 
@@ -232,20 +234,19 @@ type
     FExtentBroadcaster: TBroadcaster;
     FIsZoomed: Boolean;
     FOffset: TDoublePoint;   // Coordinates transformation
-    FOffsetInt: TPoint;      // Coordinates transformation
     FOnAfterPaint: TChartEvent;
     FOnExtentChanged: TChartEvent;
     FOnExtentChanging: TChartEvent;
-    FOnExtentValidate: TChartExtentValidateEvent;
     FPrevLogicalExtent: TDoubleRect;
+    FReticuleMode: TReticuleMode;
+    FReticulePos: TPoint;
     FScale: TDoublePoint;    // Coordinates transformation
-    FScalingValid: Boolean;
-    FMultiPassScalingNeeded: Boolean;
     FSavedClipRect: TRect;
     FClipRectLock: Integer;
 
     procedure CalculateTransformationCoeffs(const AMargin, AChartMargins: TRect;
       const AMinDataSpace: Integer);
+    procedure DrawReticule(ADrawer: IChartDrawer);  deprecated 'Use DatapointCrosshairTool instead';
     procedure FindComponentClass(
       AReader: TReader; const AClassName: String; var AClass: TComponentClass);
     function GetChartHeight: Integer;
@@ -256,6 +257,8 @@ type
     function GetSeriesCount: Integer;
     function GetToolset: TBasicChartToolset;
     function GetVertAxis: TChartAxis;
+    procedure HideReticule; deprecated 'Use DatapointCrosshairTool instead';
+
     procedure SetAntialiasingMode(AValue: TChartAntialiasingMode);
     procedure SetAxisList(AValue: TChartAxisList);
     procedure SetAxisVisible(Value: Boolean);
@@ -268,7 +271,7 @@ type
     procedure SetFrame(Value: TChartPen);
     procedure SetGUIConnector(AValue: TChartGUIConnector);
     procedure SetLegend(Value: TChartLegend);
-    procedure SetLogicalExtent(AValue: TDoubleRect);
+    procedure SetLogicalExtent(const AValue: TDoubleRect);
     procedure SetMargins(AValue: TChartMargins);
     procedure SetMarginsExternal(AValue: TChartMargins);
     procedure SetMinDataSpace(const AValue: Integer);
@@ -283,8 +286,11 @@ type
     procedure SetOnBeforeDrawBackWall(AValue: TChartBeforeDrawEvent);
     procedure SetOnChartPaint(AValue: TChartPaintEvent);
     procedure SetOnDrawLegend(AValue: TChartDrawLegendEvent);
+    procedure SetOnDrawReticule(AValue: TDrawReticuleEvent); deprecated 'Use DatapointCrosshairTool instead';
     procedure SetProportional(AValue: Boolean);
     procedure SetRenderingParams(AValue: TChartRenderingParams);
+    procedure SetReticuleMode(AValue: TReticuleMode); deprecated 'Use DatapointCrosshairTool instead';
+    procedure SetReticulePos(const AValue: TPoint); deprecated 'Use DatapointCrosshairTool instead';
     procedure SetTitle(Value: TChartTitle);
     procedure SetToolset(AValue: TBasicChartToolset);
     procedure VisitSources(
@@ -315,10 +321,9 @@ type
     {$ENDIF}
     procedure Notification(
       AComponent: TComponent; AOperation: TOperation); override;
-    procedure PrepareAxis(ADrawer: IChartDrawer);
+      procedure PrepareAxis(ADrawer: IChartDrawer);
     function PrepareLegend(
       ADrawer: IChartDrawer; var AClipRect: TRect): TChartLegendDrawingData;
-    procedure RequestMultiPassScaling; inline;
     procedure SetBiDiMode(AValue: TBiDiMode); override;
     procedure SetName(const AValue: TComponentName); override;
 
@@ -357,7 +362,6 @@ type
     procedure SaveToFile(AClass: TRasterImageClass; AFileName: String);
     function SaveToImage(AClass: TRasterImageClass): TRasterImage;
     procedure StyleChanged(Sender: TObject); override;
-    function UsesBuiltinToolset: Boolean;
     procedure ZoomFull(AImmediateRecalc: Boolean = false); override;
     property Drawer: IChartDrawer read FConnectorData.FDrawer;
 
@@ -368,7 +372,6 @@ type
     function XImageToGraph(AX: Integer): Double; inline;
     function YGraphToImage(AY: Double): Integer; inline;
     function YImageToGraph(AY: Integer): Double; inline;
-    property ScalingValid: Boolean read FScalingValid;
 
   public
     procedure LockClipRect;
@@ -392,6 +395,7 @@ type
     property PrevLogicalExtent: TDoubleRect read FPrevLogicalExtent;
     property RenderingParams: TChartRenderingParams
       read GetRenderingParams write SetRenderingParams;
+    property ReticulePos: TPoint read FReticulePos write SetReticulePos; deprecated 'Use DatapointCrosshairTool instead';
     property SeriesCount: Integer read GetSeriesCount;
     property VertAxis: TChartAxis read GetVertAxis;
     property XGraphMax: Double read FCurrentExtent.b.X;
@@ -401,7 +405,6 @@ type
 
   published
     property AutoFocus: Boolean read FAutoFocus write FAutoFocus default false;
-    property AllowPanning: Boolean read FAllowPanning write FAllowPanning default true;
     property AllowZoom: Boolean read FAllowZoom write FAllowZoom default true;
     property AntialiasingMode: TChartAntialiasingMode
       read FAntialiasingMode write SetAntialiasingMode default amDontCare;
@@ -425,6 +428,8 @@ type
       read FMarginsExternal write SetMarginsExternal;
     property Proportional: Boolean
       read FProportional write SetProportional default false;
+    property ReticuleMode: TReticuleMode
+      read FReticuleMode write SetReticuleMode default rmNone; deprecated 'Use DatapointCrosshairTool instead';
     property Series: TChartSeriesList read FSeries;
     property Title: TChartTitle read FTitle write SetTitle;
     property Toolset: TBasicChartToolset read FToolset write SetToolset;
@@ -455,12 +460,13 @@ type
       deprecated 'Use OnBeforeCustomDrawBackWall instead';
     property OnDrawLegend: TChartDrawLegendEvent
       read FOnDrawLegend write SetOnDrawLegend;
+    property OnDrawReticule: TDrawReticuleEvent
+      read FOnDrawReticule write SetOnDrawReticule;
+      deprecated 'Use DatapointCrosshairTool instead';
     property OnExtentChanged: TChartEvent
       read FOnExtentChanged write FOnExtentChanged;
     property OnExtentChanging: TChartEvent
-      read FOnExtentChanging write FOnExtentChanging; deprecated 'Used OnExtentValidate instead';
-    property OnExtentValidate: TChartExtentValidateEvent
-      read FOnExtentValidate write FOnExtentValidate;
+      read FOnExtentChanging write FOnExtentChanging;
 
   published
     property Align;
@@ -509,10 +515,6 @@ implementation
 uses
   Clipbrd, Dialogs, GraphMath, LCLProc, LResources, Math, Types,
   TADrawerCanvas, TAGeometry, TAMath, TAStyles;
-
-const
-  SScalingNotInitialized = '[%s.%s]: Image-graph scaling not yet initialized.';
-  SNestedSetLogicalExtentCall = '%s: Don''t set LogicalExtent in OnExtentValidate handler - modify %s parameter instead.';
 
 function CompareZPosition(AItem1, AItem2: Pointer): Integer;
 begin
@@ -575,6 +577,7 @@ begin
   if ASeries.FChart = Self then exit;
   if ASeries.FChart <> nil then
     ASeries.FChart.DeleteSeries(ASeries);
+  HideReticule;
   Series.FList.Add(ASeries);
   ASeries.FChart := Self;
   ASeries.AfterAdd;
@@ -605,8 +608,6 @@ begin
   end;
   FOffset.X := rX.CalcOffset(FScale.X);
   FOffset.Y := rY.CalcOffset(FScale.Y);
-  FOffsetInt := Point(0, 0);
-  FScalingValid := True;
   rX.UpdateMinMax(@XImageToGraph);
   rY.UpdateMinMax(@YImageToGraph);
 end;
@@ -695,7 +696,6 @@ begin
   FBroadcaster := TBroadcaster.Create;
   FExtentBroadcaster := TBroadcaster.Create;
   FAllowZoom := true;
-  FAllowPanning := true;
   FAntialiasingMode := amDontCare;
   FAxisVisible := true;
   FConnectorData.FCanvas := Canvas;
@@ -704,18 +704,21 @@ begin
   FGUIConnectorListener := TListener.Create(@FGUIConnector, @StyleChanged);
 
   FScale := DoublePoint(1, -1);
-  FScalingValid := False;
-  FMultiPassScalingNeeded := False;
 
   Width := DEFAULT_CHART_WIDTH;
   Height := DEFAULT_CHART_HEIGHT;
 
+  FReticulePos := Point(-1, -1);
+  FReticuleMode := rmNone;
+
   FSeries := TChartSeriesList.Create;
+
   Color := clBtnFace;
   FBackColor := clBtnFace;
-  FIsZoomed := false;
-  FLegend := TChartLegend.Create(Self);
 
+  FIsZoomed := false;
+
+  FLegend := TChartLegend.Create(Self);
   FTitle := TChartTitle.Create(Self);
   FTitle.Alignment := taCenter;
   FTitle.Text.Add(DEFAULT_CHART_TITLE);
@@ -790,8 +793,8 @@ procedure TChart.DisplaySeries(ADrawer: IChartDrawer);
 
   procedure OffsetDrawArea(ADX, ADY: Integer); inline;
   begin
-    FOffsetInt.X += ADX;
-    FOffsetInt.Y += ADY;
+    FOffset.X += ADX;
+    FOffset.Y += ADY;
     OffsetRect(FClipRect, ADX, ADY);
   end;
 
@@ -830,7 +833,7 @@ begin
 
       for s in seriesInZOrder do begin
         if not s.Active then continue;
-        // Interleave axes with series according to ZPosition.
+        // Interleave axises with series according to ZPosition.
         if AxisVisible then
           AxisList.Draw(s.ZPosition, axisIndex);
         OffsetWithDepth(Min(s.ZPosition, Depth), Min(s.Depth, Depth));
@@ -897,53 +900,33 @@ end;
 
 procedure TChart.Draw(ADrawer: IChartDrawer; const ARect: TRect);
 var
-  NewClipRect: TRect;
   ldd: TChartLegendDrawingData;
-  tmpExtent: TDoubleRect;
-  tries: Integer;
   s: TBasicChartSeries;
   ts: TBasicChartToolset;
 begin
+  Prepare;
+
   ADrawer.SetRightToLeft(BiDiMode <> bdLeftToRight);
 
-  NewClipRect := ARect;
-  with NewClipRect do begin
-    Left += MarginsExternal.Left;
-    Top += MarginsExternal.Top;
-    Right -= MarginsExternal.Right;
-    Bottom -= MarginsExternal.Bottom;
+  FClipRect := ARect;
+  with MarginsExternal do begin
+    FClipRect.Left += Left;
+    FClipRect.Top += Top;
+    FClipRect.Right -= Right;
+    FClipRect.Bottom -= Bottom;
+  end;
+
+  with ClipRect do begin
     FTitle.Measure(ADrawer, 1, Left, Right, Top);
     FFoot.Measure(ADrawer, -1, Left, Right, Bottom);
   end;
 
   ldd.FItems := nil;
+  if Legend.Visible then
+    ldd := PrepareLegend(ADrawer, FClipRect);
+
   try
-    Prepare;
-
-    if Legend.Visible then
-      ldd := PrepareLegend(ADrawer, NewClipRect);
-
-    for tries := 3 downto 0 do
-    begin
-      FClipRect := NewClipRect;
-
-      PrepareAxis(ADrawer);
-
-      if (tries = 0) or (not FMultiPassScalingNeeded) then break;
-
-      // FIsZoomed=true: GetFullExtent() has not been called in Prepare() above
-      if FIsZoomed then break;
-
-      // Perform a next pass of extent calculation
-      tmpExtent := GetFullExtent;
-      // Converged successfully if next pass has not changed the extent --> break
-      if tmpExtent = FLogicalExtent then break;                                               
-
-      // As in the Prepare() call above
-      FLogicalExtent := tmpExtent;
-      FCurrentExtent := FLogicalExtent;
-    end;
-
+    PrepareAxis(ADrawer);
     if Legend.Visible and not Legend.UseSidebar then
       Legend.Prepare(ldd, FClipRect);
 
@@ -971,6 +954,7 @@ begin
   finally
     ldd.FItems.Free;
   end;
+  DrawReticule(ADrawer);
   ts := GetToolset;
   if ts <> nil then ts.Draw(Self, ADrawer);
 
@@ -1058,6 +1042,17 @@ procedure TChart.DrawLineVert(ADrawer: IChartDrawer; AX: Integer);
 begin
   if (FClipRect.Left < AX) and (AX < FClipRect.Right) then
     ADrawer.Line(AX, FClipRect.Top, AX, FClipRect.Bottom);
+end;
+
+procedure TChart.DrawReticule(ADrawer: IChartDrawer);
+begin
+  ADrawer.SetXor(true);
+  ADrawer.PrepareSimplePen(clTAColor);
+  if ReticuleMode in [rmVertical, rmCross] then
+    DrawLineVert(ADrawer, FReticulePos.X);
+  if ReticuleMode in [rmHorizontal, rmCross] then
+    DrawLineHoriz(ADrawer, FReticulePos.Y);
+  ADrawer.SetXor(false);
 end;
 
 function TChart.EffectiveGUIConnector: TChartGUIConnector;
@@ -1290,6 +1285,12 @@ begin
   Result := Point(XGraphToImage(AGraphPoint.X), YGraphToImage(AGraphPoint.Y));
 end;
 
+procedure TChart.HideReticule;
+begin
+  // Hide reticule - - it will be drawn again in the next MouseMove.
+  FReticulePos := Point( - 1, - 1);
+end;
+
 function TChart.ImageToGraph(const APoint: TPoint): TDoublePoint;
 begin
   Result.X := XImageToGraph(APoint.X);
@@ -1344,7 +1345,10 @@ var
   ts: TBasicChartToolset;
 begin
   ts := GetToolset;
-  if (ts <> nil) and ts.Dispatch(Self, evidMouseDown, Shift, Point(X, Y)) then
+  if
+    PtInRect(FClipRect, Point(X, Y)) and
+    (ts <> nil) and ts.Dispatch(Self, evidMouseDown, Shift, Point(X, Y))
+  then
     exit;
   inherited;
 end;
@@ -1398,7 +1402,6 @@ end;
   parameters. Needed for example by the axis to query the extent covered by
   all series using this axis (cannot be called directly because TAChartAxis
   does not "use" TACustomSeries. }
-
 procedure TChart.Notify(ACommand: Integer; AParam1, AParam2: Pointer; var AData);
 begin
   UnUsed(AParam2);
@@ -1507,9 +1510,6 @@ var
   a: TChartAxis;
   s: TBasicChartSeries;
 begin
-  FScalingValid := False;
-  FMultiPassScalingNeeded := False;
-
   for a in AxisList do
     if a.Transformations <> nil then
       a.Transformations.SetChart(Self);
@@ -1684,24 +1684,10 @@ begin
   StyleChanged(Self);
 end;
 
-procedure TChart.SetLogicalExtent(AValue: TDoubleRect);
+procedure TChart.SetLogicalExtent(const AValue: TDoubleRect);
 var
-  AllowChange: Boolean;
   w, h: Double;
 begin
-  if FSetLogicalExtentCounter <> 0 then
-    raise EChartError.CreateFmt(SNestedSetLogicalExtentCall, [NameOrClassName(Self), 'ALogicalExtent']);
-
-  if Assigned(OnExtentValidate) then begin
-    AllowChange := true;
-    Inc(FSetLogicalExtentCounter);
-    try
-      OnExtentValidate(Self, AValue, AllowChange);
-    finally
-      Dec(FSetLogicalExtentCounter);
-    end;
-    if not AllowChange then exit;
-  end;
   if FLogicalExtent = AValue then exit;
   w := Abs(AValue.a.X - AValue.b.X);
   h := Abs(AValue.a.Y - AValue.b.Y);
@@ -1711,6 +1697,7 @@ begin
       UseYMin and (h < YMin) or UseYMax and (h > YMax)
     then
       exit;
+  HideReticule;
   FLogicalExtent := AValue;
   FIsZoomed := true;
   StyleChanged(Self);
@@ -1824,6 +1811,13 @@ begin
   StyleChanged(self);
 end;
 
+procedure TChart.SetOnDrawReticule(AValue: TDrawReticuleEvent);
+begin
+  if TMethod(FOnDrawReticule) = TMethod(AValue) then exit;
+  FOnDrawReticule := AValue;
+  StyleChanged(Self);
+end;
+
 procedure TChart.SetProportional(AValue: Boolean);
 begin
   if FProportional = AValue then exit;
@@ -1839,6 +1833,21 @@ begin
   FLogicalExtent := AValue.FLogicalExtent;
   FPrevLogicalExtent := AValue.FPrevLogicalExtent;
   FIsZoomed := AValue.FIsZoomed;
+end;
+
+procedure TChart.SetReticuleMode(AValue: TReticuleMode);
+begin
+  if FReticuleMode = AValue then exit;
+  FReticuleMode := AValue;
+  StyleChanged(Self);
+end;
+
+procedure TChart.SetReticulePos(const AValue: TPoint);
+begin
+  if FReticulePos = AValue then exit;
+  DrawReticule(Drawer);
+  FReticulePos := AValue;
+  DrawReticule(Drawer);
 end;
 
 procedure TChart.SetTitle(Value: TChartTitle);
@@ -1873,11 +1882,6 @@ begin
   if FClipRectLock = 0 then Invalidate;
 end;
 
-function TChart.UsesBuiltinToolset: Boolean;
-begin
-  Result := (GetToolset = FBuiltinToolset);
-end;
-
 procedure TChart.VisitSources(
   AVisitor: TChartOnSourceVisitor; AAxis: TChartAxis; var AData);
 var
@@ -1890,43 +1894,22 @@ end;
 
 function TChart.XGraphToImage(AX: Double): Integer;
 begin
-  {$IFDEF CHECK_VALID_SCALING}
-  if not FScalingValid then
-    raise EChartError.CreateFmt(SScalingNotInitialized, [NameOrClassName(self), 'XGraphToImage']);
-  {$ENDIF}
-  Result := ImgRoundChecked(FScale.X * AX + FOffset.X) + FOffsetInt.X;
+  Result := ImgRoundChecked(FScale.X * AX + FOffset.X);
 end;
 
 function TChart.XImageToGraph(AX: Integer): Double;
 begin
-  {$IFDEF CHECK_VALID_SCALING}
-  if not FScalingValid then
-    raise EChartError.CreateFmt(SScalingNotInitialized, [NameOrClassName(self), 'XImageToGraph']);
-  {$ENDIF}
-  Result := ((AX - FOffsetInt.X) - FOffset.X) / FScale.X;
+  Result := (AX - FOffset.X) / FScale.X;
 end;
 
 function TChart.YGraphToImage(AY: Double): Integer;
 begin
-  {$IFDEF CHECK_VALID_SCALING}
-  if not FScalingValid then
-    raise EChartError.CreateFmt(SScalingNotInitialized, [NameOrClassName(self), 'YGraphToImage']);
-  {$ENDIF}
-  Result := ImgRoundChecked(FScale.Y * AY + FOffset.Y) + FOffsetInt.Y;
+   Result := ImgRoundChecked(FScale.Y * AY + FOffset.Y);
 end;
 
 function TChart.YImageToGraph(AY: Integer): Double;
 begin
-  {$IFDEF CHECK_VALID_SCALING}
-  if not FScalingValid then
-    raise EChartError.CreateFmt(SScalingNotInitialized, [NameOrClassName(self), 'YImageToGraph']);
-  {$ENDIF}
-  Result := ((AY - FOffsetInt.Y) - FOffset.Y) / FScale.Y;
-end;
-
-procedure TChart.RequestMultiPassScaling;
-begin
-  FMultiPassScalingNeeded := True;
+  Result := (AY - FOffset.Y) / FScale.Y;
 end;
 
 procedure TChart.ZoomFull(AImmediateRecalc: Boolean);
@@ -1934,6 +1917,7 @@ begin
   if AImmediateRecalc then
     FLogicalExtent := GetFullExtent;
   if not FIsZoomed then exit;
+  HideReticule;
   FIsZoomed := false;
   Invalidate;
 end;
@@ -2004,20 +1988,6 @@ procedure TBasicChartSeries.MovePointEx(
 begin
   Unused(AXIndex, AYIndex);
   MovePoint(AIndex, ANewPos);
-end;
-
-function TBasicChartSeries.RequestValidChartScaling: Boolean;
-begin
-  Result := false;
-  if not Assigned(FChart) then exit;
-
-  // We request a valid scaling from FChart. Scaling is not initialized during
-  // the first phase of scaling calculation, so we request more phases. If we
-  // are already beyond the scaling calculation loop, our request will be just
-  // ignored.
-  FChart.RequestMultiPassScaling;
-
-  Result := FChart.ScalingValid;
 end;
 
 procedure TBasicChartSeries.UpdateBiDiMode;

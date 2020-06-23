@@ -163,7 +163,6 @@ const
 { bsSingle } GTK_SHADOW_ETCHED_IN
   );
 
-  BorderShadowWidth: array[TBorderStyle] of gint = (0, 1);
 
   // signals ------------------------------------------------------------------
 type

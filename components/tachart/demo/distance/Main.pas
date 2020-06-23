@@ -27,7 +27,6 @@ type
     ChartAxisTransformations1LogarithmAxisTransform1: TLogarithmAxisTransform;
     ChartAxisTransformations3: TChartAxisTransformations;
     ChartAxisTransformations3AutoScaleAxisTransform1: TAutoScaleAxisTransform;
-    cbClipping: TCheckBox;
     chFit: TChart;
     chFitFitSeries1: TFitSeries;
     chFitLineSeries1: TLineSeries;
@@ -61,7 +60,6 @@ type
     StatusBar1: TStatusBar;
     tsMain: TTabSheet;
     tsFit: TTabSheet;
-    procedure cbClippingChange(Sender: TObject);
     procedure cbFlipLabelClick(Sender: TObject);
     procedure cbHideClick(Sender: TObject);
     procedure cbRotateLabelClick(Sender: TObject);
@@ -107,11 +105,6 @@ uses
 procedure TForm1.cbFlipLabelClick(Sender: TObject);
 begin
   SwitchOptions([dpdoFlipLabel], cbFlipLabel.Checked);
-end;
-
-procedure TForm1.cbClippingChange(Sender: TObject);
-begin
-  SwitchOptions([dpdoClipping], cbClipping.Checked);
 end;
 
 procedure TForm1.cbHideClick(Sender: TObject);
@@ -227,25 +220,20 @@ begin
       UseMax := true;
     end;
   end;
-
+  case rgFitParamCount.ItemIndex of
+    0: AText := Format('Mean value: %f', [chFitFitSeries1.Param[0]]);
+    1: AText := Format('Slope: %f', [chFitFitSeries1.Param[1]]);
+    2:
+      with chFitFitSeries1 do
+        if Param[2] = 0 then
+          AText := ''
+        else
+          AText := Format('Peak at x=%f y=%f', [
+            -Param[1] / (2 * Param[2]),
+            Param[0] - Sqr(Param[1])/(4 * Param[2])
+        ]);
+  end;
   chFitFitSeries1.Active := true;
-  chFitFitSeries1.ExecFit;
-  if chFitFitSeries1.ErrorMsg <> '' then
-    AText := chFitFitSeries1.ErrorMsg
-  else
-    case rgFitParamCount.ItemIndex of
-      0: AText := Format('Mean value: %f', [chFitFitSeries1.Param[0]]);
-      1: AText := Format('Slope: %f', [chFitFitSeries1.Param[1]]);
-      2:
-        with chFitFitSeries1 do
-          if Param[2] = 0 then
-            AText := ''
-          else
-            AText := Format('Peak at x=%f y=%f', [
-              -Param[1] / (2 * Param[2]),
-              Param[0] - Sqr(Param[1])/(4 * Param[2])
-          ]);
-    end;
 
   lblFit.Visible := true;
   lblFit.Caption := AText;

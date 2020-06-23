@@ -26,7 +26,7 @@ type
   { TCairoPrinterCanvas }
 
   TCairoPrinterCanvas = class(TFilePrinterCanvas)
-  private
+  strict private
     cr: Pcairo_t;
   private
     FLazClipRect: TRect;
@@ -82,8 +82,6 @@ type
     procedure CreateRegion; override;
     procedure RealizeAntialiasing; override;
     procedure DestroyHandle;
-
-    procedure SetPenMode;virtual;
   public
     SurfaceXDPI, SurfaceYDPI: Integer;
     constructor Create(APrinter : TPrinter); override;
@@ -156,7 +154,6 @@ type
 
   TCairoPngCanvas = class(TCairoFileCanvas)
   protected
-    procedure SetPenMode;override;
     function CreateCairoHandle: HDC; override;
     procedure DestroyCairoHandle; override;
   public
@@ -229,23 +226,6 @@ end;
 
 { TCairoPrinterCanvas }
 
-procedure TCairoPrinterCanvas.SetPenMode;
-begin
-  case Pen.Mode of
-    pmBlack: begin
-      SetSourceColor(clBlack);
-      cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-    end;
-    pmWhite: begin
-      SetSourceColor(clWhite);
-      cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-    end;
-    pmCopy: cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-  else
-    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-  end;
-end;
-
 procedure TCairoPrinterCanvas.SetPenProperties;
   procedure SetDash(d: array of double);
   begin
@@ -256,9 +236,33 @@ var
    w: double;
 begin
   SetSourceColor(Pen.Color);
-
-  SetPenMode;
-
+  case Pen.Mode of
+    pmBlack: begin
+      SetSourceColor(clBlack);
+      cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+    end;
+    pmWhite: begin
+      SetSourceColor(clWhite);
+      cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+    end;
+    pmCopy: cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+    pmXor: cairo_set_operator(cr, CAIRO_OPERATOR_XOR);
+    pmNotXor: cairo_set_operator(cr, CAIRO_OPERATOR_XOR);
+{    pmNop,
+    pmNot,
+    pmCopy,
+    pmNotCopy,
+    pmMergePenNot,
+    pmMaskPenNot,
+    pmMergeNotPen,
+    pmMaskNotPen,
+    pmMerge,
+    pmNotMerge,
+    pmMask,
+    pmNotMask,}
+  else
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+  end;
   w := Pen.Width;
   if w = 0 then
     w := 0.5;
@@ -1610,25 +1614,12 @@ end;
 function TCairoSvgCanvas.CreateCairoHandle: HDC;
 begin
   //Sizes are in Points, 72DPI (1pt = 1/72")
-  if fStream<>nil then
-    sf := cairo_svg_surface_create_for_stream(@WriteToStream, fStream, PaperWidth*ScaleX, PaperHeight*ScaleY)
-  else
-    sf := cairo_svg_surface_create(PChar(FOutputFileName), PaperWidth*ScaleX, PaperHeight*ScaleY);
+  sf := cairo_svg_surface_create(PChar(FOutputFileName), PaperWidth*ScaleX, PaperHeight*ScaleY);
   result := {%H-}HDC(cairo_create(sf));
 end;
 
 
 { TCairoPngCanvas }
-
-procedure TCairoPngCanvas.SetPenMode;
-begin
-  inherited SetPenMode;
-  { bitwise color operators make sense only for raster graphics }
-  case Pen.Mode of
-    pmXor: cairo_set_operator(cr, CAIRO_OPERATOR_XOR);
-    pmNotXor: cairo_set_operator(cr, CAIRO_OPERATOR_XOR);
-  end;
-end;
 
 function TCairoPngCanvas.CreateCairoHandle: HDC;
 var
@@ -1648,10 +1639,7 @@ end;
 
 procedure TCairoPngCanvas.DestroyCairoHandle;
 begin
-  if Assigned(fStream) then
-    cairo_surface_write_to_png_stream(sf, @WriteToStream, fStream)
-  else
-    cairo_surface_write_to_png(sf, PChar(FOutputFileName));
+  cairo_surface_write_to_png(sf, PChar(FOutputFileName));
   inherited DestroyCairoHandle;
 end;
 

@@ -163,7 +163,6 @@ type
     FAlignment: TLegendAlignment;
     FBackgroundBrush: TChartLegendBrush;
     FColumnCount: TLegendColumnCount;
-    FFixedItemWidth: Cardinal;
     FFixedItemHeight: Cardinal;
     FFont: TFont;
     FFrame: TChartPen;
@@ -173,7 +172,6 @@ type
     FGroupTitles: TStrings;
     FInverted: Boolean;
     FItemFillOrder: TLegendItemFillOrder;
-    FLegendRect: TRect;
     FMarginX: TChartDistance;
     FMarginY: TChartDistance;
     FSpacing: TChartDistance;
@@ -189,7 +187,6 @@ type
     procedure SetAlignment(AValue: TLegendAlignment);
     procedure SetBackgroundBrush(AValue: TChartLegendBrush);
     procedure SetColumnCount(AValue: TLegendColumnCount);
-    procedure SetFixedItemWidth(AValue: Cardinal);
     procedure SetFixedItemHeight(AValue: Cardinal);
     procedure SetFont(AValue: TFont);
     procedure SetFrame(AValue: TChartPen);
@@ -215,7 +212,6 @@ type
     procedure AddGroups(AItems: TChartLegendItems);
     procedure Assign(Source: TPersistent); override;
     procedure Draw(var AData: TChartLegendDrawingData);
-    function IsPointInBounds(APoint: TPoint): Boolean;
     procedure Prepare(var AData: TChartLegendDrawingData; var AClipRect: TRect);
     procedure SortItemsByOrder(AItems: TChartLegendItems);
     procedure UpdateBidiMode;
@@ -226,8 +222,6 @@ type
       read FBackgroundBrush write SetBackgroundBrush;
     property ColumnCount: TLegendColumnCount
       read FColumnCount write SetColumnCount default 1;
-    property FixedItemWidth: Cardinal
-      read FFixedItemWidth write SetFixedItemWidth default 0;
     property FixedItemHeight: Cardinal
       read FFixedItemHeight write SetFixedItemHeight default 0;
     property Font: TFont read FFont write SetFont;
@@ -543,7 +537,6 @@ begin
       Self.FAlignment := Alignment;
       Self.FBackgroundBrush.Assign(BackgroundBrush);
       Self.FColumnCount := ColumnCount;
-      Self.FFixedItemWidth := FixedItemWidth;
       Self.FFixedItemHeight := FixedItemHeight;
       Self.FFont.Assign(Font);
       Self.FFrame.Assign(Frame);
@@ -700,26 +693,18 @@ var
   li: TLegendItem;
 begin
   Result := Point(0, 0);
-  if (FixedItemWidth <= 0) or (FixedItemHeight <= 0) then
-    for li in AItems do begin
-      li.UpdateFont(ADrawer, prevFont);
-      if li.Text = '' then
-        p := Point(0, ADrawer.TextExtent('I', FTextFormat).Y)
-      else
-        p := ADrawer.TextExtent(li.Text, FTextFormat);
-      if li.HasSymbol then
-        p.X += ADrawer.Scale(SYMBOL_TEXT_SPACING + SymbolWidth);
-      Result := MaxPoint(p, Result);
-    end;
-  if FixedItemWidth > 0 then
-    Result.X := ADrawer.Scale(FixedItemWidth);
+  for li in AItems do begin
+    li.UpdateFont(ADrawer, prevFont);
+    if li.Text = '' then
+      p := Point(0, ADrawer.TextExtent('I', FTextFormat).Y)
+    else
+      p := ADrawer.TextExtent(li.Text, FTextFormat);
+    if li.HasSymbol then
+      p.X += ADrawer.Scale(SYMBOL_TEXT_SPACING + SymbolWidth);
+    Result := MaxPoint(p, Result);
+  end;
   if FixedItemHeight > 0 then
     Result.Y := ADrawer.Scale(FixedItemHeight);
-end;
-
-function TChartLegend.IsPointInBounds(APoint: TPoint): Boolean;
-begin
-  Result := IsPointInRect(APoint, FLegendRect);
 end;
 
 procedure TChartLegend.Prepare(
@@ -779,7 +764,6 @@ begin
         AClipRect.Bottom -= legendSize.Y + 2 * margY;
     end;
   AData.FBounds := Bounds(x, y, legendSize.X, legendSize.Y);
-  FLegendRect := Rect(x, y, x + legendSize.X, y + legendSize.Y);
 end;
 
 procedure TChartLegend.SetAlignment(AValue: TLegendAlignment);
@@ -799,13 +783,6 @@ procedure TChartLegend.SetColumnCount(AValue: TLegendColumnCount);
 begin
   if FColumnCount = AValue then exit;
   FColumnCount := AValue;
-  StyleChanged(Self);
-end;
-
-procedure TChartLegend.SetFixedItemWidth(AValue: Cardinal);
-begin
-  if FFixedItemWidth = AValue then exit;
-  FFixedItemWidth := AValue;
   StyleChanged(Self);
 end;
 
@@ -965,14 +942,10 @@ procedure TChartSeriesLegend.Assign(Source: TPersistent);
 begin
   if Source is TChartSeriesLegend then
     with TChartSeriesLegend(Source) do begin
-      Self.FFormat := FFormat;
-      Self.FGroupIndex := FGroupIndex;
       Self.FMultiplicity := FMultiplicity;
       Self.FOnDraw := FOnDraw;
-      Self.FOrder := FOrder;
       Self.FTextFormat := FTextFormat;
       Self.FUserItemsCount := FUserItemsCount;
-      Self.FVisible := FVisible;
     end;
 
   inherited Assign(Source);

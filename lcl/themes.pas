@@ -2315,7 +2315,7 @@ begin
   // teHeader should not be here, it has no disabled state
 
   Result := False;
-  if (Details.Element in [teButton, teToolBar, teComboBox, teEdit]) or
+  if (Details.Element in [teButton, teToolBar, teComboBox]) or
      ((Details.Element = teRebar) and (Details.Part >= RP_BAND)) or
      ((Details.Element = teWindow) and (Details.Part >= WP_SYSBUTTON) and
      (Details.Part <= WP_MDIHELPBUTTON)) then
@@ -2449,7 +2449,6 @@ begin
     case Details.State of
       TREIS_SELECTED,
       TREIS_HOTSELECTED: Canvas.Font.Color := clHighlightText;
-      TREIS_DISABLED: Canvas.Font.Color := clGrayText;
       TREIS_SELECTEDNOTFOCUS: Canvas.Font.Color := clBtnText;
     else
       Canvas.Font.Color := clWindowText;

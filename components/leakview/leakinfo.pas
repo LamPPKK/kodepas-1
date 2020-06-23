@@ -11,15 +11,11 @@ uses
   // CodeTools
   CodeToolManager, CodeCache,
   // LazUtils
-  FileUtil, LazFileUtils, LazClasses, LazLoggerBase,
+  FileUtil, LazFileUtils, LazClasses,
   // IDEIntf
   TextTools,
   // LeakView
-  {$IFDEF LEAK_RESOLVE_USE_FPC}
-  DbgInfoReader,
-  {$ENDIF}
-  DbgIntfBaseTypes, FpDbgLoader, FpDbgDwarf, FpDbgInfo,
-  LldbHelper;
+  DbgInfoReader, DbgIntfBaseTypes, LldbHelper;
 
 type
   { TStackLine }
@@ -883,46 +879,17 @@ end;
 function THeapTrcInfo.ResolveLeakInfo(AFileName: string; Traces: TStackTraceList
   ): Boolean;
 var
-  DwarfInfo: TFpDwarfInfo;
-  ImageLoaderList: TDbgImageLoaderList;
-
-  procedure UnLoadDwarf;
-  begin
-    FreeAndNil(DwarfInfo);
-    FreeAndNil(ImageLoaderList);
-  end;
-  procedure LoadDwarf;
-  var
-    ImageLoader: TDbgImageLoader;
-  begin
-    ImageLoader := TDbgImageLoader.Create(AFileName);
-    ImageLoaderList := TDbgImageLoaderList.Create(True);
-    ImageLoader.AddToLoaderList(ImageLoaderList);
-    DwarfInfo := TFpDwarfInfo.Create(ImageLoaderList);
-    DwarfInfo.LoadCompilationUnits;
-  end;
-
-var
   trace: TStackTrace;
   i, j, k: Integer;
   CurLine: TStackLine;
-  {$IFDEF LEAK_RESOLVE_USE_FPC}
   FuncName, SrcName: shortstring;
   SrcLine: longint;
-  {$ENDIF}
   BadAddresses: TStackLines;
-  sym: TFpSymbol;
 begin
   Result := False;
-  {$IFDEF LEAK_RESOLVE_USE_FPC}
   if not OpenSymbolFile(AFileName) then
     exit;
-  {$ELSE}
-  LoadDwarf;
-  {$ENDIF}
   BadAddresses := TStackLines.Create;
-  if DwarfInfo = nil then
-    exit;
   try
     for i := 0 to Traces.Count - 1 do begin
       trace := TStackTrace(Traces[i]);
@@ -933,40 +900,21 @@ begin
           if k >= 0 then
             CurLine.Assign(FKnownAddresses.Lines[k])
           else
-          if (BadAddresses.IndexOfAddr(CurLine.Addr) < 0) and (CurLine.Addr > 0) then begin
-            {$IFDEF LEAK_RESOLVE_USE_FPC}
+          if BadAddresses.IndexOfAddr(CurLine.Addr) < 0 then begin
             if GetLineInfo(CurLine.Addr, FuncName, SrcName, SrcLine) then begin
               CurLine.FileName := SrcName;
               CurLine.LineNum := SrcLine;
               FKnownAddresses.Add(CurLine);
             end
-            {$ELSE}
-            if j > 0 then
-              sym := DwarfInfo.FindProcSymbol(CurLine.Addr - 1 + ImageLoaderList.ImageBase)
-            else
-              sym := DwarfInfo.FindProcSymbol(CurLine.Addr + ImageLoaderList.ImageBase);
-            if (sym <> nil) and (sym.Line > 0) then begin
-              CurLine.FileName := sym.FileName;
-              CurLine.LineNum := sym.Line;
-              FKnownAddresses.Add(CurLine);
-            end
-            {$ENDIF}
             else begin
               BadAddresses.Add(CurLine);
             end;
-            {$IFnDEF LEAK_RESOLVE_USE_FPC}
-            ReleaseRefAndNil(sym);
-            {$ENDIF}
           end;
         end;
       end;
     end;
   finally
-    {$IFDEF LEAK_RESOLVE_USE_FPC}
     CloseSymbolFile;
-    {$ELSE}
-    UnLoadDwarf;
-    {$ENDIF}
     FreeAndNil(BadAddresses);
     Result := True;
   end;

@@ -478,15 +478,12 @@ begin
           Result := Monitors[i];
         end
       end;
-      if MonitorDefault = mdNearest then
+      Distance := Min(Min(Abs(Rect.Left - MonitorRect.Right), Abs(Rect.Right - MonitorRect.Left)),
+                      Min(Abs(Rect.Top - MonitorRect.Bottom), Abs(Rect.Bottom - MonitorRect.Top)));
+      if Distance < BestDistance then
       begin
-        Distance := Min(Min(Abs(Rect.Left - MonitorRect.Right), Abs(Rect.Right - MonitorRect.Left)),
-                        Min(Abs(Rect.Top - MonitorRect.Bottom), Abs(Rect.Bottom - MonitorRect.Top)));
-        if Distance < BestDistance then
-        begin
-          BestDistance := Distance;
-          Nearest := Monitors[i];
-        end;
+        BestDistance := Distance;
+        Nearest := Monitors[i];
       end;
     end;
     if Result = nil then

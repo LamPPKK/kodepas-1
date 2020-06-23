@@ -25,7 +25,6 @@ etc)
 unit GraphMath;
 
 {$Mode OBJFPC} {$H+}
-{$inline on}
 
 interface
 
@@ -57,27 +56,27 @@ procedure Bezier2Polyline(const Bezier : TBezier; var Points : PPoint;
 procedure BezierArcPoints(X, Y, Width, Height : Longint; Angle1, Angle2,
   Rotation : Extended; var Points : PPoint; var Count : Longint);
 
-function BezierMidPoint(const Bezier : TBezier) : TFloatPoint; inline;
+function BezierMidPoint(Bezier : TBezier) : TFloatPoint;
 
 procedure Coords2Angles(X, Y, Width, Height : Integer; SX, SY,
   EX, EY : Integer; var Angle1, Angle2 : Extended);
 
-function Distance(const PT1,Pt2 : TPoint) : Extended; overload; inline;
-function Distance(const Pt, SP, EP : TFloatPoint) : Extended; overload;
+function Distance(PT1,Pt2 : TPoint) : Extended; overload;
+function Distance(Pt, SP, EP : TFloatPoint) : Extended; overload;
 
-function EccentricAngle(const PT : TPoint; const Rect : TRect) : Extended;
+function EccentricAngle(PT : TPoint; Rect : TRect) : Extended;
 
-function EllipseRadialLength(const Rect : TRect; EccentricAngle : Extended) : Longint;
+function EllipseRadialLength(Rect : TRect; EccentricAngle : Extended) : Longint;
 
-function FloatPoint(AX,AY : Extended): TFloatPoint; inline;
+function FloatPoint(AX,AY : Extended): TFloatPoint;
 
-function LineEndPoint(const StartPoint : TPoint; Angle, Length : Extended) : TPoint;
+function LineEndPoint(StartPoint : TPoint; Angle, Length : Extended) : TPoint;
 
 procedure PolyBezier2Polyline(Beziers: Array of TBezier;
   var Points : PPoint; var Count : Longint); Overload;
-procedure PolyBezier2Polyline(Beziers : Array of TPoint;
+procedure PolyBezier2Polyline(Beziers : Array of TPoint; 
   var Points : PPoint; var Count : Longint; 
-  Continuous : Boolean); Overload; inline;
+  Continuous : Boolean); Overload;
 procedure PolyBezier2Polyline(Beziers : PPoint; BCount : Longint;
   var Points : PPoint; var Count : Longint; 
   Continuous : Boolean); Overload;
@@ -85,48 +84,48 @@ procedure PolyBezier2Polyline(Beziers : PPoint; BCount : Longint;
 procedure PolyBezierArcPoints(X, Y, Width, Height : Longint; Angle1,
   Angle2, Rotation : Extended; var Points : PPoint; var Count : Longint);
 
-function Quadrant(const PT, Center : TPoint) : Integer;
+function Quadrant(PT, Center : TPoint) : Integer;
 
-function RadialPoint(EccentricAngle : Extended; const Rect : TRect) : TPoint;
+function RadialPoint(EccentricAngle : Extended; Rect : TRect) : TPoint;
 
-procedure SplitBezier(const Bezier : TBezier; var Left, Right : TBezier);
+procedure SplitBezier(Bezier : TBezier; var Left, Right : TBezier);
 
-Operator + (const Addend1, Addend2 : TFloatPoint) : TFloatPoint; inline;
-Operator + (const Addend1 : TFloatPoint; Addend2 : Extended) : TFloatPoint; inline;
-Operator + (Addend1 : Extended; const Addend2 : TFloatPoint) : TFloatPoint; inline;
-Operator + (const Addend1 : TFloatPoint; const Addend2 : TPoint) : TFloatPoint; inline;
-Operator + (const Addend1 : TPoint; const Addend2 : TFloatPoint) : TFloatPoint; inline;
+Operator + (Addend1, Addend2 : TFloatPoint) : TFloatPoint;
+Operator + (Addend1 : TFloatPoint; Addend2 : Extended) : TFloatPoint;
+Operator + (Addend1 : Extended; Addend2 : TFloatPoint) : TFloatPoint;
+Operator + (Addend1 : TFloatPoint; Addend2 : TPoint) : TFloatPoint;
+Operator + (Addend1 : TPoint; Addend2 : TFloatPoint) : TFloatPoint;
 
-Operator - (const Minuend : TFloatPoint; Subtrahend : Extended) : TFloatPoint; inline;
-Operator - (const Minuend, Subtrahend : TFloatPoint) : TFloatPoint; inline;
-Operator - (const Minuend : TFloatPoint; const Subtrahend : TPoint) : TFloatPoint; inline;
-Operator - (const Minuend : TPoint; const Subtrahend : TFloatPoint) : TFloatPoint; inline;
+Operator - (Minuend : TFloatPoint; Subtrahend : Extended) : TFloatPoint;
+Operator - (Minuend, Subtrahend : TFloatPoint) : TFloatPoint;
+Operator - (Minuend : TFloatPoint; Subtrahend : TPoint) : TFloatPoint;
+Operator - (Minuend : TPoint; Subtrahend : TFloatPoint) : TFloatPoint;
 
-Operator * (const Multiplicand, Multiplier : TFloatPoint) : TFloatPoint; inline;
-Operator * (const Multiplicand : TFloatPoint; Multiplier : Extended) : TFloatPoint; inline;
-Operator * (Multiplicand : Extended; const Multiplier : TFloatPoint) : TFloatPoint; inline;
-Operator * (const Multiplicand : TFloatPoint; const Multiplier : TPoint) : TFloatPoint; inline;
-Operator * (const Multiplicand : TPoint; const Multiplier : TFloatPoint) : TFloatPoint; inline;
+Operator * (Multiplicand, Multiplier : TFloatPoint) : TFloatPoint;
+Operator * (Multiplicand : TFloatPoint; Multiplier : Extended) : TFloatPoint;
+Operator * (Multiplicand : Extended; Multiplier : TFloatPoint) : TFloatPoint;
+Operator * (Multiplicand : TFloatPoint; Multiplier : TPoint) : TFloatPoint;
+Operator * (Multiplicand : TPoint; Multiplier : TFloatPoint) : TFloatPoint;
 
-Operator / (const Dividend, Divisor : TFloatPoint) : TFloatPoint; inline;
-Operator / (const Dividend : TFloatPoint; Divisor : Extended) : TFloatPoint; inline;
-Operator / (const Dividend : TFloatPoint; const Divisor : TPoint) : TFloatPoint; inline;
-Operator / (const Dividend : TPoint; const Divisor : TFloatPoint) : TFloatPoint; inline;
+Operator / (Dividend, Divisor : TFloatPoint) : TFloatPoint;
+Operator / (Dividend : TFloatPoint; Divisor : Extended) : TFloatPoint;
+Operator / (Dividend : TFloatPoint; Divisor : TPoint) : TFloatPoint;
+Operator / (Dividend : TPoint; Divisor : TFloatPoint) : TFloatPoint;
 
-Operator = (const Compare1, Compare2 : TPoint) : Boolean; inline;
-Operator = (const Compare1, Compare2 : TFloatPoint) : Boolean; inline;
+Operator = (Compare1, Compare2  : TPoint) : Boolean;
+Operator = (Compare1, Compare2  : TFloatPoint) : Boolean;
 
-Operator := (const Value : TFloatPoint) : TPoint; inline;
+Operator := (Value : TFloatPoint) : TPoint;
 
-Operator := (const Value : TPoint) : TFloatPoint; inline;
+Operator := (Value : TPoint) : TFloatPoint;
 
-Operator = (const Compare1, Compare2  : TRect) : Boolean;
+Operator = (Compare1, Compare2  : TRect) : Boolean;
 
 
 implementation
 
 
-Operator + (const Addend1, Addend2 : TFloatPoint) : TFloatPoint;
+Operator + (Addend1, Addend2 : TFloatPoint) : TFloatPoint;
 Begin
   With Result do begin
     X := Addend1.X + Addend2.X;
@@ -134,7 +133,7 @@ Begin
   end;
 end;
 
-Operator + (const Addend1 : TFloatPoint; Addend2 : Extended) : TFloatPoint;
+Operator + (Addend1 : TFloatPoint; Addend2 : Extended) : TFloatPoint;
 Begin
   With Result do begin
     X := Addend1.X + Addend2;
@@ -142,12 +141,12 @@ Begin
   end;
 end;
 
-Operator + (Addend1 : Extended; const Addend2 : TFloatPoint) : TFloatPoint;
+Operator + (Addend1 : Extended; Addend2 : TFloatPoint) : TFloatPoint;
 begin
   Result := Addend2 + Addend1;
 end;
 
-Operator + (const Addend1 : TFloatPoint; const Addend2 : TPoint) : TFloatPoint;
+Operator + (Addend1 : TFloatPoint; Addend2 : TPoint) : TFloatPoint;
 Begin
   With Result do begin
     X := Addend1.X + Addend2.X;
@@ -155,12 +154,12 @@ Begin
   end;
 end;
 
-Operator + (const Addend1 : TPoint; const Addend2 : TFloatPoint) : TFloatPoint;
+Operator + (Addend1 : TPoint; Addend2 : TFloatPoint) : TFloatPoint;
 begin
   Result := Addend2 + Addend1;
 end;
 
-Operator - (const Minuend, Subtrahend:TFloatPoint) : TFloatPoint;
+Operator - (Minuend, Subtrahend:TFloatPoint) : TFloatPoint;
 Begin
   With Result do begin
     X := Minuend.X - Subtrahend.X;
@@ -168,7 +167,7 @@ Begin
   end;
 end;
 
-Operator - (const Minuend : TFloatPoint; Subtrahend : Extended) : TFloatPoint;
+Operator - (Minuend : TFloatPoint; Subtrahend : Extended) : TFloatPoint;
 Begin
   With Result do begin
     X := Minuend.X - Subtrahend;
@@ -176,7 +175,7 @@ Begin
   end;
 end;
 
-Operator - (const Minuend : TFloatPoint; const Subtrahend : TPoint) : TFloatPoint;
+Operator - (Minuend : TFloatPoint; Subtrahend : TPoint) : TFloatPoint;
 begin
   With Result do begin
     X := Minuend.X - Subtrahend.X;
@@ -184,7 +183,7 @@ begin
   end;
 end;
 
-Operator - (const Minuend : TPoint; const Subtrahend : TFloatPoint) : TFloatPoint;
+Operator - (Minuend : TPoint; Subtrahend : TFloatPoint) : TFloatPoint;
 begin
   With Result do begin
     X := Minuend.X - Subtrahend.X;
@@ -192,7 +191,7 @@ begin
   end;
 end;
 
-Operator * (const Multiplicand, Multiplier : TFloatPoint) : TFloatPoint;
+Operator * (Multiplicand, Multiplier : TFloatPoint) : TFloatPoint;
 Begin
   With Result do begin
     X := Multiplicand.X * Multiplier.X;
@@ -200,7 +199,7 @@ Begin
   end;
 end;
 
-Operator * (const Multiplicand : TFloatPoint; Multiplier : Extended) : TFloatPoint;
+Operator * (Multiplicand : TFloatPoint; Multiplier : Extended) : TFloatPoint;
 Begin
   With Result do begin
     X := Multiplicand.X * Multiplier;
@@ -208,12 +207,12 @@ Begin
   end;
 end;
 
-Operator * (Multiplicand : Extended; const Multiplier : TFloatPoint) : TFloatPoint;
+Operator * (Multiplicand : Extended; Multiplier : TFloatPoint) : TFloatPoint;
 Begin
   Result := Multiplier*Multiplicand;
 end;
 
-Operator * (const Multiplicand : TFloatPoint; const Multiplier : TPoint) : TFloatPoint;
+Operator * (Multiplicand : TFloatPoint; Multiplier : TPoint) : TFloatPoint;
 begin
   With Result do begin
     X := Multiplicand.X * Multiplier.X;
@@ -221,12 +220,12 @@ begin
   end;
 end;
 
-Operator * (const Multiplicand : TPoint; const Multiplier : TFloatPoint) : TFloatPoint;
+Operator * (Multiplicand : TPoint; Multiplier : TFloatPoint) : TFloatPoint;
 begin
   Result := Multiplier*Multiplicand;
 end;
 
-Operator / (const Dividend, Divisor : TFloatPoint) : TFloatPoint;
+Operator / (Dividend, Divisor : TFloatPoint) : TFloatPoint;
 Begin
   With Result do begin
     X := Dividend.X / Divisor.X;
@@ -234,7 +233,7 @@ Begin
   end;
 end;
 
-Operator / (const Dividend : TFloatPoint; Divisor : Extended) : TFloatPoint;
+Operator / (Dividend : TFloatPoint; Divisor : Extended) : TFloatPoint;
 begin
   With Result do begin
     X := Dividend.X / Divisor;
@@ -242,7 +241,7 @@ begin
   end;
 end;
 
-Operator / (const Dividend : TFloatPoint; const Divisor : TPoint) : TFloatPoint;
+Operator / (Dividend : TFloatPoint; Divisor : TPoint) : TFloatPoint;
 begin
   With Result do begin
     X := Dividend.X / Divisor.X;
@@ -250,7 +249,7 @@ begin
   end;
 end;
 
-Operator / (const Dividend : TPoint; const Divisor : TFloatPoint) : TFloatPoint;
+Operator / (Dividend : TPoint; Divisor : TFloatPoint) : TFloatPoint;
 begin
   With Result do begin
     X := Dividend.X / Divisor.X;
@@ -258,23 +257,23 @@ begin
   end;
 end;
 
-Operator = (const Compare1, Compare2  : TPoint) : Boolean;
+Operator = (Compare1, Compare2  : TPoint) : Boolean;
 begin
   Result := (Compare1.X = Compare2.X) and (Compare1.Y = Compare2.Y);
 end;
 
-Operator = (const Compare1, Compare2  : TFloatPoint) : Boolean;
+Operator = (Compare1, Compare2  : TFloatPoint) : Boolean;
 begin
   Result := (Compare1.X = Compare2.X) and (Compare1.Y = Compare2.Y);
 end;
 
-Operator := (const Value : TFloatPoint) : TPoint;
+Operator := (Value : TFloatPoint) : TPoint;
 begin
   Result.X := Trunc(SimpleRoundTo(Value.X, 0));
   Result.Y := Trunc(SimpleRoundTo(Value.Y, 0));
 end;
 
-Operator := (const Value : TPoint) : TFloatPoint;
+Operator := (Value : TPoint) : TFloatPoint;
 begin
   With Result do begin
     X := Value.X;
@@ -282,7 +281,7 @@ begin
   end;
 end;
 
-Operator = (const Compare1, Compare2  : TRect) : Boolean;
+Operator = (Compare1, Compare2  : TRect) : Boolean;
 begin
   Result := (Compare1.Left = Compare2.Left) and
             (Compare1.Top = Compare2.Top) and
@@ -586,7 +585,7 @@ end;
   primarily for use in SplitBezier.
 
 ------------------------------------------------------------------------------}
-function BezierMidPoint(const Bezier : TBezier) : TFloatPoint;
+function BezierMidPoint(Bezier : TBezier) : TFloatPoint;
 begin
   Result := (Bezier[0] + 3*Bezier[1] + 3*Bezier[2] + Bezier[3]) / 8;
 end;
@@ -630,7 +629,7 @@ end;
   for use in other routines such as EccentricAngle.
 
 ------------------------------------------------------------------------------}
-function Distance(const Pt1,Pt2 : TPoint) : Extended;
+function Distance(Pt1,Pt2 : TPoint) : Extended;
 begin
   Result := Sqrt(Sqr(Pt2.X - Pt1.X) + Sqr(Pt2.Y - Pt1.Y));
 end;
@@ -645,7 +644,7 @@ end;
   are TFloatPoint's, NOT TPoint's.
 
 ------------------------------------------------------------------------------}
-function Distance(const Pt, SP, EP : TFloatPoint) : Extended;
+function Distance(Pt, SP, EP : TFloatPoint) : Extended;
 var
   A, B, C : Extended;
 
@@ -680,7 +679,7 @@ end;
   5760 (16*360).  Zero degrees is at the 3'o clock position.
 
 ------------------------------------------------------------------------------}
-function EccentricAngle(const PT : TPoint; const Rect : TRect) : Extended;
+function EccentricAngle(PT : TPoint; Rect : TRect) : Extended;
 var
   CenterPt : TPoint;
   Quad : Integer;
@@ -732,7 +731,7 @@ end;
   3'o clock position.
 
 ------------------------------------------------------------------------------}
-function EllipseRadialLength(const Rect : TRect; EccentricAngle : Extended) : Longint;
+function EllipseRadialLength(Rect : TRect; EccentricAngle : Extended) : Longint;
 var
   a, b, R : Extended;
 begin
@@ -775,7 +774,7 @@ end;
   3'o clock position.
 
 ------------------------------------------------------------------------------}
-function LineEndPoint(const StartPoint : TPoint; Angle, Length : Extended) :
+function LineEndPoint(StartPoint : TPoint; Angle, Length : Extended) : 
 TPoint;
 begin
   if Angle > 360*16 then
@@ -959,7 +958,7 @@ end;
   that is, it is the Center.
 
 ------------------------------------------------------------------------------}
-function Quadrant(const Pt,Center : TPoint) : Integer;
+function Quadrant(Pt,Center : TPoint) : Integer;
 var
   X,Y,CX,CY : Longint;
 begin
@@ -1016,7 +1015,7 @@ end;
   equals 5760 (16*360).  Zero degrees is at the 3'o clock position.
 
 ------------------------------------------------------------------------------}
-function RadialPoint(EccentricAngle : Extended; const Rect : TRect) : TPoint;
+function RadialPoint(EccentricAngle : Extended; Rect : TRect) : TPoint;
 var
   R : Longint;
 Begin
@@ -1033,7 +1032,7 @@ end;
   a 'Left' and a 'Right'. It is primarily for use in Bezier2Polyline.
 
 ------------------------------------------------------------------------------}
-procedure SplitBezier(const Bezier : TBezier; var Left, Right : TBezier);
+procedure SplitBezier(Bezier : TBezier; var Left, Right : TBezier);
 var
   Tmp : TFloatPoint;
 begin

@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: lcltype.pp 61638 2019-07-28 10:44:39Z martin $  }
 {
  /***************************************************************************
                                 LCLType.pp
@@ -251,7 +251,6 @@ const
   DT_SINGLELINE = $20;
   DT_EXPANDTABS = $40;
   DT_NOCLIP = $100;
-  //DT_EXTERNALLEADING = $200;
   DT_CALCRECT = $400;
   DT_NOPREFIX = $800;
   DT_INTERNAL = $1000;
@@ -259,9 +258,6 @@ const
   DT_END_ELLIPSIS = $8000;
   DT_MODIFYSTRING = $10000;
   DT_RTLREADING =  $20000;
-  //DT_WORDREADING = $40000;
-  //DT_HIDEPREFIX = $100000;
-  //DT_PREFIXONLY = $200000;
 
 //==============================================
 // Draw frame constants
@@ -1710,7 +1706,7 @@ const
   SYS_COLOR_BASE = TColorRef($80000000);
 
   // !! deprecated colors !!
-  {$IFDEF DefineCLXColors}
+
   // CLX base, mapped, pseudo, rgb values
   COLOR_clForeground =  32;
   COLOR_clButton =  COLOR_clForeground+1;
@@ -1774,7 +1770,6 @@ const
   COLOR_clActiveShadow =  COLOR_clActiveForeground+11;
   COLOR_clActiveHighlight =  COLOR_clActiveForeground+12;
   COLOR_clActiveHighlightedText =  COLOR_clActiveForeground+13;
-  {$ENDIF}
 
 //==============================================
 // Stock Objects

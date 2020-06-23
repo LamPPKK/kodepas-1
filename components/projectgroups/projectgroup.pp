@@ -35,8 +35,7 @@ interface
 uses
   Classes, SysUtils, contnrs,
   // LazUtils
-  LazFileUtils, FileUtil, LazFileCache, LazConfigStorage, Laz2_XMLCfg,
-  LazTracer, LazUtilities, AvgLvlTree, LazStringUtils,
+  LazFileUtils, FileUtil, LazFileCache, LazConfigStorage, Laz2_XMLCfg, LazTracer,
   // LCL
   Controls, Forms, Dialogs,
   // CodeTools
@@ -44,13 +43,12 @@ uses
   // IdeIntf
   PackageIntf, ProjectIntf, MenuIntf, LazIDEIntf, IDEDialogs, CompOptsIntf,
   BaseIDEIntf, IDECommands, IDEExternToolIntf, MacroIntf, IDEMsgIntf,
-  ToolBarIntf, MacroDefIntf, PackageDependencyIntf, PackageLinkIntf,
   // ProjectGroups
   ProjectGroupIntf, ProjectGroupStrConst;
 
 const
   PGOptionsFileName = 'projectgroupsoptions.xml';
-  PGFileVersion = 2;
+  PGFileVersion = 1;
 
 type
   { TIDECompileTarget }
@@ -71,7 +69,7 @@ type
     function GetRequiredPackages(Index: integer): TPGDependency; override;
     procedure LoadPackage;
     procedure LoadProject;
-    procedure LoadProject_GroupSettings(XMLConfig: TXMLConfig; aPath: string; FileVersion: Integer);
+    procedure LoadProject_GroupSettings(XMLConfig: TXMLConfig; aPath: string);
     procedure SaveProject_GroupSettings(XMLConfig: TXMLConfig; aPath: string);
     procedure LoadProjectGroup(Recursively: boolean);
     function ProjectAction(AAction: TPGTargetAction; StartBuildMode: string = ''): TPGActionResult;
@@ -82,11 +80,10 @@ type
     function PerformAction(AAction: TPGTargetAction): TPGActionResult; override;
     function PerformNextTarget(AAction: TPGTargetAction): TPGActionResult;
     procedure ActiveChanged(Sender: TPGCompileTarget); override;
-    procedure SetParent(NewParent: TPGCompileTarget); virtual;
   public
     destructor Destroy; override;
     procedure LoadTarget(Recursively: boolean); virtual;
-    procedure LoadGroupSettings(XMLConfig: TXMLConfig; aPath: string; FileVersion: Integer);
+    procedure LoadGroupSettings(XMLConfig: TXMLConfig; aPath: string);
     procedure SaveGroupSettings(XMLConfig: TXMLConfig; aPath: string);
     procedure UnLoadTarget; virtual;
     procedure Modified; override;
@@ -104,8 +101,6 @@ type
     procedure SetTargetType(AValue: TPGTargetType); override;
   public
     constructor Create(aOwner: TProjectGroup);
-    Destructor Destroy; override;
-
   end;
 
   TTargetEvent = procedure(Sender: TObject; Target: TPGCompileTarget) of object;
@@ -118,36 +113,37 @@ type
     FActiveTarget: TPGCompileTarget;
     FOnFileNameChange: TNotifyEvent;
     FOnTargetActiveChanged: TTargetEvent;
-    FOnTargetInserted: TTargetEvent;
+    FOnTargetAdded: TTargetEvent;
     FOnTargetDeleted: TTargetEvent;
+    FOnTargetReadded: TTargetEvent;
     FOnTargetsExchanged: TTargetExchangeEvent;
     FTargets: TFPObjectList;
+    FRemovedTargets: TFPObjectList;
   protected
     procedure SetFileName(AValue: String); override;
     function GetTarget(Index: Integer): TPGCompileTarget; override;
     function GetTargetCount: Integer; override;
+    function GetRemovedTargetCount: Integer; override;
+    function GetRemovedTarget(Index: Integer): TPGCompileTarget; override;
     function GetActiveTarget: TPGCompileTarget; override;
     procedure SetActiveTarget(AValue: TPGCompileTarget); override;
-    procedure DoTargetDeleted(Sender: TObject; Target: TPGCompileTarget);
-    procedure DoTargetInserted(Sender: TObject; Target: TPGCompileTarget);
   public
     constructor Create(aCompileTarget: TIDECompileTarget);
     destructor Destroy; override;
     procedure Clear;
-    procedure CheckInvalidCycle(const aFilename: string);
     function IndexOfTarget(const Target: TPGCompileTarget): Integer; override;
+    function IndexOfRemovedTarget(const Target: TPGCompileTarget): Integer; override;
     function AddTarget(Const AFileName: String): TPGCompileTarget; override;
-    function InsertTarget(const Target: TPGCompileTarget; Index: Integer
-      ): Integer; override;
+    procedure ReAddTarget(Target: TPGCompileTarget); override;
     procedure RemoveTarget(Index: Integer); override;
-    procedure ExchangeTargets(OldIndex, NewIndex: Integer); override;
+    procedure ExchangeTargets(ASource, ATarget: Integer); override;
     procedure ActiveTargetChanged(T: TPGCompileTarget);
-    function UpdateMissing: boolean; override;
     function LoadFromFile(Options: TProjectGroupLoadOptions): Boolean;
     function SaveToFile: Boolean;
     property OnFileNameChange: TNotifyEvent Read FOnFileNameChange Write FOnFileNameChange;
-    property OnTargetInserted: TTargetEvent Read FOnTargetInserted Write FOnTargetInserted;
+    property OnTargetAdded: TTargetEvent Read FOnTargetAdded Write FOnTargetAdded;
     property OnTargetDeleted: TTargetEvent Read FOnTargetDeleted Write FOnTargetDeleted;
+    property OnTargetReadded: TTargetEvent Read FOnTargetReadded Write FOnTargetReadded;
     property OnTargetActiveChanged: TTargetEvent Read FOnTargetActiveChanged Write FOnTargetActiveChanged;
     property OnTargetsExchanged: TTargetExchangeEvent Read FOnTargetsExchanged Write FOnTargetsExchanged;
   end;
@@ -156,18 +152,12 @@ type
 
   TIDEProjectGroupOptions = class
   private
-    FBuildCommandToCompileTarget: Boolean;
     FChangeStamp: integer;
-    FLastGroupFile: string;
     FLastSavedChangeStamp: integer;
-    FOpenLastGroupOnStart: Boolean;
     FRecentProjectGroups: TStringList;
     FShowTargetPaths: boolean;
     function GetModified: boolean;
-    procedure SetBuildCommandToCompileTarget(const AValue: Boolean);
-    procedure SetLastGroupFile(const AValue: string);
     procedure SetModified(AValue: boolean);
-    procedure SetOpenLastGroupOnStart(const AValue: Boolean);
     procedure SetShowTargetPaths(AValue: boolean);
   public
     constructor Create;
@@ -184,56 +174,21 @@ type
     property RecentProjectGroups: TStringList read FRecentProjectGroups;
     procedure AddToRecentProjectGroups(aFilename: string);
     // misc
-    property LastGroupFile: string read FLastGroupFile write SetLastGroupFile;
-    property OpenLastGroupOnStart: Boolean read FOpenLastGroupOnStart write SetOpenLastGroupOnStart;
     property ShowTargetPaths: boolean read FShowTargetPaths write SetShowTargetPaths;
-    property BuildCommandToCompileTarget: Boolean read FBuildCommandToCompileTarget write SetBuildCommandToCompileTarget;
-  end;
-
-  { TPGUndoItem }
-
-  TPGUndoItem = class
-  end;
-
-  { TPGUndoDelete }
-
-  TPGUndoDelete = class(TPGUndoItem)
-  public
-    Group: TIDEProjectGroup;
-    Target: TIDECompileTarget; // owned by this undo item
-    InFrontFile, BehindFile: string;
-    destructor Destroy; override;
   end;
 
   { TIDEProjectGroupManager }
 
   TIDEProjectGroupManager = Class(TProjectGroupManager)
   private
-    FIdleConnected: boolean;
-    FOnEditorOptionsChanged: TNotifyEvent;
-    FUndoList: TObjectList; // list of TPGUndoItem
-    FRedoList: TObjectList; // list of TPGUndoItem
     FOptions: TIDEProjectGroupOptions;
     procedure AddToRecentGroups(aFilename: string);
     function GetNewFileName: Boolean;
-    function GetPGSrcPaths(const s: string; const {%H-}Data: PtrInt;
-      var Abort: boolean): string;
-    procedure OnIdle(Sender: TObject; var {%H-}Done: Boolean);
-    procedure SetIdleConnected(const AValue: boolean);
-    procedure AddSrcPathOfFile(SrcPaths: TFilenameToStringTree; Filename: string);
-    procedure AddProjectSrcPaths(Target: TIDECompileTarget; SrcPaths, LPKFiles: TFilenameToStringTree);
-    procedure AddPackageSrcPaths(Target: TIDECompileTarget; SrcPaths, LPKFiles: TFilenameToStringTree);
-    procedure AddPackageNameSrcPaths(PkgName, PreferredFile, DefaultFile: string; SrcPaths, LPKFiles: TFilenameToStringTree);
-    procedure AddLPKSrcPaths(LPKFilename: string; SrcPaths, LPKFiles: TFilenameToStringTree);
-    procedure AddGroupSrcPaths(Group: TProjectGroup; SrcPaths, LPKFiles: TFilenameToStringTree);
   protected
-    FIDEStarted: boolean;
     FProjectGroup: TIDEProjectGroup;
   protected
     function GetCurrentProjectGroup: TProjectGroup; override;
     function ShowProjectGroupEditor: Boolean;
-    procedure TargetDeleting(Group: TIDEProjectGroup; Index: integer);
-    function GroupExists(Group: TIDEProjectGroup): boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -246,17 +201,10 @@ type
     procedure DoSaveClick(Sender: TObject);
     procedure DoSaveAsClick(Sender: TObject);
     // Public interface
-    function CanUndo: boolean; override;
-    function CanRedo: boolean; override;
-    procedure Undo; override;
-    procedure Redo; override;
     procedure LoadProjectGroup(AFileName: string; AOptions: TProjectGroupLoadOptions); override;
     procedure SaveProjectGroup; override;
-    function GetSrcPaths: string; override;
   public
     property Options: TIDEProjectGroupOptions read FOptions;
-    property IdleConnected: boolean read FIdleConnected write SetIdleConnected;
-    property OnEditorOptionsChanged: TNotifyEvent read FOnEditorOptionsChanged write FOnEditorOptionsChanged;
   end;
 
   TEditProjectGroupHandler = procedure(Sender: TObject; AProjectGroup: TProjectGroup);
@@ -269,7 +217,6 @@ var
 
   IDEProjectGroupManager: TIDEProjectGroupManager;
 
-  ViewProjGrpShortCutX: TIDEShortCut;
   ProjectGroupEditorMenuRoot: TIDEMenuSection = nil;
     PGEditMenuSectionFiles, // e.g. sort files, clean up files
     PGEditMenuSectionAddRemove, // e.g. add unit, add dependency
@@ -284,8 +231,6 @@ var
   PGCmdCategory: TIDECommandCategory;
 
   // IDE main bar menu items
-  ViewProjectGroupsCommand: TIDECommand;
-  ViewProjectGroupsButtonCommand: TIDEButtonCommand;
   CmdOpenProjectGroup: TIDECommand;
   MnuCmdOpenProjectGroup: TIDEMenuCommand;
   CmdSaveProjectGroup: TIDECommand;
@@ -310,9 +255,6 @@ var
   MnuCmdTargetProperties,
   MnuCmdTargetUninstall,
   MnuCmdTargetCopyFilename: TIDEMenuCommand;
-  MnuCmdProjGrpUndo: TIDEMenuCommand;
-  MnuCmdProjGrpRedo: TIDEMenuCommand;
-  MnuCmdProjGrpOptions: TIDEMenuCommand;
 
 function LoadXML(aFilename: string; Quiet: boolean): TXMLConfig;
 function CreateXML(aFilename: string; Quiet: boolean): TXMLConfig;
@@ -327,14 +269,14 @@ begin
   Result:=nil;
   aFilename:=TrimFilename(aFilename);
   if (aFilename='') or (not FilenameIsAbsolute(aFilename)) then begin
-    debugln(['Error: (kode) [TIDECompileTarget.LoadXML] invalid filename "',aFilename,'"']);
+    debugln(['Error: (lazarus) [TIDECompileTarget.LoadXML] invalid filename "',aFilename,'"']);
     if not Quiet then
       IDEMessageDialog(lisInvalidFile, Format(lisInvalidXmlFileName, [aFilename]), mtError, [mbOk]);
     exit;
   end;
   Code:=CodeToolBoss.LoadFile(aFilename,true,false);
   if Code=nil then begin
-    debugln(['Error: (kode) [TIDECompileTarget.LoadXML] unable to load file "',aFilename,'"']);
+    debugln(['Error: (lazarus) [TIDECompileTarget.LoadXML] unable to load file "',aFilename,'"']);
     if not Quiet then
       IDEMessageDialog(lisReadError, Format(lisUnableToLoadFile, [aFilename]), mtError, [mbOk]);
     exit;
@@ -344,7 +286,7 @@ begin
     Result.Modified:=false;
   except
     on E: Exception do begin
-      debugln(['Error: (kode) [TIDECompileTarget.LoadXML] xml syntax error in "',aFilename,'": '+E.Message]);
+      debugln(['Error: (lazarus) [TIDECompileTarget.LoadXML] xml syntax error in "',aFilename,'": '+E.Message]);
       if not Quiet then
         IDEMessageDialog(lisReadError, Format(lisXMLSyntaxErrorInFile, [aFilename, E.Message]), mtError, [mbOk]);
     end;
@@ -356,14 +298,14 @@ begin
   Result:=nil;
   aFilename:=TrimFilename(aFilename);
   if (aFilename='') or (not FilenameIsAbsolute(aFilename)) then begin
-    debugln(['Error: (kode) [TIDECompileTarget.CreateXML] invalid filename "',aFilename,'"']);
+    debugln(['Error: (lazarus) [TIDECompileTarget.CreateXML] invalid filename "',aFilename,'"']);
     exit;
   end;
   try
     Result:=TXMLConfig.CreateClean(aFilename);
   except
     on E: Exception do begin
-      debugln(['Error: (kode) [TIDECompileTarget.CreateXML] unable to create file "',aFilename,'": '+E.Message]);
+      debugln(['Error: (lazarus) [TIDECompileTarget.CreateXML] unable to create file "',aFilename,'": '+E.Message]);
       if not Quiet then
         IDEMessageDialog(lisWriteError, Format(lisUnableToCreateFile, [aFilename, E.Message]), mtError, [mbOk]);
     end;
@@ -381,34 +323,11 @@ begin
   Result:=FindDefaultExecutablePath('lazbuild'+ExeExt);
 end;
 
-{ TPGUndoDelete }
-
-destructor TPGUndoDelete.Destroy;
-begin
-  FreeAndNil(Target);
-  inherited Destroy;
-end;
-
 { TIDEProjectGroupOptions }
 
 function TIDEProjectGroupOptions.GetModified: boolean;
 begin
   Result:=FLastSavedChangeStamp<>FChangeStamp
-end;
-
-procedure TIDEProjectGroupOptions.SetBuildCommandToCompileTarget(
-  const AValue: Boolean);
-begin
-  if FBuildCommandToCompileTarget=AValue then Exit;
-  FBuildCommandToCompileTarget:=AValue;
-  IncreaseChangeStamp;
-end;
-
-procedure TIDEProjectGroupOptions.SetLastGroupFile(const AValue: string);
-begin
-  if FLastGroupFile=AValue then Exit;
-  FLastGroupFile:=AValue;
-  IncreaseChangeStamp;
 end;
 
 procedure TIDEProjectGroupOptions.SetModified(AValue: boolean);
@@ -417,14 +336,6 @@ begin
     IncreaseChangeStamp
   else
     FLastSavedChangeStamp:=FChangeStamp;
-end;
-
-procedure TIDEProjectGroupOptions.SetOpenLastGroupOnStart(const AValue: Boolean
-  );
-begin
-  if FOpenLastGroupOnStart=AValue then Exit;
-  FOpenLastGroupOnStart:=AValue;
-  IncreaseChangeStamp;
 end;
 
 procedure TIDEProjectGroupOptions.SetShowTargetPaths(AValue: boolean);
@@ -437,7 +348,6 @@ end;
 constructor TIDEProjectGroupOptions.Create;
 begin
   FRecentProjectGroups:=TStringList.Create;
-  FOpenLastGroupOnStart:=true;
 end;
 
 destructor TIDEProjectGroupOptions.Destroy;
@@ -453,7 +363,7 @@ begin
     Modified:=false;
   except
     on E: Exception do
-      debugln(['Error: (kode) [TIDEProjectGroupOptions.SaveSafe] ',E.Message]);
+      debugln(['Error: (lazarus) [TIDEProjectGroupOptions.SaveSafe] ',E.Message]);
   end;
 end;
 
@@ -463,7 +373,7 @@ begin
     LoadFromFile(PGOptionsFileName);
   except
     on E: Exception do
-      debugln(['Error: (kode) [TIDEProjectGroupOptions.LoadSafe] ',E.Message]);
+      debugln(['Error: (lazarus) [TIDEProjectGroupOptions.LoadSafe] ',E.Message]);
   end;
   Modified:=false;
 end;
@@ -475,10 +385,7 @@ begin
   Cfg:=GetIDEConfigStorage(aFilename,false);
   try
     Cfg.SetValue('RecentProjectGroups/',FRecentProjectGroups);
-    Cfg.SetDeleteValue('OpenLastGroupOnStart/Value',OpenLastGroupOnStart,true);
-    Cfg.SetDeleteValue('LastGroupFile/Value',LastGroupFile,'');
-    Cfg.SetDeleteValue('ShowTargetPaths/Value',ShowTargetPaths,false);
-    Cfg.SetDeleteValue('BuildCommandToCompileTarget/Value',BuildCommandToCompileTarget,false);
+    Cfg.SetDeleteValue('ShowTargetPaths/',ShowTargetPaths,false);
   finally
     Cfg.Free;
   end;
@@ -491,10 +398,7 @@ begin
   Cfg:=GetIDEConfigStorage(aFilename,true);
   try
     Cfg.GetValue('RecentProjectGroups/',FRecentProjectGroups);
-    OpenLastGroupOnStart:=Cfg.GetValue('OpenLastGroupOnStart/Value',true);
-    LastGroupFile:=Cfg.GetValue('LastGroupFile/Value','');
-    ShowTargetPaths:=Cfg.GetValue('ShowTargetPaths/Value',false);
-    BuildCommandToCompileTarget:=Cfg.GetValue('BuildCommandToCompileTarget/Value',false);
+    ShowTargetPaths:=Cfg.GetValue('ShowTargetPaths/',false);
   finally
     Cfg.Free;
   end;
@@ -562,59 +466,13 @@ begin
   end;
 end;
 
-procedure TIDEProjectGroupManager.TargetDeleting(Group: TIDEProjectGroup;
-  Index: integer);
-var
-  UndoDelete: TPGUndoDelete;
-  Target: TIDECompileTarget;
-begin
-  UndoDelete:=TPGUndoDelete.Create;
-  FUndoList.Add(UndoDelete);
-  Target:=Group.Targets[Index] as TIDECompileTarget;
-  UndoDelete.Target:=Target;
-  UndoDelete.Group:=Group;
-  if Index>0 then
-    UndoDelete.InFrontFile:=Group.Targets[Index-1].Filename;
-  if Index+1<Group.TargetCount then
-    UndoDelete.BehindFile:=Group.Targets[Index+1].Filename;
-end;
-
-function TIDEProjectGroupManager.GroupExists(Group: TIDEProjectGroup): boolean;
-
-  function HasGroupRecursive(CurGroup: TProjectGroup): boolean;
-  var
-    i: Integer;
-    Target: TPGCompileTarget;
-  begin
-    if CurGroup=Group then exit(true);
-    for i:=0 to CurGroup.TargetCount-1 do
-    begin
-      Target:=CurGroup.Targets[i];
-      if Target.ProjectGroup=nil then continue;
-      if HasGroupRecursive(Target.ProjectGroup) then exit(true);
-    end;
-    Result:=false;
-  end;
-
-begin
-  Result:=HasGroupRecursive(GetCurrentProjectGroup);
-end;
-
 constructor TIDEProjectGroupManager.Create;
 begin
   FOptions:=TIDEProjectGroupOptions.Create;
-  FUndoList:=TObjectList.Create(true);
-  FRedoList:=TObjectList.Create(true);
-  IdleConnected:=true;
-
-  IDEMacros.Add(TTransferMacro.Create('PGSrcPaths', '', lisProjectGroupsSourcePaths
-    , @GetPGSrcPaths, []));
 end;
 
 destructor TIDEProjectGroupManager.Destroy;
 begin
-  FreeAndNil(FUndoList);
-  FreeAndNil(FRedoList);
   FreeAndNil(FProjectGroup);
   FreeAndNil(FOptions);
   inherited Destroy;
@@ -702,229 +560,25 @@ end;
 
 function TIDEProjectGroupManager.GetNewFileName: Boolean;
 var
-  Dlg: TSaveDialog;
+  F: TSaveDialog;
 begin
   Result:=False;
-  Dlg:=IDESaveDialogClass.Create(nil);
-  try
-    Dlg.FileName:=FProjectGroup.FileName;
-    InitIDEFileDialog(Dlg);
-    Dlg.Options:=[ofOverwritePrompt,ofPathMustExist,ofEnableSizing];
-    Dlg.Filter:=lisLazarusProjectGroupsLpg+'|*.lpg|'+lisAllFiles+'|'+AllFilesMask;
-    Dlg.DefaultExt:='.lpg';
-    Result:=Dlg.Execute;
-    if Result then begin
-      FProjectGroup.FileName:=TrimAndExpandFilename(Dlg.FileName);
+  F:=TSaveDialog.Create(Nil);
+  With F do
+    try
+      FileName:=FProjectGroup.FileName;
+      InitIDEFileDialog(F);
+      F.Options:=[ofOverwritePrompt,ofPathMustExist,ofEnableSizing];
+      F.Filter:=lisLazarusProjectGroupsLpg+'|*.lpg|'+lisAllFiles+'|'+AllFilesMask;
+      F.DefaultExt:='.lpg';
+      Result:=F.Execute;
+      if Result then begin
+        FProjectGroup.FileName:=TrimAndExpandFilename(FileName);
+      end;
+      StoreIDEFileDialog(F);
+    finally
+      F.Free;
     end;
-  finally
-    StoreIDEFileDialog(Dlg);
-    Dlg.Free;
-  end;
-end;
-
-function TIDEProjectGroupManager.GetPGSrcPaths(const s: string;
-  const Data: PtrInt; var Abort: boolean): string;
-begin
-  Abort:=false;
-  if (s<>'') and (ConsoleVerbosity>=0) then
-    debugln(['Hint: (kode) [TIDEProjectGroupManager.GetPGSrcPaths] ignoring macro PGSrcPaths parameter "',s,'"']);
-  Result:=GetSrcPaths;
-end;
-
-procedure TIDEProjectGroupManager.OnIdle(Sender: TObject; var Done: Boolean);
-begin
-  if FIDEStarted then
-  begin
-    IdleConnected:=false;
-    exit;
-  end;
-
-  if Screen.GetCurrentModalForm<>nil then
-    exit;
-  FIDEStarted:=true;
-  if (CurrentProjectGroup=nil)
-      and Options.OpenLastGroupOnStart
-      and (Options.LastGroupFile<>'')
-      and FileExistsCached(Options.LastGroupFile) then
-  begin
-    LoadProjectGroup(Options.LastGroupFile,[pgloLoadRecursively,pgloSkipInvalid]);
-  end;
-  IdleConnected:=false;
-end;
-
-procedure TIDEProjectGroupManager.SetIdleConnected(const AValue: boolean);
-begin
-  if FIdleConnected=AValue then Exit;
-  FIdleConnected:=AValue;
-  if IdleConnected then
-    Application.AddOnIdleHandler(@OnIdle)
-  else
-    Application.RemoveOnIdleHandler(@OnIdle);
-end;
-
-procedure TIDEProjectGroupManager.AddSrcPathOfFile(
-  SrcPaths: TFilenameToStringTree; Filename: string);
-var
-  SrcPath: String;
-begin
-  //debugln(['TIDEProjectGroupManager.AddSrcPathOfFile ',Filename]);
-  SrcPath:=ChompPathDelim(ExtractFilePath(ResolveDots(Filename)));
-  SrcPaths[SrcPath]:='1';
-end;
-
-procedure TIDEProjectGroupManager.AddProjectSrcPaths(Target: TIDECompileTarget;
-  SrcPaths, LPKFiles: TFilenameToStringTree);
-var
-  aProject: TLazProject;
-  p, i: Integer;
-  Paths, Path: String;
-begin
-  aProject:=LazarusIDE.ActiveProject;
-  if (aProject<>nil)
-      and (CompareFilenames(aProject.ProjectInfoFile,Target.Filename)=0) then
-  begin
-    // active project, can be virtual
-    //debugln(['TIDEProjectGroupManager.AddProjectSrcPaths Active project']);
-    AddSrcPathOfFile(SrcPaths,aProject.ProjectInfoFile);
-    Paths:=aProject.LazCompilerOptions.GetSrcPath(false);
-    //debugln(['TIDEProjectGroupManager.AddProjectSrcPaths Active project Paths="',Paths,'"']);
-    p:=1;
-    repeat
-      Path:=GetNextDelimitedItem(Paths,';',p);
-      if p>length(Paths) then break;
-      SrcPaths[Path]:='1';
-    until false;
-  end else begin
-    // lpi on disk -> use files in Target
-    //debugln(['TIDEProjectGroupManager.AddProjectSrcPaths Inactive project']);
-    AddSrcPathOfFile(SrcPaths,Target.Filename);
-    for i:=0 to Target.FileCount-1 do
-      AddSrcPathOfFile(SrcPaths,Target.Files[i]);
-  end;
-  // add SrcPaths of required packages
-  for i:=0 to Target.RequiredPackageCount-1 do
-    AddPackageNameSrcPaths(Target.RequiredPackages[i].PackageName,'','',SrcPaths,LPKFiles);
-end;
-
-procedure TIDEProjectGroupManager.AddPackageSrcPaths(Target: TIDECompileTarget;
-  SrcPaths, LPKFiles: TFilenameToStringTree);
-begin
-  AddLPKSrcPaths(Target.Filename,SrcPaths,LPKFiles);
-end;
-
-procedure TIDEProjectGroupManager.AddPackageNameSrcPaths(PkgName,
-  PreferredFile, DefaultFile: string; SrcPaths, LPKFiles: TFilenameToStringTree
-  );
-var
-  LPKFilename: String;
-  Link: TPackageLink;
-begin
-  if not IsValidPkgName(PkgName) then exit;
-  if FilenameIsAbsolute(PreferredFile) and FileExistsCached(PreferredFile) then
-    LPKFilename:=PreferredFile
-  else if FilenameIsAbsolute(DefaultFile) and FileExistsCached(DefaultFile) then
-    LPKFilename:=DefaultFile
-  else begin
-    Link:=PkgLinks.FindLinkWithPkgName(PkgName);
-    if Link=nil then begin
-      debugln(['Warning: (kode) [TIDEProjectGroupManager.AddPackageNameSrcPaths] package "',PkgName,'" not found']);
-      exit;
-    end;
-    LPKFilename:=Link.GetEffectiveFilename;
-    if not FilenameIsAbsolute(LPKFilename) then
-      exit;
-  end;
-  AddLPKSrcPaths(LPKFilename,SrcPaths,LPKFiles);
-end;
-
-procedure TIDEProjectGroupManager.AddLPKSrcPaths(LPKFilename: string; SrcPaths,
-  LPKFiles: TFilenameToStringTree);
-var
-  xml: TXMLConfig;
-  Path, SubPath, CurFilename, PkgName, PreferredFilename,
-    DefaultFilename, Paths, BaseDir: String;
-  Cnt, i, p: Integer;
-  Pkg: TIDEPackage;
-  LegacyList: Boolean;
-begin
-  if LPKFiles.Contains(LPKFilename) then exit;
-  //debugln(['TIDEProjectGroupManager.AddLPKSrcPaths ',LPKFilename]);
-  for i:=0 to PackageEditingInterface.GetPackageCount-1 do
-  begin
-    Pkg:=PackageEditingInterface.GetPackages(i);
-    if CompareFilenames(Pkg.Filename,LPKFilename)=0 then
-    begin
-      // loaded package, can be virtual
-      //debugln(['TIDEProjectGroupManager.AddPackageSrcPaths LOADED Pkg.Filename=',Pkg.Filename]);
-      AddSrcPathOfFile(SrcPaths,Pkg.Filename);
-      Paths:=Pkg.LazCompilerOptions.GetSrcPath(false);
-      //debugln(['TIDEProjectGroupManager.AddPackageSrcPaths LOADED Paths=',Paths]);
-      p:=1;
-      repeat
-        Path:=GetNextDelimitedItem(Paths,';',p);
-        if p>length(Paths) then break;
-        SrcPaths[Path]:='1';
-      until false;
-      exit;
-    end;
-  end;
-  // not loaded lpk -> parse xml
-  // Note: do not open package, as this might clash with active packages
-  xml:=LoadXML(LPKFilename,true);
-  try
-    if xml=nil then exit;
-    AddSrcPathOfFile(SrcPaths,LPKFilename);
-    BaseDir:=ExtractFilePath(LPKFilename);
-    // list of files
-    Path:='Files/';
-    LegacyList:=xml.IsLegacyList(Path);
-    Cnt:=xml.GetListItemCount(Path, 'Item', LegacyList);
-    for i:=0 to Cnt-1 do begin
-      SubPath:=Path+xml.GetListItemXPath('Item', i, LegacyList, True)+'/';
-      CurFilename:=xml.GetValue(SubPath+'Filename/Value','');
-      if CurFilename='' then continue;
-      AddSrcPathOfFile(SrcPaths,CurFilename);
-    end;
-
-    // load list of RequiredPackages from lpk
-    Path:='Package/RequiredPkgs/';
-    LegacyList:=xml.IsLegacyList(Path);
-    Cnt:=xml.GetListItemCount(Path, 'Item', LegacyList);
-    for i:=0 to Cnt-1 do begin
-      SubPath:=Path+xml.GetListItemXPath('Item', i, LegacyList, True)+'/';
-      PkgName:=xml.GetValue(SubPath+'PackageName/Value','');
-      if not IsValidPkgName(PkgName) then continue;
-      PreferredFilename:=xml.GetValue(SubPath+'DefaultFilename/Prefer','');
-      if (PreferredFilename<>'') and not FilenameIsAbsolute(PreferredFilename) then
-        PreferredFilename:=ResolveDots(BaseDir+PreferredFilename);
-      DefaultFilename:=xml.GetValue(SubPath+'DefaultFilename/Value','');
-      if (DefaultFilename<>'') and not FilenameIsAbsolute(DefaultFilename) then
-        DefaultFilename:=ResolveDots(BaseDir+DefaultFilename);
-      AddPackageNameSrcPaths(PkgName,PreferredFilename,DefaultFilename,SrcPaths,LPKFiles);
-    end;
-  finally
-    xml.Free;
-  end;
-end;
-
-procedure TIDEProjectGroupManager.AddGroupSrcPaths(Group: TProjectGroup;
-  SrcPaths, LPKFiles: TFilenameToStringTree);
-var
-  i: Integer;
-  Target: TIDECompileTarget;
-begin
-  if Group=nil then exit;
-  //debugln(['TIDEProjectGroupManager.AddGroupSrcPaths ',Group.FileName,' Group.TargetCount=',Group.TargetCount]);
-  for i:=0 to Group.TargetCount-1 do
-  begin
-    Target:=TIDECompileTarget(Group.Targets[i]);
-    case Target.TargetType of
-      ttProject: AddProjectSrcPaths(Target,SrcPaths,LPKFiles);
-      ttPackage: AddPackageSrcPaths(Target,SrcPaths,LPKFiles);
-      ttProjectGroup: AddGroupSrcPaths(Target.ProjectGroup,SrcPaths,LPKFiles);
-      ttPascalFile: AddSrcPathOfFile(SrcPaths,Target.Filename);
-    end;
-  end;
 end;
 
 procedure TIDEProjectGroupManager.AddToRecentGroups(aFilename: string);
@@ -939,61 +593,6 @@ begin
   if FProjectGroup=nil then exit;
   if GetNewFileName then
     SaveProjectGroup;
-end;
-
-function TIDEProjectGroupManager.CanUndo: boolean;
-begin
-  Result:=FUndoList.Count>0;
-end;
-
-function TIDEProjectGroupManager.CanRedo: boolean;
-begin
-  Result:=FRedoList.Count>0;
-end;
-
-procedure TIDEProjectGroupManager.Undo;
-var
-  Item: TPGUndoItem;
-  UndoDelete: TPGUndoDelete;
-  Target: TIDECompileTarget;
-  Group: TIDEProjectGroup;
-  i: Integer;
-begin
-  if not CanUndo then exit;
-  Item:=TPGUndoItem(FUndoList[FUndoList.Count-1]);
-  FUndoList.OwnsObjects:=false;
-  FUndoList.Delete(FUndoList.Count-1);
-  FUndoList.OwnsObjects:=true;
-  try
-    if Item is TPGUndoDelete then
-    begin
-      UndoDelete:=TPGUndoDelete(Item);
-      Target:=UndoDelete.Target;
-      UndoDelete.Target:=nil;
-      Group:=UndoDelete.Group;
-      if GroupExists(Group) then
-      begin
-        if Group.IndexOfTarget(Target.Filename)>=0 then
-          exit;
-        i:=Group.IndexOfTarget(UndoDelete.InFrontFile);
-        if i>=0 then
-          inc(i)
-        else begin
-          i:=Group.IndexOfTarget(UndoDelete.BehindFile);
-          if i<0 then
-            i:=Group.TargetCount;
-        end;
-        Group.InsertTarget(Target,i);
-      end;
-    end;
-  finally
-    Item.Free;
-  end;
-end;
-
-procedure TIDEProjectGroupManager.Redo;
-begin
-
 end;
 
 procedure TIDEProjectGroupManager.LoadProjectGroup(AFileName: string;
@@ -1022,29 +621,6 @@ begin
   end;
 end;
 
-function TIDEProjectGroupManager.GetSrcPaths: string;
-var
-  SrcPaths, LPKFiles: TFilenameToStringTree;
-  s: PStringToStringItem;
-begin
-  Result:='';
-  if not Assigned(FProjectGroup) then exit;
-  LPKFiles:=TFilenameToStringTree.Create(false);
-  SrcPaths:=TFilenameToStringTree.Create(false);
-  try
-    AddGroupSrcPaths(FProjectGroup,SrcPaths,LPKFiles);
-    for s in SrcPaths do begin
-      if s^.Name='' then continue;
-      if Result<>'' then
-        Result:=Result+';';
-      Result:=Result+s^.Name;
-    end;
-  finally
-    SrcPaths.Free;
-    LPKFiles.Free;
-  end;
-end;
-
 { TRootProjectGroupTarget }
 
 procedure TRootProjectGroupTarget.SetTargetType(AValue: TPGTargetType);
@@ -1060,12 +636,6 @@ begin
   TargetType:=ttProjectGroup;
   FProjectGroup:=aOwner;
   Filename:=ProjectGroup.FileName;
-end;
-
-destructor TRootProjectGroupTarget.Destroy;
-begin
-  FProjectGroup:=Nil;
-  inherited Destroy;
 end;
 
 { TIDEProjectGroup }
@@ -1088,6 +658,16 @@ begin
   Result:=FTargets.Count;
 end;
 
+function TIDEProjectGroup.GetRemovedTargetCount: Integer;
+begin
+  Result:=FRemovedTargets.Count;
+end;
+
+function TIDEProjectGroup.GetRemovedTarget(Index: Integer): TPGCompileTarget;
+begin
+  Result:=TPGCompileTarget(FRemovedTargets[Index]);
+end;
+
 function TIDEProjectGroup.GetActiveTarget: TPGCompileTarget;
 begin
   Result:=FActiveTarget;
@@ -1102,60 +682,32 @@ begin
     AValue.Activate;
 end;
 
-procedure TIDEProjectGroup.DoTargetDeleted(Sender: TObject;
-  Target: TPGCompileTarget);
-begin
-  if Assigned(OnTargetDeleted) then
-    OnTargetDeleted(Sender,Target);
-  if Parent<>nil then
-    TIDEProjectGroup(Parent).DoTargetDeleted(Sender,Target);
-end;
-
-procedure TIDEProjectGroup.DoTargetInserted(Sender: TObject;
-  Target: TPGCompileTarget);
-begin
-  if Assigned(OnTargetInserted) then
-    OnTargetInserted(Sender,Target);
-  if Parent<>nil then
-    TIDEProjectGroup(Parent).DoTargetInserted(Sender,Target);
-end;
-
 constructor TIDEProjectGroup.Create(aCompileTarget: TIDECompileTarget);
 begin
   inherited Create;
   if aCompileTarget=nil then begin
-    FSelfTarget:=TRootProjectGroupTarget.Create(Self);
+    FCompileTarget:=TRootProjectGroupTarget.Create(Self);
   end else begin
-    FSelfTarget:=aCompileTarget;
-    if FSelfTarget.Parent<>nil then
-      FParent:=FSelfTarget.Parent.ProjectGroup;
+    FCompileTarget:=aCompileTarget;
+    if FCompileTarget.Parent<>nil then
+      FParent:=FCompileTarget.Parent.ProjectGroup;
   end;
   FTargets:=TFPObjectList.Create(True);
+  FRemovedTargets:=TFPObjectList.Create(True);
 end;
 
 destructor TIDEProjectGroup.Destroy;
 begin
   FreeAndNil(FTargets);
-  if Parent=nil then
-    FreeAndNil(FSelfTarget);
+  FreeAndNil(FRemovedTargets);
+  FreeAndNil(FCompileTarget);
   inherited Destroy;
 end;
 
 procedure TIDEProjectGroup.Clear;
 begin
   FTargets.Clear;
-end;
-
-procedure TIDEProjectGroup.CheckInvalidCycle(const aFilename: string);
-var
-  Group: TProjectGroup;
-begin
-  Group:=Self;
-  while Group<>nil do begin
-    if CompareFilenames(AFileName,Group.FileName)=0 then
-      raise Exception.Create(lisInvalidCycleAProjectGroupCannotHaveItselfAsTarget);
-    Group:=Group.Parent;
-  end;
+  FRemovedTargets.Clear;
 end;
 
 function TIDEProjectGroup.IndexOfTarget(const Target: TPGCompileTarget): Integer;
@@ -1163,62 +715,74 @@ begin
   Result:=FTargets.IndexOf(Target);
 end;
 
+function TIDEProjectGroup.IndexOfRemovedTarget(const Target: TPGCompileTarget
+  ): Integer;
+begin
+  Result:=FRemovedTargets.IndexOf(Target);
+end;
+
 function TIDEProjectGroup.AddTarget(const AFileName: String): TPGCompileTarget;
+var
+  Root: TIDEProjectGroup;
 begin
   Result:=Nil;
   if not FilenameIsAbsolute(AFileName) then
-    RaiseGDBException('TIDEProjectGroup.AddTarget [20190629165305] '+AFileName);
-  CheckInvalidCycle(AFileName);
-  Result:=TIDECompileTarget.Create(SelfTarget);
+    RaiseGDBException(AFileName);
+  if CompareFilenames(AFileName,FileName)=0 then
+    raise Exception.Create(lisInvalidCycleAProjectGroupCannotHaveItselfAsTarget);
+  Result:=TIDECompileTarget.Create(CompileTarget);
   Result.FileName:=AFileName;
   FTargets.Add(Result);
   IncreaseChangeStamp;
-  DoTargetInserted(Self,Result);
+  Root:=TIDEProjectGroup(GetRootGroup);
+  if Assigned(Root.OnTargetAdded) then
+    Root.OnTargetAdded(Self,Result);
 end;
 
-function TIDEProjectGroup.InsertTarget(const Target: TPGCompileTarget;
-  Index: Integer): Integer;
+procedure TIDEProjectGroup.ReAddTarget(Target: TPGCompileTarget);
+var
+  Root: TIDEProjectGroup;
 begin
-  if Target=nil then
-    RaiseGDBException('TIDEProjectGroup.InsertTarget [20190629165001]');
-  if Target.Parent<>nil then
-    RaiseGDBException(Target.Filename);
-  CheckInvalidCycle(Target.FileName);
-  if Index<0 then
-    RaiseGDBException('TIDEProjectGroup.InsertTarget [20190629165007]');
-  if Index>TargetCount then
-    RaiseGDBException('TIDEProjectGroup.InsertTarget [20190629165009]');
-  FTargets.Insert(Index,Target);
-  TIDECompileTarget(Target).SetParent(SelfTarget);
-  IncreaseChangeStamp;
-  DoTargetInserted(Self,Target);
-  Result:=FTargets.IndexOf(Target);
+  if (Target=nil) or (not Target.Removed) then
+    raise Exception.Create('');
+  FRemovedTargets.OwnsObjects:=false;
+  FRemovedTargets.Remove(Target);
+  FRemovedTargets.OwnsObjects:=true;
+  FTargets.Add(Target);
+  Target.Removed:=false;
+  Modified:=true;
+  Root:=TIDEProjectGroup(GetRootGroup);
+  if Assigned(Root.OnTargetReadded) then
+    Root.OnTargetReadded(Self,Target);
 end;
 
 procedure TIDEProjectGroup.RemoveTarget(Index: Integer);
 var
   Target: TPGCompileTarget;
+  Root: TIDEProjectGroup;
 begin
   Target:=Targets[Index];
-  IDEProjectGroupManager.TargetDeleting(Self,Index);
   Target.DeActivate;
   FTargets.OwnsObjects:=false;
   FTargets.Delete(Index);
   FTargets.OwnsObjects:=true;
-  TIDECompileTarget(Target).SetParent(nil);
+  FRemovedTargets.Add(Target);
+  Target.Removed:=true;
   Modified:=true;
-  DoTargetDeleted(Self,Target);
+  Root:=TIDEProjectGroup(GetRootGroup);
+  if Assigned(Root.OnTargetDeleted) then
+    Root.OnTargetDeleted(Self,Target);
 end;
 
-procedure TIDEProjectGroup.ExchangeTargets(OldIndex, NewIndex: Integer);
+procedure TIDEProjectGroup.ExchangeTargets(ASource, ATarget: Integer);
 var
   Root: TIDEProjectGroup;
 begin
-  if OldIndex=NewIndex then exit;
-  FTargets.Exchange(OldIndex,NewIndex);
+  if ASource=ATarget then exit;
+  FTargets.Exchange(ASource,ATarget);
   Root:=TIDEProjectGroup(GetRootGroup);
   if Assigned(Root.OnTargetsExchanged) then
-    Root.OnTargetsExchanged(Self,GetTarget(OldIndex),GetTarget(NewIndex));
+    Root.OnTargetsExchanged(Self,GetTarget(ASource),GetTarget(ATarget));
   IncreaseChangeStamp;
 end;
 
@@ -1237,39 +801,16 @@ begin
     Root.OnTargetActiveChanged(Self,T);
 end;
 
-function TIDEProjectGroup.UpdateMissing: boolean;
-var
-  i: Integer;
-  Target: TPGCompileTarget;
-  Missing: Boolean;
-begin
-  Result:=false;
-  for i:=0 to TargetCount-1 do
-  begin
-    Target:=Targets[i];
-    Missing:=not FileExistsCached(Target.Filename);
-    if Target.Missing<>Missing then begin
-      Target.Missing:=Missing;
-      Result:=true;
-    end;
-    // todo sub groups
-  end;
-  if Result then
-    if ProjectGroupManager.Editor<>nil then
-      ProjectGroupManager.Editor.Invalidate;
-end;
-
 function TIDEProjectGroup.LoadFromFile(Options: TProjectGroupLoadOptions
   ): Boolean;
 Var
   ARoot: String;
   TargetFileName: String;
-  BaseDir, APath, ATargetPath: String;
+  BaseDir, APath: String;
   XMLConfig: TXMLConfig;
-  i,ACount, FileVersion: Integer;
+  i,ACount: Integer;
   Target: TIDECompileTarget;
   aGroup: TProjectGroup;
-  Changed, IsLegacyList: Boolean;
 begin
   Result:=false;
   if not FilenameIsAbsolute(FileName) then exit;
@@ -1284,20 +825,16 @@ begin
     aGroup:=aGroup.Parent;
   end;
 
-  Changed:=false;
   BaseDir:=AppendPathDelim(ExtractFilePath(FileName));
   try
     XMLConfig := LoadXML(Filename,pgloSkipDialog in Options);
     try
-      ARoot:='ProjectGroup/';
-      FileVersion := XMLConfig.GetValue(ARoot+'FileVersion',0);
-      ATargetPath := ARoot+'Targets/';
-      IsLegacyList := (FileVersion<=1) or XMLConfig.IsLegacyList(ATargetPath);
-      ACount:=XMLConfig.GetListItemCount(ATargetPath, 'Target', IsLegacyList);
+      ARoot:='ProjectGroup';
+      ACount:=XMLConfig.GetValue(ARoot+'/Targets/Count',0);
       for i:=0 to ACount-1 do
       begin
         Target:=Nil;
-        APath:=ATargetPath+XMLConfig.GetListItemXPath('Target', i, IsLegacyList, False)+'/';
+        APath:=Format(ARoot+'/Targets/Target%d/',[i]);
         TargetFileName:=XMLConfig.GetValue(APath+'FileName','');
         TargetFileName:=TrimFilename(GetForcedPathDelims(TargetFileName));
         if not FilenameIsAbsolute(TargetFileName) then
@@ -1309,43 +846,39 @@ begin
         end
         else if (pgloRemoveInvalid in Options) then
         begin
-          // remove = do not load it
+          Target:=TIDECompileTarget(AddTarget(TargetFileName));
+          Target.Removed:=True;
         end
         else if (pgloSkipInvalid in options) then
-        begin
-          Target:=TIDECompileTarget(AddTarget(TargetFileName));
-          Target.Missing:=True;
-        end
+          // Do nothing
         else if (pgloErrorInvalid in options) then
-        begin
-          Changed:=true;
-          exit;
-        end
+          exit
         else
           case IDEQuestionDialog(lisErrTargetDoesNotExist,
               Format(lisErrNoSuchFile,[TargetFileName]),mtWarning,
               [mrYes,lisRemoveTarget,
                mrNo,lisAbortLoadingProjectGroup,
                mrYesToAll,lisSkipAllTargets],'') of
-           mrYes: ;
+           mrYes :
+             begin
+               Target:=TIDECompileTarget(AddTarget(TargetFileName));
+               Target.Removed:=True;
+             end;
            mrNo:
              exit;
            mrYesToAll:
              begin
                Target:=TIDECompileTarget(AddTarget(TargetFileName));
-               Target.Missing:=True;
-               Include(Options,pgloSkipInvalid);
+               Target.Removed:=True;
+               Include(Options,pgloRemoveInvalid);
              end;
           else
             exit;
           end;
-        if Target<>nil then
-          Target.LoadGroupSettings(XMLConfig,APath,FileVersion)
-        else
-          Changed:=true;
+        Target.LoadGroupSettings(XMLConfig,APath);
       end;
     finally
-      Modified:=Changed;
+      Modified:=false;
       XMLConfig.Free;
     end;
     Result:=true;
@@ -1361,7 +894,7 @@ function TIDEProjectGroup.SaveToFile: Boolean;
 Var
   TargetPath: String;
   RelativeFileName: String;
-  ARoot, APath, ATargetsPath: String;
+  ARoot, APath: String;
   XMLConfig: TXMLConfig;
   i,ACount: Integer;
   aTarget: TIDECompileTarget;
@@ -1373,21 +906,21 @@ begin
     XMLConfig := CreateXML(FileName,false);
     try
       TargetPath:=ExtractFilePath(FileName);
-      ARoot:='ProjectGroup/';
-      XMLConfig.SetValue(ARoot+'FileVersion',PGFileVersion);
-      ATargetsPath := ARoot+'Targets/';
-      XMLConfig.SetListItemCount(ATargetsPath, TargetCount, False);
+      ARoot:='ProjectGroup';
+      XMLConfig.SetValue(ARoot+'/FileVersion',PGFileVersion);
       ACount:=0;
       For i:=0 to TargetCount-1 do
       begin
         aTarget:=TIDECompileTarget(GetTarget(i));
-        APath:=ATargetsPath+XMLConfig.GetListItemXPath('Target', i, False, False)+'/';
+        if aTarget.Removed then continue;
+        APath:=Format(ARoot+'/Targets/Target%d/',[ACount]);
         RelativeFileName:=ExtractRelativepath(TargetPath,aTarget.FileName);
         StringReplace(RelativeFileName,'\','/',[rfReplaceAll]); // normalize, so that files look the same x-platform, for less svn changes
         XMLConfig.SetDeleteValue(APath+'FileName',RelativeFileName,'');
         aTarget.SaveGroupSettings(XMLConfig,APath);
         Inc(ACount);
       end;
+      XMLConfig.SetDeleteValue(ARoot+'/Targets/Count',ACount,0);
       XMLConfig.Flush;
     finally
       XMLConfig.Free;
@@ -1404,6 +937,7 @@ begin
   For i:=0 to TargetCount-1 do
   begin
     aTarget:=TIDECompileTarget(GetTarget(i));
+    if aTarget.Removed then continue;
     if aTarget.TargetType=ttProjectGroup then
     begin
       SubPG:=TIDEProjectGroup(aTarget.ProjectGroup);
@@ -1428,12 +962,12 @@ begin
 end;
 
 procedure TIDECompileTarget.LoadGroupSettings(XMLConfig: TXMLConfig;
-  aPath: string; FileVersion: Integer);
+  aPath: string);
 begin
   case TargetType of
-    ttProject: LoadProject_GroupSettings(XMLConfig,aPath,FileVersion);
+    ttProject: LoadProject_GroupSettings(XMLConfig,aPath);
   end;
-  if not Missing then
+  if not Removed then
     if XMLConfig.GetValue(APath+'Active',False) then
       Activate;
 end;
@@ -1444,19 +978,19 @@ begin
   case TargetType of
     ttProject: SaveProject_GroupSettings(XMLConfig,aPath);
   end;
-  XMLConfig.SetDeleteValue(APath+'Active',Active and not Missing,False);
+  XMLConfig.SetDeleteValue(APath+'Active',Active and not Removed,False);
 end;
 
 procedure TIDECompileTarget.UnLoadTarget;
 begin
+  if (FProjectGroup<>nil) and not (Self is TRootProjectGroupTarget) then
+    FreeAndNil(FProjectGroup);
   if FBuildModes<>nil then
     FreeAndNil(FBuildModes);
   if FFiles<>nil then
     FreeAndNil(FFiles);
   if FRequiredPackages<>nil then
     FreeAndNil(FRequiredPackages);
-  if (FProjectGroup<>nil) and (FProjectGroup.Parent<>nil) then
-    FreeAndNil(FProjectGroup);
 end;
 
 destructor TIDECompileTarget.Destroy;
@@ -1618,7 +1152,7 @@ begin
 
   PkgName:=ExtractFileUnitname(Filename,true);
   if PkgName='' then begin
-    debugln(['Warning: (kode) [TIDECompileTarget.LoadPackage] invalid package filename "',Filename,'"']);
+    debugln(['Warning: (lazarus) [TIDECompileTarget.LoadPackage] invalid package filename "',Filename,'"']);
     exit;
   end;
 
@@ -1627,17 +1161,17 @@ begin
     MR:=PackageEditingInterface.DoOpenPackageFile(Filename,
         [pofDoNotOpenEditor],False);
     if MR<>mrOk then begin
-      debugln(['Warning: (kode) [TIDECompileTarget.LoadPackage] DoOpenPackageFile failed on file "',Filename,'"']);
+      debugln(['Warning: (lazarus) [TIDECompileTarget.LoadPackage] DoOpenPackageFile failed on file "',Filename,'"']);
       exit;
     end;
     Pkg:=PackageEditingInterface.FindPackageWithName(PkgName);
     if Pkg=nil then begin
-      debugln(['Warning: (kode) [TIDECompileTarget.LoadPackage] DoOpenPackageFile failed pkgname="',PkgName,'" on file "',Filename,'"']);
+      debugln(['Warning: (lazarus) [TIDECompileTarget.LoadPackage] DoOpenPackageFile failed pkgname="',PkgName,'" on file "',Filename,'"']);
       exit;
     end;
   end;
   if CompareFilenames(Pkg.Filename,Filename)<>0 then begin
-    debugln(['Warning: (kode) [TIDECompileTarget.LoadPackage] there is already a package with that name: wanted="',Filename,'" loaded="',Pkg.Filename,'"']);
+    debugln(['Warning: (lazarus) [TIDECompileTarget.LoadPackage] there is already a package with that name: wanted="',Filename,'" loaded="',Pkg.Filename,'"']);
     exit;
   end;
 
@@ -1663,14 +1197,13 @@ end;
 procedure TIDECompileTarget.LoadProject;
 var
   AProject: TLazProject;
-  i, Cnt, ALPIFileVersion: Integer;
+  i, Cnt: Integer;
   ProjFile: TLazProjectFile;
   PkgList: TFPList;
   Pkg: TIDEPackage;
   PkgName, Path, SubPath, CurFilename, BaseDir, BuildMode: String;
   xml: TXMLConfig;
   LazBuildMode: TLazProjectBuildMode;
-  LegacyList: Boolean;
 begin
   if FFiles<>nil then exit; // already loaded
 
@@ -1717,15 +1250,11 @@ begin
       if xml<>nil then begin
         // load list of files from lpi
         BaseDir:=ExtractFilePath(Filename);
-        Path:='ProjectOptions/';
-        ALPIFileVersion := xml.GetValue(Path+'Version/Value',0);
-
         Path:='ProjectOptions/Units/';
-        LegacyList:=(ALPIFileVersion<=11) or xml.IsLegacyList(Path);
-        Cnt:=xml.GetListItemCount(Path, 'Unit', LegacyList);
-        for i := 0 to Cnt - 1 do begin
-          SubPath:=Path+xml.GetListItemXPath('Unit', i, LegacyList)+'/';
-          if not xml.GetValue(SubPath+'IsPartOfProject/Value',False) then
+        Cnt:=xml.GetValue(Path+'Count',0);
+        for i:=0 to Cnt-1 do begin
+          SubPath:=Path+'Unit'+IntToStr(i)+'/';
+          if xml.GetValue(SubPath+'IsPartOfProject/Value','')<>'True' then
             continue;
           CurFilename:=xml.GetValue(SubPath+'Filename/Value','');
           if CurFilename='' then continue;
@@ -1736,10 +1265,9 @@ begin
 
         // load list of RequiredPackages from lpi
         Path:='ProjectOptions/RequiredPackages/';
-        LegacyList:=(ALPIFileVersion<=11) or xml.IsLegacyList(Path);
-        Cnt:=xml.GetListItemCount(Path, 'Item', LegacyList);
-        for i:=0 to Cnt-1 do begin
-          SubPath:=Path+xml.GetListItemXPath('Item', i, LegacyList, True)+'/';
+        Cnt:=xml.GetValue(Path+'Count',0);
+        for i:=1 to Cnt do begin
+          SubPath:=Path+'Item'+IntToStr(i)+'/';
           PkgName:=xml.GetValue(SubPath+'PackageName/Value','');
           if PkgName='' then continue;
           FRequiredPackages.Add(TPGDependency.Create(Self,PkgName));
@@ -1747,16 +1275,14 @@ begin
 
         // load build modes
         Path:='ProjectOptions/BuildModes/';
-        LegacyList:=(ALPIFileVersion<=11) or xml.IsLegacyList(Path);
-        Cnt:=xml.GetListItemCount(Path, 'Item', LegacyList);
-        for i:=0 to Cnt-1 do begin
-          SubPath:=Path+xml.GetListItemXPath('Item', i, LegacyList, True)+'/';
+        Cnt:=xml.GetValue(Path+'Count',0);
+        for i:=1 to Cnt do begin
+          SubPath:=Path+'Item'+IntToStr(i)+'/';
           BuildMode:=xml.GetValue(SubPath+'Name','');
           // load/store compile in lpg
           if BuildMode<>'' then
             FBuildModes.Add(TPGBuildMode.Create(Self,BuildMode,false));
         end;
-        xml.Modified := False;
       end;
     finally
       xml.Free;
@@ -1765,22 +1291,15 @@ begin
 end;
 
 procedure TIDECompileTarget.LoadProject_GroupSettings(XMLConfig: TXMLConfig;
-  aPath: string; FileVersion: Integer);
+  aPath: string);
 var
   Cnt, i: Integer;
-  SubPath, aName, RootPath: String;
+  SubPath, aName: String;
   aMode: TPGBuildMode;
-  IsLegacyList: Boolean;
 begin
-  RootPath := aPath;
-  aPath := aPath+'BuildModes/';
-  IsLegacyList := (FileVersion<=1) or XMLConfig.IsLegacyList(aPath);
-  Cnt:=XMLConfig.GetListItemCount(aPath, 'Mode', IsLegacyList);
-  for i:=0 to Cnt-1 do begin
-    if IsLegacyList then
-      SubPath:=RootPath+'Mode'+IntToStr(i+1)+'/' // important: legacy list has wrong structure here - the mode elements are not within the BuildModes element
-    else
-      SubPath:=aPath+XMLConfig.GetListItemXPath('Mode', i, IsLegacyList, True)+'/';
+  Cnt:=XMLConfig.GetValue(aPath+'BuildModes/Count',0);
+  for i:=1 to Cnt do begin
+    SubPath:=aPath+'Mode'+IntToStr(i)+'/';
     aName:=XMLConfig.GetValue(SubPath+'Name','');
     aMode:=FindBuildMode(aName);
     if aMode=nil then continue;
@@ -1795,11 +1314,10 @@ var
   SubPath: String;
   aMode: TPGBuildMode;
 begin
-  aPath := aPath+'BuildModes/';
-  XMLConfig.SetListItemCount('Mode', BuildModeCount, False);
-  for i:=0 to BuildModeCount-1 do begin
-    SubPath:=aPath+XMLConfig.GetListItemXPath('Mode', i, False, True)+'/';
-    aMode:=BuildModes[i];
+  XMLConfig.SetDeleteValue(aPath+'BuildModes/Count',BuildModeCount,0);
+  for i:=1 to BuildModeCount do begin
+    SubPath:=aPath+'Mode'+IntToStr(i)+'/';
+    aMode:=BuildModes[i-1];
     XMLConfig.SetDeleteValue(SubPath+'Name',aMode.Identifier,'');
     XMLConfig.SetDeleteValue(SubPath+'Compile',aMode.Compile,false);
   end;
@@ -2123,11 +1641,6 @@ end;
 procedure TIDECompileTarget.ActiveChanged(Sender: TPGCompileTarget);
 begin
   (GetRootProjectGroup as TIDEProjectGroup).ActiveTargetChanged(Sender);
-end;
-
-procedure TIDECompileTarget.SetParent(NewParent: TPGCompileTarget);
-begin
-  FParent:=NewParent;
 end;
 
 end.

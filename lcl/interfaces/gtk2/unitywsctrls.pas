@@ -1,11 +1,7 @@
-{
- *****************************************************************************
-  This file is part of the Lazarus Component Library (LCL)
+{ Copyleft implementation of TTrayIcon for
+  Unity applications indicators
+  Created 2015 by Anthony Walter sysrpl@gmail.com }
 
-  See the file COPYING.modifiedLGPL.txt, included in this distribution,
-  for details about the license.
- *****************************************************************************
-}
 unit UnityWSCtrls;
 
 interface
@@ -17,10 +13,7 @@ uses
   Graphics, Controls, Forms, ExtCtrls, WSExtCtrls, LCLType, LazUTF8,
   FileUtil;
 
-{ Copyleft implementation of TTrayIcon originally for Unity applications indicators
-  Original version 2015 by Anthony Walter sysrpl@gmail.com
-
-  Changed October 2019, we now try and identify those Linux distributions that
+{ Changed October 2019, we now try and identify those Linux distributions that
   need to use LibAppIndicator3 and allow the remainder to use the older and
   more functional SystemTray. Only a few old distributions can use LibAppIndicator_1
   so don't bother to try it, rely, here on LibAppIndicator3
@@ -267,22 +260,40 @@ var
   Initialized: Boolean;
 
 function UnityAppIndicatorInit: Boolean;
-var
-  Module: HModule;
-  UseAppInd : string;
-
-  function NeedAppIndicator: boolean;
   var
-    DeskTop : String;
-  begin
-    DeskTop := GetEnvironmentVariableUTF8('XDG_CURRENT_DESKTOP');
-    // See the wiki for details of what extras these desktops require !!
-    if (Desktop = 'GNOME')
-      or (DeskTop = 'Unity')
-      or (Desktop = 'Enlightenment')
-      or (Desktop = 'ubuntu:GNOME') then exit(True);
-    Result := False;
-  end;
+    Module: HModule;
+    UseAppInd : string;
+
+    function NeedAppIndicator: boolean;
+    var
+      DeskTop,  VersionSt : String;
+      ProcFile: TextFile;
+    begin
+      DeskTop := GetEnvironmentVariableUTF8('XDG_CURRENT_DESKTOP');
+      // See the wiki for details of what extras these desktops require !!
+      if (DeskTop = 'Unity')
+         or (Desktop = 'Enlightenment')
+            then exit(True);
+      if (DeskTop = 'GNOME') then begin
+          {$PUSH}
+          {$IOChecks off}
+          AssignFile(ProcFile, '/proc/version');
+          reset(ProcFile);
+          if IOResult<>0 then exit(false);
+          {$POP}
+          readln(ProcFile, VersionSt);
+          CloseFile(ProcFile);
+          if ( (pos('mageia', VersionSt) > 0) or
+            (pos('Debian', VersionSt) > 0) or
+            (pos('Red Hat', VersionSt) > 0) or
+            (pos('SUSE', VersionSt) > 0) )
+            // 19.04 and earlier Ubuntu Gnome does not need LibAppIndicator3
+            then exit(True);
+      end;
+      Result := False;
+    end;
+
+
 
   function TryLoad(const ProcName: string; var Proc: Pointer): Boolean;
   begin

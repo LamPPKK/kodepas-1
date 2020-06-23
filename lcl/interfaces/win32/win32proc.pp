@@ -84,7 +84,7 @@ function ObjectToHWND(const AObject: TObject): HWND;
 function LCLControlSizeNeedsUpdate(Sender: TWinControl; SendSizeMsgOnDiff: boolean): boolean;
 function GetLCLClientBoundsOffset(Sender: TObject; out ORect: TRect): boolean;
 function GetLCLClientBoundsOffset(Handle: HWnd; out Rect: TRect): boolean;
-procedure LCLBoundsToWin32Bounds(Sender: TObject; var Left, Top: Integer);
+procedure LCLBoundsToWin32Bounds(Sender: TObject; var Left, Top, Width, Height: Integer);
 procedure Win32PosToLCLPos(Sender: TObject; var Left, Top: SmallInt);
 procedure GetWin32ControlPos(Window, Parent: HWND; var Left, Top: integer);
 function GetWin32NativeDoubleBuffered(Sender: TWinControl): boolean;
@@ -753,7 +753,8 @@ begin
   Result := GetLCLClientBoundsOffset(OwnerObject, Rect);
 end;
 
-procedure LCLBoundsToWin32Bounds(Sender: TObject; var Left, Top: Integer);
+procedure LCLBoundsToWin32Bounds(Sender: TObject;
+  var Left, Top, Width, Height: Integer);
 var
   ORect: TRect;
 begin
@@ -1065,7 +1066,7 @@ end;
 
 function GetControlText(AHandle: HWND): string;
 var
-  TextLen: longint;
+  TextLen: dword;
   WideBuffer: WideString;
 begin
   TextLen := Windows.GetWindowTextLengthW(AHandle);

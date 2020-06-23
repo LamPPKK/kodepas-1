@@ -21,8 +21,7 @@ uses
   Controls, CustomTimer, GraphMath, Forms, LCLPlatformDef, InterfaceBase,
   LCLType, LCLIntf,
   // TAChart
-  TAChartUtils, TADrawUtils, TAChartAxis, TALegend, TAGraph,
-  TATypes, TATextElements;
+  TAChartUtils, TADrawUtils, TAGraph, TATypes;
 
 type
 
@@ -61,13 +60,10 @@ type
     property DrawingMode: TChartToolDrawingMode
       read FDrawingMode write SetDrawingMode default tdmDefault;
   strict protected
-    FCurrentDrawer: IChartDrawer;
-    FIgnoreClipRect: Boolean;
     procedure Activate; override;
     procedure Cancel; virtual;
     procedure Deactivate; override;
     function EffectiveDrawingMode: TChartToolEffectiveDrawingMode;
-    function GetCurrentDrawer: IChartDrawer; inline;
     function GetIndex: Integer; override;
     function IsActive: Boolean;
     procedure KeyDown(APoint: TPoint); virtual;
@@ -82,7 +78,7 @@ type
     procedure RestoreCursor;
     procedure SetCursor;
     procedure SetIndex(AValue: Integer); override;
-    procedure StartTransparency(ADrawer: IChartDrawer);
+    procedure StartTransparency;
 
     property EscapeCancels: Boolean
       read FEscapeCancels write FEscapeCancels default false;
@@ -182,9 +178,6 @@ type
   TUserDefinedTool = class(TChartTool)
   end;
 
-  TZoomDirection = (zdLeft, zdUp, zdRight, zdDown);
-  TZoomDirectionSet = set of TZoomDirection;
-
   { TBasicZoomTool }
 
   TBasicZoomTool = class(TChartTool)
@@ -195,14 +188,12 @@ type
     FExtDst: TDoubleRect;
     FExtSrc: TDoubleRect;
     FFullZoom: Boolean;
-    FLimitToExtent: TZoomDirectionSet;
     FTimer: TCustomTimer;
 
     procedure OnTimer(ASender: TObject);
   protected
-    procedure DoZoom(ANewExtent: TDoubleRect; AFull: Boolean);
+    procedure DoZoom(const ANewExtent: TDoubleRect; AFull: Boolean);
     function IsAnimating: Boolean; inline;
-    function IsProportional: Boolean; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -213,8 +204,6 @@ type
       read FAnimationInterval write FAnimationInterval default 0;
     property AnimationSteps: Cardinal
       read FAnimationSteps write FAnimationSteps default 0;
-    property LimitToExtent: TZoomDirectionSet
-      read FLimitToExtent write FLimitToExtent default [];
   end;
 
   TZoomRatioLimit = (zrlNone, zrlProportional, zrlFixedX, zrlFixedY);
@@ -242,8 +231,6 @@ type
     procedure SetSelectionRect(AValue: TRect);
   strict protected
     procedure Cancel; override;
-  protected
-    function IsProportional: Boolean; override;
   public
     procedure MouseDown(APoint: TPoint); override;
     procedure MouseMove(APoint: TPoint); override;
@@ -277,8 +264,6 @@ type
     function ZoomRatioIsStored: boolean;
   strict protected
     procedure DoZoomStep(const APoint: TPoint; const AFactor: TDoublePoint);
-  protected
-    function IsProportional: Boolean; override;
   public
     constructor Create(AOwner: TComponent); override;
   published
@@ -549,24 +534,16 @@ type
 
   TDataPointDrawTool = class;
 
-  TChartDataPointCustomDrawEvent = procedure (
-    ASender: TDataPointDrawTool; ADrawer: IChartDrawer) of object;
-
-  TChartDataPointDrawEvent = procedure (
-    ASender: TDataPointDrawTool) of object;
+  TChartDataPointDrawEvent = procedure (ASender: TDataPointDrawTool) of object;
 
   TDataPointDrawTool = class(TDataPointTool)
   strict private
-    FOnCustomDraw: TChartDataPointCustomDrawEvent;
     FOnDraw: TChartDataPointDrawEvent;
   strict protected
     FPen: TChartPen;
-    procedure DoDraw(ADrawer: IChartDrawer); virtual;
-    procedure DoHide(ADrawer: IChartDrawer); virtual;
+    procedure DoDraw; virtual;
+    procedure DoHide; virtual;
     procedure SetPen(AValue: TChartPen);
-    // deprecated
-    procedure DoDraw; virtual; deprecated;
-    procedure DoHide; virtual; deprecated;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -575,10 +552,7 @@ type
   published
     property DrawingMode;
     property GrabRadius default 20;
-    property OnCustomDraw: TChartDataPointCustomDrawEvent
-      read FOnCustomDraw write FOnCustomDraw;
-    property OnDraw: TChartDataPointDrawEvent
-      read FOnDraw write FOnDraw; deprecated 'Use OnCustomDraw';
+    property OnDraw: TChartDataPointDrawEvent read FOnDraw write FOnDraw;
     property MouseInsideOnly;
   end;
 
@@ -592,8 +566,8 @@ type
     FShape: TChartCrosshairShape;
     FSize: Integer;
   strict protected
-    procedure DoDraw(ADrawer: IChartDrawer); override;
-    procedure DoHide(ADrawer: IChartDrawer); override;
+    procedure DoDraw; override;
+    procedure DoHide; override;
   public
     constructor Create(AOwner: TComponent); override;
     procedure Draw(AChart: TChart; ADrawer: IChartDrawer); override;
@@ -609,58 +583,10 @@ type
     property Targets;
   end;
 
-  TAxisClickEvent = procedure (ASender: TChartTool; Axis: TChartAxis;
-    AHitInfo: TChartAxisHitTests) of object;
-
-  TAxisClickTool = class(TChartTool)
-  private
-    FAxis: TChartAxis;
-    FGrabRadius: Integer;
-    FHitTest: TChartAxisHitTests;
-    FOnClick: TAxisClickEvent;
-  protected
-    function GetHitTestInfo(APoint: TPoint): boolean;
+  TReticuleTool = class(TChartTool)
   public
-    constructor Create(AOwner: TComponent); override;
-    procedure MouseDown(APoint: TPoint); override;
-    procedure MouseUp(APoint: TPoint); override;
-  published
-    property GrabRadius: Integer read FGrabRadius write FGrabRadius default 4;
-    property OnClick: TAxisClickEvent read FOnClick write FOnClick;
+    procedure MouseMove(APoint: TPoint); override;
   end;
-
-  TTitleFootClickEvent = procedure (ASender: TChartTool;
-    ATitle: TChartTitle) of object;
-
-  TTitleFootClickTool = class(TChartTool)
-  private
-    FOnClick: TTitleFootClickEvent;
-    FTitle: TChartTitle;
-  protected
-    function GetHit(APoint: TPoint): Boolean;
-  public
-    constructor Create(AOwner: TComponent); override;
-    procedure MouseDown(APoint: TPoint); override;
-    procedure MouseUp(APoint: TPoint); override;
-  published
-    property OnClick: TTitleFootClickEvent read FOnClick write FOnClick;
-  end;
-
-  TLegendClickEvent = procedure  (ASender: TChartTool;
-    ALegend: TChartLegend) of object;
-
-  TLegendClickTool = class(TChartTool)
-  private
-    FOnClick: TLegendClickEvent;
-    FLegend: TChartLegend;
-  public
-    constructor Create(AOwner: TComponent); override;
-    procedure MouseDown(APoint: TPoint); override;
-    procedure MouseUp(APoint: TPoint); override;
-  published
-    property OnClick: TLegendClickEvent read FOnClick write FOnClick;
-  end;
-
 
   procedure Register;
 
@@ -692,6 +618,7 @@ begin
     Shift := [ssRight];
     Toolset := ts;
   end;
+  TReticuleTool.Create(AChart).Toolset := ts;
 end;
 
 procedure Register;
@@ -766,7 +693,6 @@ end;
 procedure TChartTool.AfterDraw(AChart: TChart; ADrawer: IChartDrawer);
 begin
   Unused(AChart, ADrawer);
-  FCurrentDrawer := AChart.Drawer;
   if not IsActive then
     FChart := nil;
 end;
@@ -821,12 +747,11 @@ begin
   case AEventId of
     evidKeyDown       : KeyDown       (APoint);
     evidKeyUp         : KeyUp         (APoint);
-    evidMouseWheelDown: MouseWheelDown(APoint);
-    evidMouseWheelUp  : MouseWheelUp  (APoint);
+    evidMouseDown     : MouseDown     (APoint);
     evidMouseMove     : MouseMove     (APoint);
     evidMouseUp       : MouseUp       (APoint);
-    evidMouseDown     : if FIgnoreClipRect or PtInRect(FChart.ClipRect, APoint) then
-                          MouseDown(APoint);
+    evidMouseWheelDown: MouseWheelDown(APoint);
+    evidMouseWheelUp  : MouseWheelUp  (APoint);
   end;
   ev := FEventsAfter[AEventId];
   if Assigned(ev) then
@@ -839,7 +764,6 @@ procedure TChartTool.Draw(AChart: TChart; ADrawer: IChartDrawer);
 begin
   Unused(ADrawer);
   FChart := AChart;
-  FCurrentDrawer := ADrawer;
 end;
 
 function TChartTool.EffectiveDrawingMode: TChartToolEffectiveDrawingMode;
@@ -868,17 +792,6 @@ begin
     Result := -1
   else
     Result := Toolset.Tools.IndexOf(Self);
-end;
-
-function TChartTool.GetCurrentDrawer: IChartDrawer;
-begin
-  if FCurrentDrawer <> nil then
-    Result := FCurrentDrawer
-  else
-  if Assigned(FChart) then
-    Result := FChart.Drawer
-  else
-    Result := nil;
 end;
 
 function TChartTool.GetParentComponent: TComponent;
@@ -967,7 +880,7 @@ procedure TChartTool.ReadState(Reader: TReader);
 begin
   inherited ReadState(Reader);
   if Reader.Parent is TChartToolset then
-    Toolset := TChartToolset(Reader.Parent);
+    Toolset := Reader.Parent as TChartToolset;
 end;
 
 procedure TChartTool.RestoreCursor;
@@ -998,7 +911,7 @@ end;
 
 procedure TChartTool.SetCursor;
 begin
-  if (ActiveCursor = crDefault) or (ActiveCursor = FChart.Cursor) then exit;
+  if ActiveCursor = crDefault then exit;
   FOldCursor := FChart.Cursor;
   FChart.Cursor := ActiveCursor;
 end;
@@ -1030,10 +943,10 @@ begin
     FToolset.Tools.Add(Self);
 end;
 
-procedure TChartTool.StartTransparency(ADrawer: IChartDrawer);
+procedure TChartTool.StartTransparency;
 begin
   if EffectiveDrawingMode = tdmNormal then
-    ADrawer.SetTransparency(Transparency);
+    Chart.Drawer.SetTransparency(Transparency);
 end;
 
 { TChartTools }
@@ -1075,7 +988,7 @@ var
 var
   i, ai: Integer;
 begin
-  if (Tools.Count = 0) or (not AChart.ScalingValid) then exit(false);
+  if Tools.Count = 0 then exit(false);
 
   SetLength(candidates, Tools.Count);
   candidateCount := 0;
@@ -1162,121 +1075,8 @@ begin
   inherited Destroy;
 end;
 
-procedure TBasicZoomTool.DoZoom(ANewExtent: TDoubleRect; AFull: Boolean);
-
-  procedure ValidateNewSize(LimitLo, LimitHi: TZoomDirection;
-    const PrevSize, NewSize, MaxSize, ImageMaxSize: Double; out Scale: Double;
-    out AllowProportionalAdjustment: Boolean);
-  begin
-    // if new size is only a bit different than previous size, this may be due to
-    // limited precision of floating-point calculations, so - if change in size
-    // is smaller than half of the pixel - set Scale to 0, disable proportional
-    // adjustments and exit; in this case, change in size will be reverted for
-    // the current dimension, and adjusting the other dimension will be performed
-    // independently
-    if (NewSize > PrevSize * (1 - 0.5 / abs(ImageMaxSize))) and
-       (NewSize < PrevSize * (1 + 0.5 / abs(ImageMaxSize))) then begin
-      Scale := 0;
-      AllowProportionalAdjustment := false;
-      exit;
-    end;
-
-    Scale := 1;
-    AllowProportionalAdjustment := true;
-
-    // if there is no both-sides extent limitation - allow change
-    if not (LimitLo in LimitToExtent) or not (LimitHi in LimitToExtent) then exit;
-
-    // if new size is within the limit - allow change
-    if NewSize <= MaxSize then exit;
-
-    // if size is not growing - allow change
-    if NewSize <= PrevSize then exit;
-
-    if PrevSize >= MaxSize then begin
-      // if previous size already reaches or exceeds the limit - set Scale to 0,
-      // disable proportional adjustments and exit; in this case, change in size
-      // will be reverted for the current dimension, and adjusting the other
-      // dimension will be performed independently
-      Scale := 0;
-      AllowProportionalAdjustment := false;
-    end else
-      // if previous size is within the limit - allow change, but make the new
-      // size smaller than requested
-      Scale := (MaxSize - PrevSize) / (NewSize - PrevSize);
-  end;
-
-  procedure AdjustNewSizeAndPosition(LimitLo, LimitHi: TZoomDirection;
-    var NewSizeLo, NewSizeHi: Double; const MaxSizeLo, MaxSizeHi: Double);
-  var
-    Diff: Double;
-  begin
-    if (LimitLo in LimitToExtent) and (LimitHi in LimitToExtent) then begin
-      Diff := NewSizeHi - NewSizeLo - (MaxSizeHi - MaxSizeLo);
-      if Diff > 0 then begin
-        NewSizeLo := MaxSizeLo - 0.5 * Diff;
-        NewSizeHi := MaxSizeHi + 0.5 * Diff;
-      end else
-      if NewSizeLo < MaxSizeLo then begin
-        NewSizeLo := MaxSizeLo;
-        NewSizeHi := MaxSizeHi + Diff;
-      end else
-      if NewSizeHi > MaxSizeHi then begin
-        NewSizeLo := MaxSizeLo - Diff;
-        NewSizeHi := MaxSizeHi;
-      end;
-    end else
-    if LimitLo in LimitToExtent then begin
-      if NewSizeLo < MaxSizeLo then begin
-        NewSizeHi := MaxSizeLo + (NewSizeHi - NewSizeLo);
-        NewSizeLo := MaxSizeLo;
-      end;
-    end else
-    if LimitHi in LimitToExtent then begin
-      if NewSizeHi > MaxSizeHi then begin
-        NewSizeLo := MaxSizeHi - (NewSizeHi - NewSizeLo);
-        NewSizeHi := MaxSizeHi;
-      end;
-    end;
-  end;
-
-var
-  FullExt: TDoubleRect;
-  ScaleX, ScaleY: Double;
-  AllowProportionalAdjustmentX, AllowProportionalAdjustmentY: Boolean;
+procedure TBasicZoomTool.DoZoom(const ANewExtent: TDoubleRect; AFull: Boolean);
 begin
-  if not AFull then
-    // perform the actions below even when LimitToExtent is empty - this will
-    // correct sub-pixel changes in viewport size (occuring due to limited
-    // precision of floating-point calculations), which will result in a more
-    // smooth visual behavior
-    with ANewExtent do begin
-      FullExt := FChart.GetFullExtent;
-
-      ValidateNewSize(zdLeft, zdRight, FChart.LogicalExtent.b.X - FChart.LogicalExtent.a.X,
-        b.X - a.X, FullExt.b.X - FullExt.a.X,
-        FChart.XGraphToImage(FullExt.b.X) - FChart.XGraphToImage(FullExt.a.X),
-        ScaleX, AllowProportionalAdjustmentX);
-      ValidateNewSize(zdDown, zdUp, FChart.LogicalExtent.b.Y - FChart.LogicalExtent.a.Y,
-        b.Y - a.Y, FullExt.b.Y - FullExt.a.Y,
-        FChart.YGraphToImage(FullExt.b.Y) - FChart.YGraphToImage(FullExt.a.Y),
-        ScaleY, AllowProportionalAdjustmentY);
-
-      if AllowProportionalAdjustmentX and AllowProportionalAdjustmentY and
-         IsProportional then begin
-          ScaleX := Min(ScaleX, ScaleY);
-          ScaleY := ScaleX;
-        end;
-
-      a.X := WeightedAverage(FChart.LogicalExtent.a.X, a.X, ScaleX);
-      b.X := WeightedAverage(FChart.LogicalExtent.b.X, b.X, ScaleX);
-      a.Y := WeightedAverage(FChart.LogicalExtent.a.Y, a.Y, ScaleY);
-      b.Y := WeightedAverage(FChart.LogicalExtent.b.Y, b.Y, ScaleY);
-
-      AdjustNewSizeAndPosition(zdLeft, zdRight, a.X, b.X, FullExt.a.X, FullExt.b.X);
-      AdjustNewSizeAndPosition(zdDown, zdUp, a.Y, b.Y, FullExt.a.Y, FullExt.b.Y);
-    end;
-
   if (AnimationInterval = 0) or (AnimationSteps = 0) then begin
     if AFull then
       FChart.ZoomFull
@@ -1299,11 +1099,6 @@ end;
 function TBasicZoomTool.IsAnimating: Boolean;
 begin
   Result := FTimer.Enabled;
-end;
-
-function TBasicZoomTool.IsProportional: Boolean;
-begin
-  Result := false;
 end;
 
 procedure TBasicZoomTool.OnTimer(ASender: TObject);
@@ -1386,7 +1181,7 @@ procedure TZoomDragTool.Cancel;
 begin
   if not IsActive then exit;
   if EffectiveDrawingMode = tdmXor then
-    Draw(FChart, GetCurrentDrawer)
+    Draw(FChart, FChart.Drawer)
   else
     FChart.StyleChanged(Self);
   Deactivate;
@@ -1415,7 +1210,7 @@ procedure TZoomDragTool.Draw(AChart: TChart; ADrawer: IChartDrawer);
 begin
   if not IsActive or IsAnimating then exit;
   inherited;
-  StartTransparency(ADrawer);
+  StartTransparency;
   PrepareDrawingModePen(ADrawer, Frame);
   ADrawer.SetBrush(Brush);
   ADrawer.Rectangle(CalculateDrawRect);
@@ -1423,14 +1218,9 @@ begin
   ADrawer.SetTransparency(0);
 end;
 
-function TZoomDragTool.IsProportional: Boolean;
-begin
-  Result := AdjustSelection and (RatioLimit = zrlProportional);
-end;
-
 procedure TZoomDragTool.MouseDown(APoint: TPoint);
 begin
-  if FChart.UsesBuiltinToolset and (not FChart.AllowZoom) then exit;
+  if not FChart.AllowZoom then exit;
   Activate;
   with APoint do
     FSelectionRect := Rect(X, Y, X, Y);
@@ -1457,7 +1247,7 @@ begin
   if not IsActive then exit;
 
   if EffectiveDrawingMode = tdmXor then
-    Draw(FChart, GetCurrentDrawer);
+    Draw(FChart, FChart.Drawer);
 
   with FSelectionRect do
     dragDir := DRAG_DIR[Sign(Right - Left), Sign(Bottom - Top)];
@@ -1496,35 +1286,57 @@ begin
   FFrame.Assign(AValue);
 end;
 
-
 procedure TZoomDragTool.SetSelectionRect(AValue: TRect);
-var
-  rOld, rNew: TRect;
 begin
   if (FSelectionRect = AValue) or not IsActive or IsAnimating then exit;
   case EffectiveDrawingMode of
-    tdmXor:
-      with GetCurrentDrawer do begin
-        rOld := CalculateDrawRect;
-        FSelectionRect := AValue;
-        rNew := CalculateDrawRect;
-        if rOld = rNew then   // avoid unnecessary flicker when xor-painting the same rect
-          exit;
-        SetXor(true);
-        Pen := Frame;
-        Brush := Self.Brush;
-        Rectangle(rOld);
-        Rectangle(rNew);
-        SetXor(false);
-      end;
-    tdmNormal:
-      begin
-        FSelectionRect := AValue;
-        FChart.StyleChanged(Self);
-      end;
+    tdmXor: with FChart.Drawer do begin
+      SetXor(true);
+      Pen := Frame;
+      Brush := Self.Brush;
+      Rectangle(CalculateDrawRect);
+      FSelectionRect := AValue;
+      Rectangle(CalculateDrawRect);
+      SetXor(false);
+    end;
+    tdmNormal: begin
+      FSelectionRect := AValue;
+      FChart.StyleChanged(Self);
+    end;
   end;
 end;
 
+{ TReticuleTool }
+
+procedure TReticuleTool.MouseMove(APoint: TPoint);
+const
+  DIST_FUNCS: array [TReticuleMode] of TPointDistFunc = (
+    nil, @PointDistX, @PointDistY, @PointDist);
+var
+  cur, best: TNearestPointResults;
+  p: TNearestPointParams;
+  s, bestS: TCustomChartSeries;
+begin
+  if FChart.ReticuleMode = rmNone then exit;
+  best.FDist := MaxInt;
+  p.FDistFunc := DIST_FUNCS[FChart.ReticuleMode];
+  p.FPoint := APoint;
+  p.FRadius := Trunc(Sqrt(MaxInt));
+  p.FOptimizeX := false;
+  for s in CustomSeries(FChart) do
+    if
+      (not (s is TBasicPointSeries) or TBasicPointSeries(s).UseReticule) and
+      s.GetNearestPoint(p, cur) and PtInRect(FChart.ClipRect, cur.FImg) and
+      (cur.FDist < best.FDist)
+    then begin
+      bestS := s;
+      best := cur;
+    end;
+  if (best.FDist = MaxInt) or (best.FImg = FChart.ReticulePos) then exit;
+  FChart.ReticulePos := best.FImg;
+  if Assigned(FChart.OnDrawReticule) then
+    FChart.OnDrawReticule(FChart, bestS.Index, best.FIndex, best.FValue);
+end;
 
 { TBasicZoomStepTool }
 
@@ -1555,11 +1367,6 @@ begin
   ext.b := center + sz * (DoublePoint(1, 1) - ratio) / AFactor;
   DoZoom(ext, false);
   Handled;
-end;
-
-function TBasicZoomStepTool.IsProportional: Boolean;
-begin
-  Result := true;
 end;
 
 function TBasicZoomStepTool.ZoomFactorIsStored: boolean;
@@ -1654,8 +1461,6 @@ end;
 
 procedure TPanDragTool.MouseDown(APoint: TPoint);
 begin
-  if FChart.UsesBuiltinToolset and (not FChart.AllowPanning) then
-    exit;
   FOrigin := APoint;
   FPrev := APoint;
   if MinDragRadius = 0 then begin
@@ -1668,9 +1473,6 @@ procedure TPanDragTool.MouseMove(APoint: TPoint);
 var
   d: TPoint;
 begin
-  if FChart.UsesBuiltinToolset and (not FChart.AllowPanning) then
-    exit;
-
   if not IsActive then begin
     if PointDist(FOrigin, APoint) < Sqr(MinDragRadius) then
       exit;
@@ -1863,9 +1665,6 @@ var
   p: TNearestPointParams;
   cur, best: TNearestPointResults;
 begin
-  if not FChart.ScalingValid then
-    exit;
-
   p.FDistFunc := DIST_FUNCS[DistanceMode];
   p.FPoint := APoint;
   p.FRadius := GrabRadius;
@@ -2039,7 +1838,7 @@ procedure TDataPointHintTool.MouseMove(APoint: TPoint);
   begin
     if UseDefaultHintText and (PointIndex > -1) then begin
       if Series is TChartSeries then
-        Result := TChartSeries(Series).FormattedMark(PointIndex)
+        Result := (Series as TChartSeries).FormattedMark(PointIndex)
       else
         Result := Format(
           '%s: %d', [(Series as TCustomChartSeries).Title, PointIndex]);
@@ -2124,30 +1923,17 @@ end;
 
 procedure TDataPointDrawTool.DoDraw;
 begin
-  DoDraw(GetCurrentDrawer);
-end;
-
-procedure TDataPointDrawTool.DoDraw(ADrawer: IChartDrawer);
-begin
-  if Assigned(OnCustomDraw) then
-    OnCustomDraw(Self, ADrawer);
   if Assigned(OnDraw) then
     OnDraw(Self);
 end;
 
 procedure TDataPointDrawTool.DoHide;
 begin
-  DoHide(GetCurrentDrawer);
-end;
-
-procedure TDataPointDrawTool.DoHide(ADrawer: IChartDrawer);
-begin
-  if ADrawer = nil then exit;
   case EffectiveDrawingMode of
     tdmXor: begin
-      ADrawer.SetXor(true);
-      DoDraw(ADrawer);
-      ADrawer.SetXor(false);
+      FChart.Drawer.SetXor(true);
+      DoDraw;
+      FChart.Drawer.SetXor(false);
     end;
     tdmNormal:
       FChart.StyleChanged(Self);
@@ -2158,13 +1944,13 @@ procedure TDataPointDrawTool.Draw(AChart: TChart; ADrawer: IChartDrawer);
 begin
   inherited;
   PrepareDrawingModePen(ADrawer, FPen);
-  DoDraw(ADrawer);
+  DoDraw;
   ADrawer.SetXor(false);
 end;
 
 procedure TDataPointDrawTool.Hide;
 begin
-  DoHide(GetCurrentDrawer);
+  DoHide;
   Deactivate;
 end;
 
@@ -2181,35 +1967,35 @@ begin
   SetPropDefaults(Self, ['Shape', 'Size']);
 end;
 
-procedure TDataPointCrosshairTool.DoDraw(ADrawer: IChartDrawer);
+procedure TDataPointCrosshairTool.DoDraw;
 var
   p: TPoint;
   ps: TFPPenStyle;
 begin
   if not CrosshairPen.Visible then
     ps := CrosshairPen.Style;
-  PrepareDrawingModePen(ADrawer, CrosshairPen);
+  PrepareDrawingModePen(FChart.Drawer, CrosshairPen);
   p := FChart.GraphToImage(Position);
   if Shape in [ccsVertical, ccsCross] then
     if Size < 0 then
-      FChart.DrawLineVert(ADrawer, p.X)
+      FChart.DrawLineVert(FChart.Drawer, p.X)
     else
-      ADrawer.Line(p - Point(0, Size), p + Point(0, Size));
+      FChart.Drawer.Line(p - Point(0, Size), p + Point(0, Size));
   if Shape in [ccsHorizontal, ccsCross] then
     if Size < 0 then
-      FChart.DrawLineHoriz(ADrawer, p.Y)
+      FChart.DrawLineHoriz(FChart.Drawer, p.Y)
     else
-      ADrawer.Line(p - Point(Size, 0), p + Point(Size, 0));
+      FChart.Drawer.Line(p - Point(Size, 0), p + Point(Size, 0));
   if not CrosshairPen.Visible then
-    ADrawer.SetPenParams(ps, CrosshairPen.Color);
+    FChart.Drawer.SetPenParams(ps, CrosshairPen.Color);
   inherited;
 end;
 
-procedure TDataPointCrosshairTool.DoHide(ADrawer: IChartDrawer);
+procedure TDataPointCrosshairTool.DoHide;
 begin
   if FSeries = nil then exit;
   FSeries := nil;
-  inherited DoHide(ADrawer);
+  inherited;
 end;
 
 procedure TDataPointCrosshairTool.Draw(AChart: TChart; ADrawer: IChartDrawer);
@@ -2229,129 +2015,17 @@ begin
 end;
 
 procedure TDataPointCrosshairTool.MouseMove(APoint: TPoint);
-var
-  id: IChartDrawer;
 begin
-  id := GetCurrentDrawer;
-  if Assigned(id) then
-    DoHide(id);
+  DoHide;
   FindNearestPoint(APoint);
   if FSeries = nil then exit;
   FPosition := FNearestGraphPoint;
-  if (EffectiveDrawingMode = tdmXor) and Assigned(id) then begin
-    id.SetXor(true);
-    DoDraw(id);
-    id.SetXor(false);
+  if EffectiveDrawingMode = tdmXor then begin
+    FChart.Drawer.SetXor(true);
+    DoDraw;
+    if Assigned(FChart) then FChart.Drawer.SetXor(false);
   end;
 end;
-
-
-{ TAxisClickTool }
-
-constructor TAxisClickTool.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-  SetPropDefaults(Self, ['GrabRadius']);
-  FIgnoreClipRect := true;      // Allow mousedown outside cliprect
-end;
-
-function TAxisClickTool.GetHitTestInfo(APoint: TPoint): Boolean;
-var
-  ax: TChartAxis;
-begin
-  for ax in FChart.AxisList do begin
-    FHitTest := ax.GetHitTestInfoAt(APoint, FGrabRadius);
-    if FHitTest <> [] then begin
-      FAxis := ax;
-      Result := true;
-      exit;
-    end;
-  end;
-  Result := false;
-  FAxis := nil;
-  FHitTest := [];
-end;
-
-procedure TAxisClickTool.MouseDown(APoint: TPoint);
-begin
-  if GetHitTestInfo(APoint) then begin
-    Activate;
-    Handled;
-  end;
-end;
-
-procedure TAxisClickTool.MouseUp(APoint: TPoint);
-begin
-  if FHitTest <> [] then begin
-    GetHitTestInfo(APoint);
-    if Assigned(FOnClick) and (FAxis <> nil) then FOnClick(Self, FAxis, FHitTest);
-  end;
-  Deactivate;
-  Handled;
-end;
-
-
-{ TTitleFootClickTool }
-
-constructor TTitleFootClickTool.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-  FIgnoreClipRect := true;      // Allow mousedown outside cliprect
-end;
-
-function TTitleFootClickTool.GetHit(APoint: TPoint): Boolean;
-begin
-  FTitle := nil;
-  if FChart.Title.IsPointInBounds(APoint) then
-    FTitle := FChart.Title
-  else if FChart.Foot.IsPointInBounds(APoint) then
-    FTitle := FChart.Foot;
-  Result := FTitle <> nil;
-end;
-
-procedure TTitleFootClickTool.MouseDown(APoint: TPoint);
-begin
-  if GetHit(APoint) then begin
-    Activate;
-    Handled;
-  end;
-end;
-
-procedure TTitleFootClickTool.MouseUp(APoint: TPoint);
-begin
-  if IsActive then begin
-    GetHit(APoint);
-    if Assigned(FOnClick) and (FTitle <> nil) then FOnClick(Self, FTitle);
-  end;
-end;
-
-
-{ TLegendClickTool }
-
-constructor TLegendClickTool.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-  FIgnoreClipRect := true;      // Allow mousedown outside cliprect
-end;
-
-procedure TLegendClickTool.MouseDown(APoint: TPoint);
-begin
-  if FChart.Legend.IsPointInBounds(APoint) then begin
-    Activate;
-    Handled;
-  end;
-end;
-
-procedure TLegendClickTool.MouseUp(APoint: TPoint);
-begin
-  if IsActive and FChart.Legend.IsPointInBounds(APoint) then begin
-    FLegend := FChart.Legend;
-    if Assigned(FOnClick) and (FLegend <> nil) then FOnClick(Self, FLegend);
-  end else
-    FLegend := nil;
-end;
-
-{ -------- }
 
 procedure SkipObsoleteProperties;
 const
@@ -2371,13 +2045,11 @@ initialization
   RegisterChartToolClass(TPanDragTool, @rsPanningByDrag);
   RegisterChartToolClass(TPanClickTool, @rsPanningbyClick);
   RegisterChartToolClass(TPanMouseWheelTool, @rsPanningByMouseWheel);
+//  RegisterChartToolClass(TReticuleTool, @rsReticule);
   RegisterChartToolClass(TDataPointClickTool, @rsDataPointClick);
   RegisterChartToolClass(TDataPointDragTool, @rsDataPointDrag);
   RegisterChartToolClass(TDataPointHintTool, @rsDataPointHint);
   RegisterChartToolClass(TDataPointCrosshairTool, @rsDataPointCrosshair);
-  RegisterChartToolClass(TAxisClickTool, @rsAxisClickTool);
-  RegisterChartToolClass(TTitleFootClickTool, @rsHeaderFooterClickTool);
-  RegisterChartToolClass(TLegendClickTool, @rsLegendClickTool);
   RegisterChartToolClass(TUserDefinedTool, @rsUserDefinedTool);
 
   SkipObsoleteProperties;

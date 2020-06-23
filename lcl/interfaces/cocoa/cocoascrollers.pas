@@ -24,7 +24,7 @@ interface
 
 uses
   // rtl+ftl
-  Types, Math, Classes, SysUtils,
+  Types, Classes, SysUtils,
   CGGeometry,
   // Libs
   MacOSAll, CocoaAll, CocoaUtils, CocoaGDIObjects,
@@ -50,7 +50,9 @@ type
     procedure resetCursorRects; override;
     function lclClientFrame: TRect; override;
     function lclContentView: NSView; override;
-    procedure setDocumentView(aView: NSView); override;
+    procedure setDocumentView(aView:
+      {$if FPC_FULLVERSION < 30200}NSView{$else}id{$endif}
+    ); override;
     procedure scrollContentViewBoundsChanged(notify: NSNotification); message 'scrollContentViewBoundsChanged:';
     procedure resetScrollRect; message 'resetScrollRect';
 
@@ -183,10 +185,22 @@ var
 begin
   Result := false;
   case prt of
-    NSScrollerDecrementPage: adj := -sc.largeInc;
-    NSScrollerIncrementPage: adj := sc.largeInc;
-    NSScrollerDecrementLine: adj := -sc.smallInc;
-    NSScrollerIncrementLine: adj := sc.smallInc;
+    NSScrollerDecrementPage: begin
+      adj := -sc.largeInc;
+      if adj = 0 then adj := -sc.pageInt;
+    end;
+    NSScrollerIncrementPage: begin
+      adj := sc.largeInc;
+      if adj = 0 then adj := sc.pageInt;
+    end;
+    NSScrollerDecrementLine: begin
+      adj := -sc.smallInc;
+      if adj = 0 then adj := -1;
+    end;
+    NSScrollerIncrementLine: begin
+      adj := sc.smallInc;
+      if adj = 0 then adj := 1;
+    end;
   else
     adj := 0;
   end;
@@ -565,7 +579,7 @@ begin
   begin
     f := frame;
     w := NSScroller.scrollerWidth;
-    r := NSMakeRect(0, 0, Max(f.size.width,w+1), w); // width<height to create a horizontal scroller
+    r := NSMakeRect(0, 0, f.size.width, NSScroller.scrollerWidth);
     allocScroller( self, fhscroll, r, avisible);
     fhscroll.setAutoresizingMask(NSViewWidthSizable);
     Result := fhscroll;
@@ -584,7 +598,7 @@ begin
   begin
     f := frame;
     w := NSScroller.scrollerWidth;
-    r := NSMakeRect(0, 0, w, Max(f.size.height,w+1)); // height<width to create a vertical scroller
+    r := NSMakeRect(f.size.width-w, 0, w, f.size.height);
     allocScroller( self, fvscroll, r, avisible);
     fvscroll.setAutoresizingMask(NSViewHeightSizable or NSViewMinXMargin);
     Result := fvscroll;
@@ -634,7 +648,7 @@ begin
   Result:=documentView;
 end;
 
-procedure TCocoaScrollView.setDocumentView(aView: NSView);
+procedure TCocoaScrollView.setDocumentView(aView: {$if FPC_FULLVERSION < 30200}NSView{$else}id{$endif});
 begin
   inherited setDocumentView(aView);
   resetScrollRect;
@@ -818,7 +832,7 @@ begin
     HandleMouseDown(self, locInWin, prt);
 
   if Assigned(callback) then
-    callback.scroll( not IsHorizontal(), lclPos);
+    callback.scroll(not IsHorizontal(), lclPos, prt);
 end;
 
 function TCocoaScrollBar.IsHorizontal: Boolean;

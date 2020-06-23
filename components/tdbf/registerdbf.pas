@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: registerdbf.pas 43101 2013-10-05 04:38:16Z paul $  }
 {
  *****************************************************************************
   See the file COPYING.modifiedLGPL.txt, included in this distribution,
@@ -16,7 +16,7 @@ unit RegisterDBF;
 interface
 
 uses
-  Classes, SysUtils, LResources, Dbf, LazarusPackageIntf, PropEdits, MacroIntf;
+  Classes, SysUtils, LResources, Dbf, LazarusPackageIntf, PropEdits;
 
 resourcestring
   dbfsAllDbasefiles = 'DBase Files';
@@ -60,17 +60,9 @@ begin
     Tdbf, 'TableName', TDbfFileNamePropertyEditor);
 end;
 
-function TargetPath: string;
-begin
-  Result:='$TargetFile()';
-  IDEMacros.SubstituteMacros(Result);
-  Result:=ExtractFilePath(Result);
-end;
-
 procedure Register;
 begin
   RegisterUnit('DBF',@RegisterUnitDBF);
-  DbfBasePath:=@TargetPath;
 end;
 
 end.

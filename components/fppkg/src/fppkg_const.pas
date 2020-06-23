@@ -65,7 +65,6 @@ resourcestring
   rsShowFppkgPackageManager = 'Show Fppkg Package Manager';
   rsFppkgEnvironmentOptions = 'Fppkg';
   rsFppkgEnvironmentOptionsCaption = 'Compilation';
-  rsPackageFileOptionsTitle = 'FPMake';
 
 implementation
 

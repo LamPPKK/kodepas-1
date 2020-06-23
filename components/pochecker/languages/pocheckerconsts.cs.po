@@ -122,7 +122,6 @@ msgid "All Languages"
 msgstr "Všechny jazyky"
 
 #: pocheckerconsts.scannotwritefileyoucanpressretrytorefreshthistransl
-#, object-pascal-format
 msgid "Cannot write file%s%s%s%sYou can press \"Retry\" to refresh this translation family again and continue."
 msgstr "Nelze zapisovat do souboru%s%s%s%sMůžete stisknout \"Znovu\" pro znovu obnovení a pokračování této překladové rodiny."
 
@@ -151,22 +150,18 @@ msgid "&Copy"
 msgstr "Kopírovat"
 
 #: pocheckerconsts.screatingiconxofy
-#, object-pascal-format
 msgid "Creating icon nr. %d of %d"
 msgstr "Vytváření ikony č. %d z %d"
 
 #: pocheckerconsts.scurrenttest
-#, object-pascal-format
 msgid "Test: %s on %s"
 msgstr "Test: %s na %s"
 
 #: pocheckerconsts.sduplicatelinenrwithvalue
-#, object-pascal-format
 msgid "[Line %d] %s"
 msgstr "[Řádek %d] %s"
 
 #: pocheckerconsts.sduplicateoriginals
-#, object-pascal-format
 msgid "Original value \"%s\" is used for more than 1 entry:"
 msgstr "Původní hodnota \"%s\" je použita pro více než 1 položku:"
 
@@ -174,24 +169,36 @@ msgstr "Původní hodnota \"%s\" je použita pro více než 1 položku:"
 msgid "Duplicate Originals"
 msgstr "Zdvojené originály"
 
+#: pocheckerconsts.serroroncleanup
+msgid ""
+"An unrecoverable error occurred\n"
+"%s\n"
+"Please close the program\n"
+msgstr ""
+"Nastala fatální chyba\n"
+"%s\n"
+"Prosím ukončete program\n"
+
+#: pocheckerconsts.serroroncreate
+msgid ""
+"Error creating an instance of TPoFamily:\n"
+"%s\n"
+msgstr ""
+"Chyba vytváření instance z TPoFamily:\n"
+"%s\n"
+
 #: pocheckerconsts.serrorsbytest
-#, object-pascal-format
 msgid "Errors / warnings reported by %s for:"
 msgstr "Chyby / varování nahlášené %s pro:"
 
 #: pocheckerconsts.sfile
-#, object-pascal-format
 msgid "File %s"
 msgstr "Soubor %s"
 
 #: pocheckerconsts.sfilesnotfoundandremoved
-#, object-pascal-format, fuzzy
-#| msgid ""
-#| "The following non-existent files were removed from the list:\n"
-#| "%s\n"
 msgid ""
 "The following non-existent files were removed from the list:\n"
-"%s"
+"%s\n"
 msgstr ""
 "Odstraněno následujících neexistujících souborů ze seznamu:\n"
 "%s\n"
@@ -201,7 +208,6 @@ msgid "Fuzzy strings"
 msgstr "Nejednoznačné řetězce"
 
 #: pocheckerconsts.sfuzzystringstotal
-#, object-pascal-format
 msgid "Fuzzy strings (total: %s)"
 msgstr "Nejednoznačné řetězce (celkem: %s)"
 
@@ -218,12 +224,10 @@ msgid "GUI Po-file checking tool"
 msgstr "GUI pomůcka pro kontrolu po souborů"
 
 #: pocheckerconsts.sidentifiernotfoundin
-#, object-pascal-format
 msgid "Identifier [%s] not found in %s"
 msgstr "Identifikátor [%s] nenalezen v %s"
 
 #: pocheckerconsts.sincompatibleformatargs
-#, object-pascal-format
 msgid "[Line: %d] Incompatible and/or invalid format() arguments for:"
 msgstr "[Řádek %d] Nekompatibilní/vadné argumenty funkce format():"
 
@@ -236,19 +240,20 @@ msgid "Last search path:"
 msgstr "Poslední cesta hledání:"
 
 #: pocheckerconsts.slineinfilename
-#, object-pascal-format
 msgid "[Line %d] in %s:"
 msgstr "[Řádek %d] v %s:"
 
 #: pocheckerconsts.slinenr
-#, object-pascal-format
 msgid "[Line: %d]"
 msgstr "[Řádek: %d]"
 
 #: pocheckerconsts.smissingmasteridentifier
-#, object-pascal-format
 msgid "Identifier [%s] found in %s, but it does not exist in %s"
 msgstr "Identifikátor [%s] nalezen v %s, ale neexistuje v %s"
+
+#: pocheckerconsts.snofileslefttocheck
+msgid "There are no files left to check."
+msgstr "Žádný další soubory pro kontrolu."
 
 #: pocheckerconsts.snotestselected
 msgid "There are no tests selected."
@@ -259,7 +264,6 @@ msgid "Note: translation is fuzzy"
 msgstr "Poznámka: překlad je nejednoznačný"
 
 #: pocheckerconsts.snrerrorsfound
-#, object-pascal-format
 msgid "Found %d errors."
 msgstr "Nalezeno %d chyb."
 
@@ -268,39 +272,27 @@ msgid "Mismatch in number of items for master and child"
 msgstr "Chyba v počtu položek pro předka a potomka"
 
 #: pocheckerconsts.snrofitemsmismatchd
-#, object-pascal-format
 msgid "%s: %d items"
 msgstr "%s: %d položek"
 
 #: pocheckerconsts.snrwarningsfound
-#, object-pascal-format
 msgid "Found %d warnings."
 msgstr "Nalezeno %d varování."
 
 #: pocheckerconsts.sopenfail
-#, object-pascal-format, fuzzy
-#| msgid ""
-#| "Unable to open file:\n"
-#| "\"%s\"\n"
 msgid ""
 "Unable to open file:\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 "Nelze otevřít soubor:\n"
 "\"%s\"\n"
 
 #: pocheckerconsts.sopenfailexternal
-#, object-pascal-format, fuzzy
-#| msgid ""
-#| "Unable to open file\n"
-#| "\"%s\"\n"
-#| "in external editor\n"
-#| "\"%s\"\n"
 msgid ""
 "Unable to open file\n"
 "\"%s\"\n"
 "in external editor\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 "Nelze otevřít soubor\n"
 "\"%s\"\n"
@@ -324,17 +316,14 @@ msgid "Original"
 msgstr "Originál"
 
 #: pocheckerconsts.spercfuzzy
-#, object-pascal-format
 msgid "%s: %5.1f%% fuzzy strings."
 msgstr "%s: %5.1f%% nejednoznačných řetězců."
 
 #: pocheckerconsts.sperctranslated
-#, object-pascal-format
 msgid "%s: %5.1f%% translated strings."
 msgstr "%s: %5.1f%% přeložených řetězců."
 
 #: pocheckerconsts.spercuntranslated
-#, object-pascal-format
 msgid "%s: %5.1f%% untranslated strings."
 msgstr "%s: %5.1f%% nepřeložených řetězců."
 
@@ -343,7 +332,6 @@ msgid "Processing translation family..."
 msgstr "Zpracovávání překladové rodiny..."
 
 #: pocheckerconsts.sprocessingtranslationfamilyof
-#, object-pascal-format
 msgid "Processing translation family %s of %s"
 msgstr "Zpracovávání překladové rodiny %s z %s"
 
@@ -368,13 +356,9 @@ msgid "Save &As ..."
 msgstr "Uložit &jako..."
 
 #: pocheckerconsts.ssaveerror
-#, object-pascal-format, fuzzy
-#| msgid ""
-#| "Error saving file:\n"
-#| "%s\n"
 msgid ""
 "Error saving file:\n"
-"%s"
+"%s\n"
 msgstr ""
 "Chyba ukládání souboru:\n"
 "%s\n"
@@ -395,10 +379,6 @@ msgstr "Vybrat všechny soubory"
 msgid "Select &All"
 msgstr "Vybrat &vše"
 
-#: pocheckerconsts.sselectedtranslationsarenotavailable
-msgid "Selected translations are not available."
-msgstr ""
-
 #: pocheckerconsts.sselecttesttypes
 msgid "Select test types"
 msgstr "Vybrat typy testu"
@@ -408,17 +388,11 @@ msgid "Show statistics graph"
 msgstr "Ukázat statistický graf"
 
 #: pocheckerconsts.sstathint
-#, object-pascal-format, fuzzy
-#| msgid ""
-#| "Translated: %d (%.1f%%)\n"
-#| "Untranslated: %d (%.1f%%)\n"
-#| "Fuzzy: %d (%.1f%%)\n"
-#| "Errors in selected tests: %d\n"
 msgid ""
 "Translated: %d (%.1f%%)\n"
 "Untranslated: %d (%.1f%%)\n"
 "Fuzzy: %d (%.1f%%)\n"
-"Errors in selected tests: %d"
+"Errors in selected tests: %d\n"
 msgstr ""
 "Přeložených: %d (%.1f%%)\n"
 "Nepřeložených: %d (%.1f%%)\n"
@@ -426,42 +400,34 @@ msgstr ""
 "Chyb ve vybraných testech: %d\n"
 
 #: pocheckerconsts.sthefollowingmissingmasterpofileswereremoved
-#, object-pascal-format
 msgid "The following %s missing master .po file(s) were removed from the list:"
 msgstr "Následující %s cyhbějících hlavních .po souborů bylo odstraněno ze seznamu:"
 
 #: pocheckerconsts.sthefollowingorphanedpofilesfound
-#, object-pascal-format
 msgid "The following %s orphaned .po file(s) found:"
 msgstr "Nalezeno následujících %s sirotčích .po souborů:"
 
 #: pocheckerconsts.stotalerrors
-#, object-pascal-format
 msgid "Total errors: %d"
 msgstr "Celkem chyb %d"
 
 #: pocheckerconsts.stotalerrorsnonfuzzy
-#, object-pascal-format
 msgid "Total errors: %d (formatting errors in non-fuzzy strings: %d)"
 msgstr "Celkem chyb: %d (chyb formátování mimo nejednoznačné řetězce: %d)"
 
 #: pocheckerconsts.stotalfuzzystrings
-#, object-pascal-format
 msgid "Total fuzzy strings: %s"
 msgstr "Celkem nejednoznačných řetězců: %s"
 
 #: pocheckerconsts.stotaltranslatedstrings
-#, object-pascal-format
 msgid "Total translated strings: %s (%.1f%%)"
 msgstr "Celkem přeložených řetězců: %s (%.1f%%)"
 
 #: pocheckerconsts.stotaluntranslatedstrings
-#, object-pascal-format
 msgid "Total untranslated strings: %s"
 msgstr "Celkem nepřeložených řetězců: %s"
 
 #: pocheckerconsts.stotalwarnings
-#, object-pascal-format
 msgid "Total warnings: %d"
 msgstr "Celkem varování: %d"
 
@@ -470,7 +436,6 @@ msgid "Translated strings"
 msgstr "Přeložené řetězce"
 
 #: pocheckerconsts.stranslatedstringstotal
-#, object-pascal-format
 msgid "Translated strings (total: %s [%.1f%%])"
 msgstr "Přeložených řetězců (celkem: %s [%.1f%%])"
 
@@ -499,7 +464,6 @@ msgid "Untranslated strings"
 msgstr "Nepřeložené řetězce"
 
 #: pocheckerconsts.suntranslatedstringstotal
-#, object-pascal-format
 msgid "Untranslated strings (total: %s)"
 msgstr "Nepřeložené řetězce (celkem: %s)"
 

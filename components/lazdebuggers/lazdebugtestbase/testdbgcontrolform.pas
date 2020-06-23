@@ -5,11 +5,9 @@ unit TestDbgControlForm;
 interface
 
 uses
-  // LCL
   Interfaces, Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
-  EditBtn, ComCtrls, CheckLst,
-  // LazDebugTestBase
-  TestDbgControl, TestDbgConfig, TTestDbgExecuteables;
+  EditBtn, ComCtrls, CheckLst, TestDbgControl, TestDbgConfig,
+  TTestDbgExecuteables;
 
 type
 

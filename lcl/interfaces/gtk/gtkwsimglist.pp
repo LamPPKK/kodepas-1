@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: gtkwsimglist.pp 41387 2013-05-24 18:30:06Z juha $}
 {
  *****************************************************************************
  *                              GtkWSImgList.pp                              * 
@@ -27,7 +27,7 @@ type
 
   { TGtkWSCustomImageList }
 
-  TGtkWSCustomImageListResolution = class(TWSCustomImageListResolution)
+  TGtkWSCustomImageList = class(TWSCustomImageList)
   published
   end;
 

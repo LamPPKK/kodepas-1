@@ -399,7 +399,7 @@ procedure TLazPackageLinks.UpdateGlobalLinks;
     or (not (Filename[StartPos] in ['a'..'z','A'..'Z'])) then exit;
     inc(StartPos);
     while (StartPos<=length(Filename))
-    and (Filename[StartPos] in ['.','a'..'z','A'..'Z','_','0'..'9']) do
+    and (Filename[StartPos] in ['a'..'z','A'..'Z','_','0'..'9']) do
       inc(StartPos);
     PkgName:=lowercase(copy(Filename,1,StartPos-1));
     // parse -
@@ -466,7 +466,7 @@ begin
       if CompareFileExt(LPLFilename,'lpl')<>0 then continue;
       if (not ParseFilename(Files[i],NewPkgName,PkgVersion))
       then begin
-        DebugLn('Warning: (kode) suspicious pkg link file found (name): ',LPLFilename);
+        DebugLn('Warning: (lazarus) suspicious pkg link file found (name): ',LPLFilename);
         continue;
       end;
       LPKFilename:='';
@@ -474,18 +474,18 @@ begin
       try
         sl.LoadFromFile(LPLFilename);
         if sl.Count<=0 then begin
-          DebugLn('Warning: (kode) pkg link file is empty: ',LPLFilename);
+          DebugLn('Warning: (lazarus) pkg link file is empty: ',LPLFilename);
           continue;
         end;
         LPKFilename:=GetForcedPathDelims(sl[0]);
       except
         on E: Exception do begin
-          DebugLn('Warning: (kode) unable to read pkg link file: ',LPLFilename,' : ',E.Message);
+          DebugLn('Warning: (lazarus) unable to read pkg link file: ',LPLFilename,' : ',E.Message);
         end;
       end;
       sl.Free;
       if LPKFilename='' then begin
-        debugln(['Warning: (kode) TPackageLinks.UpdateGlobalLinks lpl file has empty first line: ',LPLFilename]);
+        debugln(['Warning: (lazarus) TPackageLinks.UpdateGlobalLinks lpl file has empty first line: ',LPLFilename]);
         continue;
       end;
       //debugln(['TPackageLinks.UpdateGlobalLinks NewFilename="',LPKFilename,'"']);
@@ -520,7 +520,7 @@ begin
         end;
         FGlobalLinks.Add(CurPkgLink);
       end else begin
-        debugln('Warning: (kode) TPackageLinks.UpdateGlobalLinks Invalid lpl "',LPLFilename,'"'
+        debugln('Warning: (lazarus) TPackageLinks.UpdateGlobalLinks Invalid lpl "',LPLFilename,'"'
           ,' PkgName="',CurPkgLink.Name,'" '
           ,' PkgVersion=',CurPkgLink.Version.AsString
           ,' Filename="',CurPkgLink.LPKFilename,'"');
@@ -550,7 +550,7 @@ begin
           debugln(['TPackageLinks.UpdateGlobalLinks inconsistency UnmappedGlobalLinks.Remove']);
         MappedGlobalLinks.Add(OldPkgLink);
         if OtherPkgLink.LastUsed<OldPkgLink.LastUsed then begin
-          debugln(['Hint: (kode) [TPackageLinks.UpdateGlobalLinks] using LastUsed date of '+OldPkgLink.IDAsString+' for new '+OtherPkgLink.IDAsString+' in '+OtherPkgLink.LPKFilename]);
+          debugln(['Hint: (lazarus) [TPackageLinks.UpdateGlobalLinks] using LastUsed date of '+OldPkgLink.IDAsString+' for new '+OtherPkgLink.IDAsString+' in '+OtherPkgLink.LPKFilename]);
           OtherPkgLink.LastUsed:=OldPkgLink.LastUsed;
         end;
         break;
@@ -642,7 +642,7 @@ begin
       //  debugln(['TPackageLinks.UpdateUserLinks ',NewPkgLink.IDAsString,' ',DateToCfgStr(NewPkgLink.LastUsed,DateTimeAsCfgStrFormat)]);
 
       if not NewPkgLink.IsMakingSense then begin
-        debugln(['Warning: (kode) TPackageLinks.UpdateUserLinks invalid link: ',NewPkgLink.IDAsString]);
+        debugln(['Warning: (lazarus) TPackageLinks.UpdateUserLinks invalid link: ',NewPkgLink.IDAsString]);
         NewPkgLink.Release;
         continue;
       end;
@@ -651,16 +651,16 @@ begin
         // a link to the same file
         OtherLink:=TLazPackageLink(OtherNode.Data);
         if ConsoleVerbosity>0 then
-          debugln(['Warning: (kode) TPackageLinks.UpdateUserLinks two links for file: ',NewPkgLink.LPKFilename,' A=',OtherLink.IDAsString,' B=',NewPkgLink.IDAsString]);
+          debugln(['Warning: (lazarus) TPackageLinks.UpdateUserLinks two links for file: ',NewPkgLink.LPKFilename,' A=',OtherLink.IDAsString,' B=',NewPkgLink.IDAsString]);
         if OtherLink.LastUsed<NewPkgLink.LastUsed then begin
           if ConsoleVerbosity>0 then
-            debugln(['Warning: (kode) TPackageLinks.UpdateUserLinks ignoring older link ',OtherLink.IDAsString]);
+            debugln(['Warning: (lazarus) TPackageLinks.UpdateUserLinks ignoring older link ',OtherLink.IDAsString]);
           FUserLinksSortID.RemovePointer(OtherLink);
           FUserLinksSortFile.Delete(OtherNode);
           OtherLink.Release;
         end else begin
           if ConsoleVerbosity>0 then
-            debugln(['Warning: (kode) TPackageLinks.UpdateUserLinks ignoring older link ',NewPkgLink.IDAsString]);
+            debugln(['Warning: (lazarus) TPackageLinks.UpdateUserLinks ignoring older link ',NewPkgLink.IDAsString]);
           NewPkgLink.Release;
           continue;
         end;
@@ -683,7 +683,7 @@ begin
         if not CfgStrToDate(XMLConfig.GetValue(ItemPath+'LastUsed/Value',''),
                             NewPkgLink.FLastUsed,LastUsedFormat)
         then begin
-          debugln(['Hint: (kode) [TPackageLinks.UpdateUserLinks] ignoring invalid entry '+ItemPath]);
+          debugln(['Hint: (lazarus) [TPackageLinks.UpdateUserLinks] ignoring invalid entry '+ItemPath]);
           NewPkgLink.Free;
           continue;
         end;
@@ -692,7 +692,7 @@ begin
         PkgVersionLoadFromXMLConfig(NewPkgLink.Version,XMLConfig,ItemPath+'Version/',
                                                           FileVersion);
         if not IsValidPkgName(NewPkgLink.Name) then begin
-          debugln(['Hint: (kode) [TPackageLinks.UpdateUserLinks] ignoring invalid global link LastUsed of '+NewPkgLink.IDAsString]);
+          debugln(['Hint: (lazarus) [TPackageLinks.UpdateUserLinks] ignoring invalid global link LastUsed of '+NewPkgLink.IDAsString]);
           NewPkgLink.Free;
           continue;
         end;
@@ -741,7 +741,7 @@ begin
           UnmappedGlobalLinks.Remove(NewPkgLink);
           MappedGlobalLinks.Add(NewPkgLink);
           if OtherLink.LastUsed<NewPkgLink.LastUsed then begin
-            debugln(['Hint: (kode) [TPackageLinks.UpdateUserLinks] using LastUsed date of old '+NewPkgLink.IDAsString+' for '+OtherLink.IDAsString+' in '+OtherLink.LPKFilename]);
+            debugln(['Hint: (lazarus) [TPackageLinks.UpdateUserLinks] using LastUsed date of old '+NewPkgLink.IDAsString+' for '+OtherLink.IDAsString+' in '+OtherLink.LPKFilename]);
             OtherLink.LastUsed:=NewPkgLink.LastUsed;
           end;
           break;
@@ -762,7 +762,7 @@ begin
     UserLinkLoadTimeValid:=true;
   except
     on E: Exception do begin
-      DebugLn('Note: (kode) unable to read ',ConfigFilename,' ',E.Message);
+      DebugLn('Note: (lazarus) unable to read ',ConfigFilename,' ',E.Message);
       exit;
     end;
   end;
@@ -843,7 +843,7 @@ begin
   // check if file needs saving
   if not NeedSaveUserLinks(ConfigFilename) then exit;
   if ConsoleVerbosity>1 then
-    DebugLn(['Hint: (kode) TPackageLinks.SaveUserLinks saving ... ',ConfigFilename,' Modified=',Modified,' UserLinkLoadTimeValid=',UserLinkLoadTimeValid,' ',FileAgeUTF8(ConfigFilename)=UserLinkLoadTime,' Immediately=',Immediately]);
+    DebugLn(['Hint: (lazarus) TPackageLinks.SaveUserLinks saving ... ',ConfigFilename,' Modified=',Modified,' UserLinkLoadTimeValid=',UserLinkLoadTimeValid,' ',FileAgeUTF8(ConfigFilename)=UserLinkLoadTime,' Immediately=',Immediately]);
 
   if Immediately then begin
     QueueSaveUserLinks:=false;
@@ -913,7 +913,7 @@ begin
     UserLinkLoadTimeValid:=true;
   except
     on E: Exception do begin
-      DebugLn('Note: (kode) unable to read ',ConfigFilename,' ',E.Message);
+      DebugLn('Note: (lazarus) unable to read ',ConfigFilename,' ',E.Message);
       exit;
     end;
   end;
@@ -987,7 +987,7 @@ var
 begin
   Result:=nil;
   if (Dependency=nil) or (not Dependency.IsMakingSense) then begin
-    DebugLn(['Warning: (kode) TPackageLinks.FindLinkWithDependencyInTree Dependency makes no sense']);
+    DebugLn(['Warning: (lazarus) TPackageLinks.FindLinkWithDependencyInTree Dependency makes no sense']);
     exit;
   end;
   {$IFDEF VerbosePkgLinkSameName}

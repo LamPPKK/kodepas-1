@@ -1,5 +1,5 @@
 {%MainUnit gtkwscomctrls.pp}
-{ $Id$
+{ $Id: gtkwscustomlistview.inc 57164 2018-01-27 18:12:35Z ondrej $
 
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

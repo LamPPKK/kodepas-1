@@ -36,10 +36,6 @@ resourcestring
   desText = 'Text';
   desInsertRow = 'Insert row';
   desDeleteRow = 'Delete row';
-  desMoveUp = 'Move up';
-  desMoveDown = 'Move down';
-  desNoNumber = 'Non-numeric value.';
-  desNoInteger = 'Value must be an integer.';
 
   // Axis
   rsLeft = 'Left';
@@ -64,25 +60,13 @@ resourcestring
   rsPanningByDrag = 'Panning by drag';
   rsPanningByClick = 'Panning by click';
   rsPanningByMousewheel = 'Panning by mouse wheel';
+  //rsReticule = 'Reticule';
   rsDataPointClick = 'Data point click';
   rsDataPointDrag = 'Data point drag';
   rsDataPointHint = 'Data point hint';
   rsDataPointCrossHair = 'Data point crosshair';
   rsUserDefinedTool = 'User-defined';
   rsDistanceMeasurement = 'Distance measurement';
-  rsAxisClickTool = 'Axis click';
-  rsHeaderFooterClickTool = 'Header/footer click';
-  rsLegendClickTool = 'Legend click';
-
-  // Chart sources
-  rsSourceNotEditable = 'Editable chart source required';
-  rsSourceCountError = '%0:s requires a chart source with at least %1:d %2:s value(s) per data point.';
-  rsSourceCountError2 = 'This %0:s instance must have at least %1:d %2:s value(s) per data point.';
-  rsSourceSortError = 'Selected sorting parameters are not supported by %s.';
-  rsListSourceStringFormatError = 'The data value count in the %0:s.DataPoints '+
-    'string "%1:s" differs from what is expected from XCount and YCount.';
-  rsListSourceNumericError = 'The %0:s.DataPoints string "%1:s" is not a valid number.';
-  rsListSourceColorError = 'The %0:s.DataPoints string "%1:s" is not an integer.';
 
   // Transformations
   tasAxisTransformsEditorTitle = 'Edit axis transformations';
@@ -142,12 +126,6 @@ resourcestring
 //  rsTDistParamError = 'Function tdist() requires parameter "tails" to be 1 or 2. Get %d.';
 
   // Fit series
-  rsErrIllegalFitParamCount = 'The number of fit parameters cannot be less than 1.';
-  rsErrFitDimError = 'Non-matching count of x and y values.';
-  rsErrFitMoreParamsThanValues = 'There are more fitting parameters than data values.';
-  rsErrFitNoFitParams = 'No fit parameters specified.';
-  rsErrFitSingular = 'Fitting matrix is (nearly) singular.';
-  rsErrFitNoBaseFunctions = 'Not enough user-provided base functions.';
   rsFitNumObservations = 'Number of observations';
   rsFitNumFitParams = 'Number of fit parameters';
   rsFitDegreesOfFreedom = 'Degrees of freedom';
@@ -161,7 +139,6 @@ resourcestring
   rsFitResidualStandardError = 'Residual standard error';
   rsFitVarianceRatio = 'Variance ratio F';
   rsFitPValue = 'p value';
-
 
 implementation
 

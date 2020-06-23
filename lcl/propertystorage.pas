@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: propertystorage.pas 52248 2016-04-25 12:36:52Z bart $  }
 {
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

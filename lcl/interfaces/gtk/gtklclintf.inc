@@ -1,5 +1,5 @@
 {%MainUnit gtkint.pp}
-{ $Id$ }
+{ $Id: gtklclintf.inc 41387 2013-05-24 18:30:06Z juha $ }
 {******************************************************************************
                  All GTK interface communication implementations.
                    Initial Revision  : Sun Nov 23 23:53:53 2003
@@ -168,6 +168,20 @@ begin
   end else begin
     Result:=TextOut(DC,X,Y,Str,Count);
   end;
+end;
+
+{------------------------------------------------------------------------------
+  function TGTKWidgetSet.FontCanUTF8(Font: HFont): boolean;
+  
+  True if font recognizes Unicode UTF8 encoding.
+ ------------------------------------------------------------------------------}
+function TGTKWidgetSet.FontCanUTF8(Font: HFont): boolean;
+begin
+  Result:=IsValidGDIObject(Font)
+    {$IFDEF Gtk1}
+    and FontIsDoubleByteCharsFont(PGdiObject(Font)^.GDIFontObject)
+    {$ENDIF}
+    ;
 end;
 
 {------------------------------------------------------------------------------

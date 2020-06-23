@@ -1458,11 +1458,11 @@ begin
   end;
 end;
 
-procedure TMenuItem.UpdateImage(forced: Boolean);
+procedure TMenuItem.UpdateImage;
 var
   ImgList: TCustomImageList;
 begin
-  if [csLoading, csDestroying] * ComponentState = [] then
+  if HandleAllocated and ([csLoading, csDestroying] * ComponentState = []) then
   begin
     ImgList := GetImageList;
     if FBitmapIsValid then // Bitmap is assigned through Bitmap property
@@ -1475,26 +1475,25 @@ begin
     end
     else
     begin
-      if (forced) or (ImgList = nil) or (ImageIndex = -1) then
+      if (ImgList = nil) or (ImageIndex = -1) then
       begin
         FreeAndNil(FBitmap);
         FBitmapIsValid := True;
       end;
     end;
-    if HandleAllocated then
-      UpdateWSIcon;
+    UpdateWSIcon;
   end;
 end;
 
-procedure TMenuItem.UpdateImages(forced: Boolean);
+procedure TMenuItem.UpdateImages;
 var
   i: integer;
 begin
   if HandleAllocated and ([csLoading,csDestroying]*ComponentState=[]) then
   begin
-    UpdateImage(forced);
+    UpdateImage;
     for i := 0 to Count - 1 do
-      Items[i].UpdateImages(forced);
+      Items[i].UpdateImages;
   end;
 end;
 
@@ -1553,7 +1552,7 @@ end;
   interface. This procedure just sets the private variables.
 
   //todo
-  MWE: ??? shouldn't we get checked from the interface in that case ???
+  MWE: ??? shouln'd we get checked from the interface in that case ???
  ------------------------------------------------------------------------------}
 procedure TMenuItem.TurnSiblingsOff;
 var

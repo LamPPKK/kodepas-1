@@ -12,7 +12,6 @@ uses
   pkgoptions,
   pkgglobals,
   pkgFppkg,
-  IDEOptionsIntf,
   pkgmessages,
   laz_pkgrepos;
 
@@ -48,7 +47,7 @@ begin
   pkghandler.ClearExecutedAction;
 
   FFPpkg := TpkgFPpkg.Create(Nil);
-  FFPpkg.InitializeGlobalOptions(IDEEnvironmentOptions.GetParsedFppkgConfig);
+  FFPpkg.InitializeGlobalOptions('');
   FFPpkg.Options.GlobalSection.Downloader := 'FPC';
   FFPpkg.InitializeCompilerOptions;
 

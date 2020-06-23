@@ -32,7 +32,6 @@ msgid "Delete item"
 msgstr "Pašalinti elementą"
 
 #: externhelpfrm.ehrsdirectorynotfound
-#, object-pascal-format
 msgid "Directory not found: %s"
 msgstr "Aplankas nerastas: %s"
 
@@ -45,7 +44,6 @@ msgid "External"
 msgstr "Išorės"
 
 #: externhelpfrm.ehrsfilenotfound
-#, object-pascal-format
 msgid "File not found: %s"
 msgstr "Failas nerastas: %s"
 

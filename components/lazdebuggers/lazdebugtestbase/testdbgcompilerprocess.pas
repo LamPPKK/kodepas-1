@@ -113,6 +113,7 @@ end;
 procedure TCreatedExecutableList.AddExe(AnExeName, ACommandLine: String);
 var
   i: Integer;
+  n: TCreatedExecutableList;
 begin
   i := IndexOfExe(AnExeName);
   if i < 0 then begin
@@ -139,7 +140,7 @@ begin
   Result := '';
   i := IndexOfExe(AnExeName);
   if i >= 0 then
-    Result := Items[i].FComandline;
+    Result := Items[i].FExeName;
 end;
 
 { TCompilerProcess }
@@ -302,7 +303,6 @@ begin
 
     FpcBuild.CommandLine := ACommand;
     FpcBuild.CurrentDirectory := ACurDir;
-    FpcBuild.PipeBufferSize:=64*1024;
     FpcBuild.Execute;
 
     OutputLines := ReadOutput(FpcBuild);

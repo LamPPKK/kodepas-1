@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: gtk2wscontrols.pp 58912 2018-09-08 20:04:47Z michl $}
 {
  *****************************************************************************
  *                             Gtk2WSControls.pp                             * 
@@ -263,8 +263,10 @@ var
   CS: PChar;
   Handle: HWND;
 begin
+  Result := False;
   if not WSCheckHandleAllocated(AWinControl, 'GetText')
-  then Exit(False);
+  then Exit;
+
   Result := true;
   Handle := AWinControl.Handle;
   case AWinControl.fCompStyle of
@@ -272,12 +274,15 @@ begin
       begin
         AText := StrPas(gtk_entry_get_text(PGtkEntry({%H-}PGtkCombo(Handle)^.entry)));
       end;
+
     csEdit: AText:= StrPas(gtk_entry_get_text({%H-}PgtkEntry(Handle)));
     csSpinEdit: AText:= StrPas(gtk_entry_get_text(@{%H-}PGtkSpinButton(Handle)^.entry));
+
+
     csMemo:
       begin
         CS := gtk_editable_get_chars(PGtkEditable(
-          GetOrCreateWidgetInfo({%H-}Pointer(Handle))^.CoreWidget), 0, -1);
+          GetWidgetInfo({%H-}Pointer(Handle), True)^.CoreWidget), 0, -1);
         AText := StrPas(CS);
         g_free(CS);
       end;
@@ -301,7 +306,7 @@ begin
   case AWinControl.fCompStyle of
     csMemo:
       begin
-        TextBuf := gtk_text_view_get_buffer(PGtkTextView(GetOrCreateWidgetInfo({%H-}Pointer(Handle))^.CoreWidget));
+        TextBuf := gtk_text_view_get_buffer(PGtkTextView(GetWidgetInfo({%H-}Pointer(Handle), True)^.CoreWidget));
         gtk_text_buffer_get_start_iter(TextBuf, @StartIter);
         gtk_text_buffer_get_end_iter(TextBuf, @EndIter);
         CS := gtk_text_buffer_get_text(TextBuf, @StartIter, @EndIter, False);
@@ -505,6 +510,11 @@ var
   ChildWidget: PGTKWidget;
   pFixed: PGTKWidget;
 begin
+  {$IFDEF OldToolBar}
+  if (AControl.Parent is TToolbar) then
+    exit;
+  {$ENDIF}
+
   AParent := TWinControl(AControl).Parent;
   // DebugLn('LM_AddChild: ',dbgsName(AControl),' ',dbgs(AParent<>nil));
   if not Assigned(AParent) then
@@ -943,6 +953,33 @@ begin
     csBitBtn,
     csButton: DebugLn('[WARNING] Obsolete call to TGTKOBject.SetLabel for ', AWinControl.ClassName);
 
+    {$IFDEF OldToolBar}
+    csToolButton:
+      with PgtkButton(P)^ do
+      begin
+        //aLabel := StrAlloc(Length(AnsiString(PLabel)) + 1);
+        aLabel := Ampersands2Underscore(PLabel);
+        Try
+          //StrPCopy(aLabel, AnsiString(PLabel));
+          //Accel := Ampersands2Underscore(aLabel);
+          if gtk_bin_get_child(P) = nil then
+          begin
+            //DebugLn(Format('trace:  [TGtkWidgetSet.SetLabel] %s has no child label', [AWinControl.ClassName]));
+             gtk_container_add(P, gtk_label_new(aLabel));
+          end else
+          begin
+            //DebugLn(Format('trace:  [TGtkWidgetSet.SetLabel] %s has child label', [AWinControl.ClassName]));
+            gtk_label_set_text(pgtkLabel( gtk_bin_get_child(P)), aLabel);
+          end;
+          //If Accel <> -1 then
+          AccelKey:=gtk_label_parse_uline(PGtkLabel( gtk_bin_get_child(P)), aLabel);
+          Accelerate(AWinControl,PGtkWidget(P),AccelKey,0,'clicked');
+        finally
+          StrDispose(aLabel);
+        end;
+      end;
+    {$ENDIF OldToolBar}
+
     csForm,
     csFileDialog, csOpenFileDialog, csSaveFileDialog, csSelectDirectoryDialog,
     csPreviewFileDialog,
@@ -985,7 +1022,7 @@ begin
 
     csMemo:
       begin
-        P:= GetOrCreateWidgetInfo(P)^.CoreWidget;
+        P:= GetWidgetInfo(P, True)^.CoreWidget;
         //debugln('TGtk2WSWinControl.SetText A ',dbgs(gtk_text_get_length(PGtkText(P))),' AText="',AText,'"');
         gtk_text_freeze(PGtkText(P));
         gtk_text_set_point(PGtkText(P), 0);

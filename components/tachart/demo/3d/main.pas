@@ -17,7 +17,6 @@ type
     Chart1BarSeries1: TBarSeries;
     Chart1BarSeries2: TBarSeries;
     Chart1LineSeries1: TLineSeries;
-    lblDepthBrightnessDelta: TLabel;
     lblDepth: TLabel;
     lblAxisZ: TLabel;
     pnControls: TPanel;
@@ -25,11 +24,9 @@ type
     RandomChartSource2: TRandomChartSource;
     seDepth: TSpinEdit;
     seAxisZ: TSpinEdit;
-    seDepthBrighnessDelta: TSpinEdit;
     procedure FormShow(Sender: TObject);
     procedure seAxisZChange(Sender: TObject);
     procedure seDepthChange(Sender: TObject);
-    procedure seDepthBrighnessDeltaChange(Sender: TObject);
   end;
 
 var
@@ -62,13 +59,6 @@ begin
   Chart1.Depth := seDepth.Value;
   for s in Chart1.Series do
     s.Depth := Min(seDepth.Value, 10);
-end;
-
-procedure TForm1.seDepthBrighnessDeltaChange(Sender: TObject);
-begin
-  Chart1BarSeries1.DepthBrightnessDelta := seDepthBrighnessDelta.Value;
-  Chart1BarSeries2.DepthBrightnessDelta := seDepthBrighnessDelta.Value;
-  Chart1LineSeries1.DepthBrightnessDelta := seDepthBrighnessDelta.Value;
 end;
 
 end.

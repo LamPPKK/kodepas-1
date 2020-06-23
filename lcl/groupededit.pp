@@ -174,7 +174,6 @@ type
     procedure SetTabStop(AValue: Boolean);
     procedure SetTextHint(AValue: TTranslateString);
   protected
-    class procedure WSRegisterClass; override;
     procedure CalculatePreferredSize(var PreferredWidth, PreferredHeight: integer;
                 WithThemeSpace: Boolean); override;
     function CreateBuddy: TControl; virtual;
@@ -1131,13 +1130,6 @@ begin
   FEdit.TextHint := AValue;
 end;
 
-class procedure TCustomAbstractGroupedEdit.WSRegisterClass;
-begin
-  inherited WSRegisterClass;
-  RegisterPropertyToSkip(TCustomAbstractGroupedEdit, 'TextHintFontColor','Used in a previous version of Lazarus','');
-  RegisterPropertyToSkip(TCustomAbstractGroupedEdit, 'TextHintFontStyle','Used in a previous version of Lazarus','');
-end;
-
 procedure TCustomAbstractGroupedEdit.UpdateSpacing;
 begin
   if (FBuddy=nil) or not FBuddy.Visible then
@@ -1289,4 +1281,7 @@ begin
   FEdit.ValidateEdit;
 end;
 
+initialization
+  RegisterPropertyToSkip(TCustomAbstractGroupedEdit, 'TextHintFontColor','Used in a previous version of Lazarus','');
+  RegisterPropertyToSkip(TCustomAbstractGroupedEdit, 'TextHintFontStyle','Used in a previous version of Lazarus','');
 end.

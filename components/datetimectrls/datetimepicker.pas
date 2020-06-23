@@ -119,8 +119,8 @@ type
     dtaDefault means it is determined by BiDiMode }
   TDTCalAlignment = (dtaLeft, dtaRight, dtaDefault);
 
-  TDateTimePickerOption = (dtpoDoChangeOnSetDateTime, dtpoEnabledIfUnchecked,
-                           dtpoAutoCheck, dtpoFlatButton, dtpoResetSelection);
+  TDateTimePickerOption = (
+    dtpoDoChangeOnSetDateTime, dtpoEnabledIfUnchecked, dtpoAutoCheck, dtpoFlatButton);
   TDateTimePickerOptions = set of TDateTimePickerOption;
 
   { TCustomDateTimePicker }
@@ -266,6 +266,7 @@ type
     procedure SelectDateTimePart(const DateTimePart: TDateTimePart);
     procedure MoveSelectionLR(const ToLeft: Boolean);
     procedure DestroyCalendarForm;
+    procedure DropDownCalendarForm;
     procedure UpdateShowArrowButton;
     procedure DestroyUpDown;
     procedure DestroyArrowBtn;
@@ -275,7 +276,7 @@ type
     procedure SetFocusIfPossible;
     procedure AutoResizeButton;
     procedure CheckAndApplyKey(const Key: Char);
-    procedure CheckAndApplyKeyCode(var Key: Word; const ShState: TShiftState);
+    procedure CheckAndApplyKeyCode(var Key: Word);
     procedure SetOptions(const aOptions: TDateTimePickerOptions);
 
   protected
@@ -286,8 +287,6 @@ type
 
     procedure ConfirmChanges; virtual;
     procedure UndoChanges; virtual;
-
-    procedure DropDownCalendarForm;
 
     function GetCheckBoxRect(IgnoreRightToLeft: Boolean = False): TRect;
     function GetDateTimePartFromTextPart(TextPart: TTextPart): TDateTimePart;
@@ -609,6 +608,8 @@ type
     procedure AdjustCalendarFormScreenPosition;
     procedure CloseCalendarForm(const AndSetTheDate: Boolean = False);
 
+    procedure CalendarKeyDown(Sender: TObject; var Key: Word;
+                                      Shift: TShiftState);
     procedure CalendarResize(Sender: TObject);
     procedure CalendarClick(Sender: TObject);
     procedure VisibleOfParentChanged(Sender: TObject);
@@ -618,7 +619,6 @@ type
     procedure DoShow; override;
     procedure DoClose(var CloseAction: TCloseAction); override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
 
     procedure WMActivate(var Message: TLMActivate); message LM_ACTIVATE;
   public
@@ -734,7 +734,14 @@ begin
         if AndSetTheDate then begin
           Inc(DTPicker.FUserChanging);
           try
-            DTPicker.SetDate(Cal.GetDate);
+            if DTPicker.DateIsNull then begin
+              // we'll set the time to 0.0 (midnight):
+              DTPicker.SetDateTime(Int(Cal.GetDate));
+            end else if not EqualDateTime(Int(DTPicker.DateTime),
+                                          Int(Cal.GetDate)) then begin
+              // we'll change the date, but keep the time:
+              DTPicker.SetDateTime(ComposeDateTime(Cal.GetDate, DTPicker.DateTime));
+            end;
             DTPicker.DoAutoCheck;
           finally
             Dec(DTPicker.FUserChanging);
@@ -753,36 +760,19 @@ begin
 
 end;
 
-procedure TDTCalendarForm.KeyDown(var Key: Word; Shift: TShiftState);
-var
-  ApplyTheDate: Boolean;
-
+procedure TDTCalendarForm.CalendarKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
 begin
-  inherited KeyDown(Key, Shift);
-
-  case Key of
-
-    VK_ESCAPE, VK_RETURN, VK_SPACE, VK_TAB:
-      if (not(Cal.GetCalendarControl is TCustomCalendar))
-         or (TCustomCalendar(Cal.GetCalendarControl).GetCalendarView = cvMonth)
-      then begin
-        ApplyTheDate := Key in [VK_RETURN, VK_SPACE];
-        Key := 0;
-        CloseCalendarForm(ApplyTheDate);
-      end;
-
-    VK_UP:
-      if Shift = [ssAlt] then begin
-        Key := 0;
+  if (not(Cal.GetCalendarControl is TCustomCalendar))
+       or (TCustomCalendar(Cal.GetCalendarControl).GetCalendarView = cvMonth) then
+    case Key of
+      VK_ESCAPE:
         CloseCalendarForm;
-      end;
 
-    // Suppress Alt (not doing so can produce SIGSEGV on Win widgetset ?!)
-    VK_MENU, VK_LMENU, VK_RMENU:
-      Key := 0;
+      VK_RETURN, VK_SPACE:
+        CloseCalendarForm(True);
 
-  end;
-
+    end;
 end;
 
 procedure TDTCalendarForm.CalendarResize(Sender: TObject);
@@ -816,7 +806,7 @@ begin
   inherited;
 
   PP := LCLIntf.GetParent(Handle);
-  if (PP <> 0) then
+  if (PP<>0) then
     SendMessage(PP, LM_NCACTIVATE, Ord(Message.Active <> WA_INACTIVE), 0);
 end;
 
@@ -872,10 +862,8 @@ begin
   if Assigned(DTPickersParentForm) then begin
     DTPickersParentForm.AddHandlerOnVisibleChanged(@VisibleOfParentChanged);
     DTPickersParentForm.FreeNotification(Self);
-    PopupParent := DTPickersParentForm;
-    PopupMode := pmExplicit;
-  end else
-    PopupMode := pmAuto;
+  end;
+  PopupMode := pmAuto;
 
   P := Point(0, 0);
 
@@ -918,10 +906,10 @@ begin
   Cal.GetCalendarControl.OnResize := @CalendarResize;
   Cal.GetCalendarControl.OnClick := @CalendarClick;
   if Cal.GetCalendarControl is TWinControl then begin
+    TWinControl(Cal.GetCalendarControl).OnKeyDown := @CalendarKeyDown;
     TWinControl(Cal.GetCalendarControl).TabStop := True;
     TWinControl(Cal.GetCalendarControl).SetFocus;
   end;
-  Self.KeyPreview := True;
 
   Shape.Parent := Self;
   Cal.GetCalendarControl.Parent := Self;
@@ -931,11 +919,17 @@ end;
 destructor TDTCalendarForm.Destroy;
 begin
   SetClosingCalendarForm;
-
   if Assigned(DTPickersParentForm) then
     DTPickersParentForm.RemoveAllHandlersOfObject(Self);
 
-  FreeAndNil(Cal);
+  if Assigned(Cal) then begin
+    Cal.GetCalendarControl.OnResize := nil;
+    Cal.GetCalendarControl.OnClick := nil;
+    if Cal.GetCalendarControl is TWinControl then
+      TWinControl(Cal.GetCalendarControl).OnKeyDown := nil;
+    Cal.Free;
+    Cal := nil;
+  end;
   FreeAndNil(Shape);
 
   if Assigned(DTPicker) then begin
@@ -954,7 +948,7 @@ end;
 
 procedure TCustomDateTimePicker.SetChecked(const AValue: Boolean);
 begin
-  if (FChecked = AValue) or not FShowCheckBox then
+  if (FChecked=AValue) or not FShowCheckBox then
     Exit;
   FChecked := AValue;
 
@@ -1085,7 +1079,7 @@ begin
   if FOptions = aOptions then Exit;
   FOptions := aOptions;
 
-  if FArrowButton <> nil then
+  if FArrowButton<>nil then
     FArrowButton.Flat := dtpoFlatButton in Options;
 
   if FUpDown <> nil then
@@ -1220,7 +1214,7 @@ end;
 procedure TCustomDateTimePicker.SetTimeDisplay(const AValue: TTimeDisplay);
 begin
   if FTimeDisplay <> AValue then begin
-    FTimeDisplay:= AValue;
+    FTimeDisplay:=AValue;
     AdjustEffectiveHideDateTimeParts;
   end;
 end;
@@ -1979,15 +1973,15 @@ begin
   CSize.cy := ScaleScreenToFont(CSize.cy);
   if IsRightToLeft and not IgnoreRightToLeft then
   begin
-    Result.Right := ClientWidth - (BorderSpacing.InnerBorder + BorderWidth);
-    Result.Left := Result.Right - CSize.cx;
+    Result.Right := ClientWidth-(BorderSpacing.InnerBorder+BorderWidth);
+    Result.Left := Result.Right-CSize.cx;
   end else
   begin
-    Result.Left := BorderSpacing.InnerBorder + BorderWidth;
-    Result.Right := Result.Left + CSize.cx;
+    Result.Left := BorderSpacing.InnerBorder+BorderWidth;
+    Result.Right := Result.Left+CSize.cx;
   end;
-  Result.Top := (ClientHeight - CSize.cy) div 2;
-  Result.Bottom := Result.Top + CSize.cy;
+  Result.Top := (ClientHeight-CSize.cy) div 2;
+  Result.Bottom := Result.Top+CSize.cy;
 end;
 
 { GetTextOrigin
@@ -2058,7 +2052,7 @@ begin
     if FTextEnabled then
       inherited KeyDown(Key, Shift); // calls OnKeyDown event
 
-    CheckAndApplyKeyCode(Key, Shift);
+    CheckAndApplyKeyCode(Key);
   finally
     Dec(FUserChanging);
   end;
@@ -2208,7 +2202,7 @@ begin
   if ShowCheckBox then
   begin
     NewMouseInCheckBox := PtInRect(GetCheckBoxRect, Point(X, Y));
-    if FMouseInCheckBox <> NewMouseInCheckBox then
+    if FMouseInCheckBox<>NewMouseInCheckBox then
     begin
       FMouseInCheckBox := NewMouseInCheckBox;
       Invalidate;
@@ -2725,11 +2719,6 @@ end;
 
 procedure TCustomDateTimePicker.DoEnter;
 begin
-  if dtpoResetSelection in Options then begin
-    FSelectedTextPart := High(TTextPart);
-    MoveSelectionLR(False);
-  end;
-
   inherited DoEnter;
   Invalidate;
 end;
@@ -2793,7 +2782,7 @@ begin
   if FTextEnabled then begin
     if aKey in ['n', 'N'] then begin
       K := VK_N;
-      CheckAndApplyKeyCode(K, []);
+      CheckAndApplyKeyCode(K);
     end else
       CheckAndApplyKey(aKey);
   end;
@@ -2811,7 +2800,7 @@ begin
     end;
   end else begin
     K := Key;
-    CheckAndApplyKeyCode(K, []);
+    CheckAndApplyKeyCode(K);
   end;
 
 end;
@@ -2941,7 +2930,7 @@ procedure TCustomDateTimePicker.Change;
 begin
   if Assigned(FOnChange) then
     FOnChange(Self);
-  if FOnChangeHandlers <> nil then
+  if FOnChangeHandlers<>nil then
     FOnChangeHandlers.CallNotifyEvents(Self);
 end;
 
@@ -3192,15 +3181,7 @@ end;
 procedure TCustomDateTimePicker.ArrowMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  SetFocusIfPossible;
-
-  if FAllowDroppingCalendar then
-    DropDownCalendarForm
-  else begin
-    DestroyCalendarForm;
-    FAllowDroppingCalendar := True;
-  end;
-
+  DropDownCalendarForm;
 end;
 
 procedure TCustomDateTimePicker.UpDownClick(Sender: TObject;
@@ -3277,7 +3258,7 @@ begin
   if FArrowShape = AValue then Exit;
 
   FArrowShape := AValue;
-  if FArrowButton <> nil then
+  if FArrowButton<>nil then
     FArrowButton.Invalidate;
 end;
 
@@ -3324,7 +3305,7 @@ begin
   if Assigned(FOnCheckBoxChange) then
     FOnCheckBoxChange(Self);
 
-  if FOnCheckBoxChangeHandlers <> nil then
+  if FOnCheckBoxChangeHandlers<>nil then
     FOnCheckBoxChangeHandlers.CallNotifyEvents(Self);
 end;
 
@@ -3524,8 +3505,7 @@ begin
 
 end;
 
-procedure TCustomDateTimePicker.CheckAndApplyKeyCode(var Key: Word;
-  const ShState: TShiftState);
+procedure TCustomDateTimePicker.CheckAndApplyKeyCode(var Key: Word);
 var
   K: Word;
 begin
@@ -3555,17 +3535,13 @@ begin
           end;
         end;
       VK_DOWN:
-        begin                   
+        begin
           Key := 0;
-          if (ShState = [ssAlt]) and Assigned(FArrowButton) then
-            DropDownCalendarForm
-          else begin
-            UpdateIfUserChangedText;
-            if not FReadOnly then
-            begin
-              DecreaseCurrentTextPart;
-              DoAutoCheck;
-            end;
+          UpdateIfUserChangedText;
+          if not FReadOnly then
+          begin
+            DecreaseCurrentTextPart;
+            DoAutoCheck;
           end;
         end;
       VK_RETURN:
@@ -3606,13 +3582,20 @@ end;
 
 procedure TCustomDateTimePicker.DropDownCalendarForm;
 begin
-  if FAllowDroppingCalendar and FTextEnabled and Assigned(FArrowButton) then
+  SetFocusIfPossible;
+
+  if FAllowDroppingCalendar then begin
     if not (FReadOnly or Assigned(FCalendarForm)
-                      or (csDesigning in ComponentState))
-    then begin
+                          or (csDesigning in ComponentState)) then begin
       FCalendarForm := TDTCalendarForm.CreateNewDTCalendarForm(nil, Self);
       FCalendarForm.Show;
     end;
+
+  end else begin
+    DestroyCalendarForm;
+    FAllowDroppingCalendar := True;
+  end;
+
 end;
 
 { TDTUpDown }
@@ -3714,7 +3697,7 @@ procedure TDTSpeedButton.Paint;
     Details := ThemeServices.GetElementDetails(ArrowState);
     ASize := ThemeServices.GetDetailSize(Details);
     ARect := DropDownButtonRect;
-    InflateRect(ARect, -(ARect.Right - ARect.Left - ASize.cx) div 2, 0);
+    InflateRect(ARect, -(ARect.Right-ARect.Left-ASize.cx) div 2, 0);
     ThemeServices.DrawElement(Canvas.Handle, Details, ARect);
   end;
 const
@@ -3731,8 +3714,8 @@ begin
   Canvas.Pen.Color := ArrowColor;
   Canvas.Brush.Color := Canvas.Pen.Color;
 
-  X := (Width - 9) div 2;
-  Y := (Height - 6) div 2;
+  X := (Width-9) div 2;
+  Y := (Height-6) div 2;
 
 { Let's draw shape of the arrow on the button: }
   case DTPicker.FArrowShape of
@@ -3741,24 +3724,24 @@ begin
 
     asClassicLarger:
       { triangle: }
-      Canvas.Polygon([Point(X + 0, Y + 1), Point(X + 8, Y + 1),
-                                                      Point(X + 4, Y + 5)]);
+      Canvas.Polygon([Point(X+0, Y+1), Point(X+8, Y+1),
+                                                      Point(X+4, Y+5)]);
     asClassicSmaller:
       { triangle -- smaller variant:  }
-      Canvas.Polygon([Point(X + 1, Y + 2), Point(X + 7, Y + 2),
-                                                      Point(X + 4, Y + 5)]);
+      Canvas.Polygon([Point(X+1, Y+2), Point(X+7, Y+2),
+                                                      Point(X+4, Y+5)]);
     asModernLarger:
       { modern: }
-      Canvas.Polygon([Point(X + 0, Y + 1), Point(X + 1, Y + 0),
-                        Point(X + 4, Y + 3), Point(X + 7, Y + 0), Point(X + 8, Y + 1), Point(X + 4, Y + 5)]);
+      Canvas.Polygon([Point(X+0, Y+1), Point(X+1, Y+0),
+                        Point(X+4, Y+3), Point(X+7, Y+0), Point(X+8, Y+1), Point(X+4, Y+5)]);
     asModernSmaller:
       { modern -- smaller variant:    }
-      Canvas.Polygon([Point(X + 1, Y + 2), Point(X + 2, Y + 1),
-                        Point(X + 4, Y + 3), Point(X + 6, Y + 1), Point(X + 7, Y + 2), Point(X + 4, Y + 5)]);
+      Canvas.Polygon([Point(X+1, Y+2), Point(X+2, Y+1),
+                        Point(X+4, Y+3), Point(X+6, Y+1), Point(X+7, Y+2), Point(X+4, Y+5)]);
     asYetAnotherShape:
       { something in between, not very pretty:  }
-      Canvas.Polygon([Point(X + 0, Y + 1), Point(X + 1, Y + 0),
-            Point(X + 2, Y + 1), Point(X + 6, Y + 1),Point(X + 7, Y + 0), Point(X + 8, Y + 1), Point(X + 4, Y + 5)]);
+      Canvas.Polygon([Point(X+0, Y+1), Point(X+1, Y+0),
+            Point(X+2, Y+1), Point(X+6, Y+1),Point(X+7, Y+0), Point(X+8, Y+1), Point(X+4, Y+5)]);
   end;
 end;
 
@@ -3984,7 +3967,7 @@ end;
 procedure TCustomDateTimePicker.AddHandlerOnChange(
   const AOnChange: TNotifyEvent; AsFirst: Boolean);
 begin
-  if FOnChangeHandlers = nil then
+  if FOnChangeHandlers=nil then
     FOnChangeHandlers := TMethodList.Create;
   FOnChangeHandlers.Add(TMethod(AOnChange), not AsFirst);
 end;
@@ -3992,7 +3975,7 @@ end;
 procedure TCustomDateTimePicker.AddHandlerOnCheckBoxChange(
   const AOnCheckBoxChange: TNotifyEvent; AsFirst: Boolean);
 begin
-  if FOnCheckBoxChangeHandlers = nil then
+  if FOnCheckBoxChangeHandlers=nil then
     FOnCheckBoxChangeHandlers := TMethodList.Create;
   FOnCheckBoxChangeHandlers.Add(TMethod(AOnCheckBoxChange), not AsFirst);
 end;

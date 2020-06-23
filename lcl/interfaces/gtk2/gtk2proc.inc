@@ -269,33 +269,69 @@ end;
 
 
 {------------------------------------------------------------------------------
+  function CreatePChar(const s: string): PChar;
+
   Allocates a new PChar
- ------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------}
 function CreatePChar(const s: string): PChar;
 begin
   Result:=StrAlloc(length(s) + 1);
   StrPCopy(Result, s);
 end;
-}
+
+{------------------------------------------------------------------------------
+  function ComparePChar(P1, P2: PChar): boolean;
+
+  Checks if P1 and P2 have the same content.
+ ------------------------------------------------------------------------------}
+function ComparePChar(P1, P2: PChar): boolean;
+begin
+  if (P1<>P2) then begin
+    if (P1<>nil) and (P2<>nil) then begin
+      while (P1^=P2^) do begin
+        if P1^<>#0 then begin
+          inc(P1);
+          inc(P2);
+        end else begin
+          Result:=true;
+          exit;
+        end;
+      end;
+    end;
+    Result:=false;
+  end else begin
+    Result:=true;
+  end;
+end;
+
+{------------------------------------------------------------------------------
+  function FindChar(c: char; p:PChar; Max: integer): integer;
+ ------------------------------------------------------------------------------}
 function FindChar(c: char; p:PChar; Max: integer): integer;
 begin
   Result:=0;
-  while Result<Max do begin
-    if p[Result]=c then exit;
-    inc(Result);
+  while (Result<Max) do begin
+    if p[Result]<>c then
+      inc(Result)
+    else
+      exit;
   end;
   Result:=-1;
 end;
 
 {------------------------------------------------------------------------------
+  function FindLineLen(p: PChar; Max: integer): integer;
+  
   Find line end
  ------------------------------------------------------------------------------}
 function FindLineLen(p: PChar; Max: integer): integer;
 begin
   Result:=0;
-  while Result<Max do begin
-    if p[Result] in [#10,#13] then exit;
-    inc(Result);
+  while (Result<Max) do begin
+    if not (p[Result] in [#10,#13]) then
+      inc(Result)
+    else
+      exit;
   end;
   Result:=-1;
 end;
@@ -443,7 +479,7 @@ begin
       FixedWidget:=GetFixedWidget(MainWidget);
       if FixedWidget=Widget then
         Result:=Result+'<Is FixedWidget>';
-      WinWidgetInfo:=GetWidgetInfo(MainWidget);
+      WinWidgetInfo:=GetWidgetInfo(MainWidget,false);
       if WinWidgetInfo<>nil then begin
         if WinWidgetInfo^.CoreWidget = Widget then
           Result:=Result+'<Is CoreWidget>';
@@ -650,8 +686,13 @@ function LockOnChange(GtkObject: PGtkObject; LockOffset: integer): integer;
 var
   Info: PWidgetInfo;
 begin
-  Info := GetWidgetInfo(GtkObject);
-  if Info = nil then Exit(0);
+  Info := GetWidgetInfo(GtkObject, True);
+  if Info = nil
+  then begin
+    Result := 0;
+    Exit;
+  end;
+  
   Inc(Info^.ChangeLock, LockOffset);
   Result := Info^.ChangeLock;
 end;
@@ -676,7 +717,8 @@ begin
   end;
 end;
 
-procedure SetFormShowInTaskbar(AForm: TCustomForm; const AValue: TShowInTaskbar);
+procedure SetFormShowInTaskbar(AForm: TCustomForm;
+  const AValue: TShowInTaskbar);
 var
   Enable: boolean;
   Widget: PGtkWidget;
@@ -800,7 +842,8 @@ begin
 end;
 {$ENDIF}
 
-procedure SetLabelAlignment(LabelWidget: PGtkLabel; const NewAlignment: TAlignment);
+procedure SetLabelAlignment(LabelWidget: PGtkLabel;
+  const NewAlignment: TAlignment);
 const
   cLabelAlignX : array[TAlignment] of gfloat = (0.0, 1.0, 0.5);
   cLabelAlignY : array[TTextLayout] of gfloat = (0.0, 0.5, 1.0);
@@ -3829,7 +3872,7 @@ begin
   if Widget = nil
   then raise EInterfaceException.Create('GetFixedWidget Widget=nil');
 
-  WidgetInfo := GetWidgetInfo(Widget);
+  WidgetInfo := GetWidgetInfo(Widget, False);
   if WidgetInfo <> nil
   then Result := WidgetInfo^.ClientWidget
   else Result := nil;
@@ -3852,8 +3895,7 @@ begin
   if ParentWidget = nil
   then raise EInterfaceException.Create('SetFixedWidget ParentWidget=nil');
   
-  WidgetInfo := GetWidgetInfo(ParentWidget);
-  Assert(Assigned(WidgetInfo), 'SetFixedWidget: WidgetInfo = Nil.');
+  WidgetInfo := GetWidgetInfo(ParentWidget, True);
   WidgetInfo^.ClientWidget := FixedWidget;
   //TODO: remove old compatebility
   g_object_set_data(ParentWidget, 'Fixed', FixedWidget)
@@ -3872,7 +3914,7 @@ begin
   if AnObject = nil
   then raise EInterfaceException.Create('SetLCLObject AnObject=nil');
 
-  WidgetInfo := GetOrCreateWidgetInfo(Widget);
+  WidgetInfo := GetWidgetInfo(Widget, True);
   WidgetInfo^.LCLObject := AnObject;
 end;
 
@@ -4092,11 +4134,12 @@ end;
  ------------------------------------------------------------------------------}
 function CreateWidgetInfo(const AWidget: Pointer): PWidgetInfo;
 begin
-  if AWidget = nil then
-    Exit(nil);
-  New(Result);
-  FillChar(Result^, SizeOf(Result^), 0);
-  g_object_set_data(AWidget, 'widgetinfo', Result);
+  if AWidget = nil then Result:= nil
+  else begin
+    New(Result);
+    FillChar(Result^, SizeOf(Result^), 0);
+    g_object_set_data(AWidget, 'widgetinfo', Result);
+  end;
 end;
 
 function CreateWidgetInfo(const AWidget: Pointer; const AObject: TObject;
@@ -4106,34 +4149,36 @@ begin
   if Result = nil then Exit;
   
   Result^.LCLObject := AObject;
-  // in most cases the created widget is the core widget so default to it
+  // in most cases the created widget is the core widget
+  // so default to it
   Result^.CoreWidget := AWidget;
   Result^.Style := AParams.Style;
   Result^.ExStyle := AParams.ExStyle;
   Result^.WndProc := {%H-}PtrUInt(AParams.WindowClass.lpfnWndProc);
 end;
 
-function GetWidgetInfo(const AWidget: Pointer): PWidgetInfo;
-var
-  MainWidget: PGtkObject;
+function GetWidgetInfo(const AWidget: Pointer {; const Create: Boolean = False}): PWidgetInfo;
 begin
-  if AWidget = nil then Exit(nil);
-  MainWidget := GetMainWidget(AWidget);
-  Result := g_object_get_data(PGObject(MainWidget), 'widgetinfo');
+  Result := GetWidgetInfo(AWidget, False);
 end;
 
-function GetOrCreateWidgetInfo(const AWidget: Pointer): PWidgetInfo;
+function GetWidgetInfo(const AWidget: Pointer;
+  const ACreate: Boolean): PWidgetInfo;
 var
   MainWidget: PGtkObject;
 begin
-  if AWidget = nil then Exit(nil);
-  MainWidget := GetMainWidget(AWidget);
-  Result := g_object_get_data(PGObject(MainWidget), 'widgetinfo');
-  if Assigned(Result) then Exit;
-  Result := CreateWidgetInfo(MainWidget);
-  //DebugLn('GetOrCreateWidgetInfo: MainWidget info was created causing a memory leak.');
-  // use the main widget as default
-  Result^.CoreWidget := PGtkWidget(MainWidget);
+  if AWidget <> nil then
+  begin
+    MainWidget := GetMainWidget(AWidget);
+    Result := g_object_get_data(PGObject(MainWidget), 'widgetinfo');
+    if (Result = nil) and ACreate then
+    begin
+      Result := CreateWidgetInfo(MainWidget);
+      // use the main widget as default
+      Result^.CoreWidget := PGtkWidget(MainWidget);
+    end;
+  end
+  else Result := nil;
 end;
 
 procedure FreeWidgetInfo(AWidget: Pointer);
@@ -4756,7 +4801,8 @@ begin
     MouseCaptureIndex:=0;
 end;
 
-function GetDefaultMouseCaptureWidget(Widget: PGtkWidget): PGtkWidget;
+function GetDefaultMouseCaptureWidget(Widget: PGtkWidget
+  ): PGtkWidget;
 var
   WidgetInfo: PWinWidgetInfo;
   LCLObject: TObject;
@@ -4771,7 +4817,7 @@ begin
   if Widget=nil then exit;
   if GtkWidgetIsA(Widget,GTKAPIWidget_Type) then
   begin
-    WidgetInfo:=GetWidgetInfo(Widget);
+    WidgetInfo:=GetWidgetInfo(Widget,false);
     if WidgetInfo<>nil then
       Result:=WidgetInfo^.CoreWidget;
     exit;
@@ -4787,10 +4833,14 @@ begin
   begin
     if GTK_IS_NOTEBOOK({%H-}PGtkWidget(TWinControl(LCLObject).Handle)) then
       exit;
+
     Parent := TWinControl(LCLObject).Parent;
-    if Assigned(Parent) and GTK_IS_NOTEBOOK({%H-}PGtkWidget(Parent.Handle)) then
-      exit;
-    WidgetInfo:=GetWidgetInfo({%H-}PGtkWidget(TWinControl(LCLObject).Handle));
+    if Assigned(Parent) then
+    begin
+      if GTK_IS_NOTEBOOK({%H-}PGtkWidget(Parent.Handle)) then
+        exit;
+    end;
+    WidgetInfo:=GetWidgetInfo({%H-}PGtkWidget(TWinControl(LCLObject).Handle),false);
     if WidgetInfo <> nil then
     begin
       {$IFDEF VerboseMouseCapture}
@@ -4841,7 +4891,7 @@ begin
   {$IFDEF VerboseMouseCapture}
   DebugLn('ReleaseMouseCapture gtk_grab=[',GetWidgetDebugReport(OldMouseCaptureWidget),'] MouseCaptureWidget=[',GetWidgetDebugReport(MouseCaptureWidget),']');
   {$ENDIF}
-  Info := GetWidgetInfo(OldMouseCaptureWidget);
+  Info := GetWidgetInfo(OldMouseCaptureWidget, false);
   if (Info <> nil) and (Info^.CoreWidget <> nil) then
   begin
     if GtkWidgetIsA(Info^.CoreWidget, gtk_list_get_type) then
@@ -4951,7 +5001,7 @@ end;
 function DesignSignalNameToType(Name: PChar; After: boolean): TDesignSignalType;
 begin
   for Result:=Low(TDesignSignalType) to High(TDesignSignalType) do
-    if SamePChar(DesignSignalNames[Result],Name)
+    if ComparePChar(DesignSignalNames[Result],Name)
     and (DesignSignalAfter[Result]=After) then exit;
   Result:=dstUnknown;
 end;
@@ -5031,8 +5081,7 @@ begin
   if (csfUpdateSignalMask in ASFlags) and (AReqSignalMask <> 0)
   then begin
     MainWidget := GetMainWidget(PGtkWidget(AnObject));
-    WinWidgetInfo := g_object_get_data(PGObject(MainWidget), 'widgetinfo');
-    Assert(Assigned(MainWidget) and Assigned(WinWidgetInfo), 'ConnectSignal: Widget or WidgetInfo = Nil.');
+    WinWidgetInfo := GetWidgetInfo(MainWidget,true);
     WinWidgetInfo^.EventMask := WinWidgetInfo^.EventMask or AReqSignalMask;
   end;
   
@@ -6880,7 +6929,7 @@ begin
     end
     else
     begin
-      WinWidgetInfo := GetWidgetInfo(Widget);
+      WinWidgetInfo := GetWidgetInfo(Widget, False);
       if (WinWidgetInfo = nil) or (not (wwiNotOnParentsClientArea in WinWidgetInfo^.Flags)) then
         WriteWarningParentWidgetNotFound;
     end;
@@ -7493,7 +7542,7 @@ begin
   try
     TypeAtom := ClipboardTypeAtoms[ClipboardType];
     {$IFDEF DEBUG_CLIPBOARD}
-    DebugLn('[RequestSelectionData] TimeID=',dbgs(TimeID),' Type=',GdkAtomToStr(TypeAtom),' FormatID=',GdkAtomToStr(FormatID));
+    DebugLn('[RequestSelectionData] TimeID=',dbgs(TimeID),' Type=',GdkAtomToStr(Atom),' FormatID=',GdkAtomToStr(FormatID));
     {$ENDIF}
     if gtk_selection_convert(ClipboardWidget,TypeAtom,FormatID,TimeID) <> GdkFalse then
     begin
@@ -8956,23 +9005,127 @@ begin
   end;
 end;
 
-{-------------------------------------------------------------------------------
-  Creates a new PChar. Deletes escaping ampersands, replaces the first single
-  ampersand with an underscore and deletes all other single ampersands.
--------------------------------------------------------------------------------}
-function Ampersands2Underscore(Src: PChar) : PChar;
+function DeleteAmpersands(var Str : String) : Longint;
+// convert double ampersands to single & and delete single &
+// return the position of the letter after the first deleted single ampersand
+// in the new string
 var
-  s: String;
+  Tmp : String;
+  SrcPos, DestPos, SrcLen: integer;
 begin
-  s := StrPas(Src);
-  s := Ampersands2Underscore(s);
-  Result := StrAlloc(Length(s)+1); // +1 for #0 char at end
-  strcopy(Result, PChar(s));
+  Result := -1;
+  
+  // for speedup reasons check if Str must be changed
+  SrcLen:=length(Str);
+  SrcPos:=SrcLen;
+  while (SrcPos>=1) and (Str[SrcPos]<>'&') do dec(SrcPos);
+  if SrcPos<1 then exit;
+
+  // copy Str to Tmp and convert ampersands on the fly
+  SetLength(Tmp,SrcLen);
+  SrcPos:=1;
+  DestPos:=1;
+  while (SrcPos<=SrcLen) do begin
+    if Str[SrcPos]<>'&' then begin
+      // copy normal char
+      Tmp[DestPos]:=Str[SrcPos];
+      inc(SrcPos);
+      inc(DestPos);
+    end else begin
+      inc(SrcPos);
+      if (SrcPos<=SrcLen) and (Str[SrcPos]='&') then begin
+        // double ampersand
+        Tmp[DestPos]:='&';
+        inc(DestPos);
+        inc(SrcPos);
+      end else begin
+        // single ampersand
+        if Result<1 then Result:=DestPos;
+      end;
+    end;
+  end;
+  SetLength(Tmp,DestPos-1);
+  Str:=Tmp;
 end;
 
 {-------------------------------------------------------------------------------
+  function Ampersands2Underscore(Src: PChar) : PChar;
+
+  Creates a new PChar. Deletes escaping ampersands, replaces the first single
+  ampersand with an underscore and deleting all other single ampersands.
+-------------------------------------------------------------------------------}
+function Ampersands2Underscore(Src: PChar) : PChar;
+var
+  i, j: Longint;
+  ShortenChars, FirstAmpersand, NewLength, SrcLength: integer;
+begin
+  // count ampersands and find first ampersand
+  ShortenChars:= 0;  // chars to delete
+  FirstAmpersand:= -1;
+  SrcLength:= StrLen(Src);
+
+  { Look for amperands. If found, check if it is an escaped ampersand.
+    If it is, don't count it in. }
+  i:=0;
+  while i<SrcLength do begin
+    if Src[i] = '&' then begin
+      if (i < SrcLength - 1) and (Src[i+1] = '&') then begin
+        // escaping ampersand found
+        inc(ShortenChars);
+        inc(i,2);
+        Continue;
+      end else begin
+        // single ampersand found
+        if (FirstAmpersand < 0) then
+          // the first will be replaced ...
+          FirstAmpersand:= i
+        else
+          // ... and all others will be deleted
+          inc(ShortenChars);
+      end; 
+    end;
+    inc(i);
+  end;
+  // create new PChar
+  NewLength:= SrcLength - ShortenChars;
+
+  Result:=StrAlloc(NewLength+1); // +1 for #0 char at end
+
+  // copy string without ampersands
+  i:=0;
+  j:=0;
+  while (j < NewLength) do begin
+    if Src[i] <> '&' then begin
+      // copy normal char
+      Result[j]:= Src[i];
+    end else begin
+      // ampersand
+      if (i < (SrcLength - 1)) and (Src[i+1] = '&') then begin
+        // escaping ampersand found
+        inc(i);
+        Result[j]:='&';
+      end else begin
+        // single ampersand found
+        if i = FirstAmpersand then begin
+          // replace first single ampersand with underscore
+          Result[j]:='_';
+        end else begin
+          // delete single ampersand
+          dec(j);
+        end;
+      end;
+    end;
+    Inc(i);
+    Inc(j);
+  end;
+  Result[NewLength]:=#0;
+end;
+
+{-------------------------------------------------------------------------------
+  function Ampersands2Underscore(const ASource: String): String;
+
   Deletes escaping ampersands, replaces the first single
-  ampersand with an underscore and deletes all other single ampersands.
+  ampersand with an underscore and deleting all other single ampersands.
 -------------------------------------------------------------------------------}
 function Ampersands2Underscore(const ASource: String): String;
 var
@@ -8985,27 +9138,117 @@ begin
   n := 1;
   while n <= Length(Result) do
   begin
-    if Result[n] = '&' then
-    begin
-      if FirstFound
-      or ( (n < Length(Result)) and (Result[n+1] = '&') ) // got &&
+    if Result[n] = '&'
+    then begin
+      if (n < Length(Result))
+      and (Result[n + 1] = '&')
       then begin
+        // we got a &&, remove the first
         Delete(Result, n, 1);
-        if not FirstFound then
-          Inc(n);               // Skip the second & of &&
-      end
-      else begin
-        FirstFound := True;
-        Result[n] := '_';
+        Inc(n);
+        Continue;
       end;
+      if FirstFound
+      then begin
+        // simply remove it
+        Delete(Result, n, 1);
+        Continue;
+      end;
+      // if we are here it's our first
+      FirstFound := True;
+      Result[n] := '_';
     end;
     Inc(n);
   end;
 end;
 
-function EscapeUnderscores(const Str: String): String;
+{-------------------------------------------------------------------------------
+  function RemoveAmpersands(Src: PChar; LineLength : Longint) : PChar;
+
+  Creates a new PChar removing all escaping ampersands.
+-------------------------------------------------------------------------------}
+function RemoveAmpersands(Src: PChar; LineLength : Longint) : PChar;
+var
+  i, j: Longint;
+  ShortenChars, NewLength, SrcLength: integer;
 begin
-  Result := StringReplace(Str, '_', '__', [rfReplaceAll]);
+  // count ampersands and find first ampersand
+  ShortenChars:= 0;  // chars to delete
+  SrcLength:= LineLength;
+
+  { Look for amperands. If found, check if it is an escaped ampersand.
+    If it is, don't count it in. }
+  i:=0;
+  while i<SrcLength do begin
+    if Src[i] = '&' then begin
+      if (i < SrcLength - 1) and (Src[i+1] = '&') then begin
+        // escaping ampersand found
+        inc(ShortenChars);
+        inc(i,2);
+        Continue;
+      end
+      else
+        inc(ShortenChars);
+    end;
+    inc(i);
+  end;
+  // create new PChar
+  NewLength:= SrcLength - ShortenChars;
+
+  Result:=StrAlloc(NewLength+1); // +1 for #0 char at end
+
+  // copy string without ampersands
+  i:=0;
+  j:=0;
+  while (j < NewLength) do begin
+    if Src[i] <> '&' then begin
+      // copy normal char
+      Result[j]:= Src[i];
+    end else begin
+      // ampersand
+      if (i < (SrcLength - 1)) and (Src[i+1] = '&') then begin
+        // escaping ampersand found
+        inc(i);
+        Result[j]:='&';
+      end else
+        // delete single ampersand
+        dec(j);
+    end;
+    Inc(i);
+    Inc(j);
+  end;
+  Result[NewLength]:=#0;
+end;
+
+{-------------------------------------------------------------------------------
+  function RemoveAmpersands(const ASource: String): String;
+
+  Removing all escaping ampersands.
+-------------------------------------------------------------------------------}
+function RemoveAmpersands(const ASource: String): String;
+var
+  n: Integer;
+begin
+  Result := ASource;
+  n := 1;
+  while n <= Length(Result) do
+  begin
+    if Result[n] = '&'
+    then begin
+      if (n < Length(Result))
+      and (Result[n + 1] = '&')
+      then begin
+        // we got a &&, remove the first
+        Delete(Result, n, 1);
+        Inc(n);
+        Continue;
+      end;
+      // simply remove it
+      Delete(Result, n, 1);
+      Continue;
+    end;
+    Inc(n);
+  end;
 end;
 
 {-------------------------------------------------------------------------------
@@ -9071,16 +9314,22 @@ procedure GetTextExtentIgnoringAmpersands(TheFont: TGtkIntfFont;
   Str : PChar; StrLength: integer;
   lbearing, rbearing, width, ascent, descent : Pgint);
 var
-  NewStr: PChar;
+  NewStr : PChar;
+  i: integer;
 begin
-  // check if Str contains an ampersand before removing them all.
-  if StrLScan(Str, '&', StrLength) <> nil then
-    NewStr := RemoveAmpersands(Str, StrLength)
-  else
-    NewStr := Str;
+  NewStr:=Str;
+  // first check if Str contains an ampersand:
+  if (Str<>nil) then begin
+    i:=0;
+    while (Str[i]<>'&') and (i<StrLength) do inc(i);
+    if i<StrLength then begin
+      NewStr := RemoveAmpersands(Str, StrLength);
+      StrLength:=StrLen(NewStr);
+    end;
+  end;
   gdk_text_extents(TheFont, NewStr, StrLength,
                    lbearing, rBearing, width, ascent, descent);
-  if NewStr <> Str then
+  if NewStr<>Str then
     StrDispose(NewStr);
 end;
 
@@ -9353,7 +9602,7 @@ begin
   end;
 
   // check if widget has a WinWidgetInfo record
-  WinWidgetInfo := GetWidgetInfo(AWidget);
+  WinWidgetInfo := GetWidgetInfo(AWidget, false);
   if WinWidgetInfo = nil then Exit;
 
   ImplWidget:= WinWidgetInfo^.CoreWidget;

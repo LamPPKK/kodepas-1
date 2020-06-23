@@ -28,7 +28,7 @@ interface
 uses
   Classes, SysUtils, Graphics, LCLProc,
   SynEditMiscClasses, SynEdit, SynEditMarkup, SynEditMiscProcs, LazSynEditText,
-  SynEditTextTrimmer, SynEditKeyCmds, SynEditTextBase;
+  SynEditTextTrimmer, SynEditKeyCmds;
 
 type
 
@@ -72,8 +72,7 @@ type
     function AddNew: TSynPluginSyncronizedEditCell; virtual;
     procedure Delete(aIndex: Integer);
     function IndexOf(aCell: TSynPluginSyncronizedEditCell): Integer;
-    function IndexOf(aX, aY: Integer; IncludeLast: Boolean = False; aCurrentCellIdx: Integer = -1): Integer;
-    function IsInCell(aX, aY, ACellIdx: Integer; IncludeLast: Boolean = False): Boolean;
+    function IndexOf(aX, aY: Integer; IncludeLast: Boolean = False): Integer;
     function Count: Integer;
     function GroupCount(aGroup: Integer): Integer;
     property Cell[aIndex: Integer]: TSynPluginSyncronizedEditCell
@@ -149,23 +148,6 @@ type
     property CellGroupForArea: Integer read FCellIdForArea write FCellIdForArea;
   end;
 
-  TSynPluginSyncronizedEditBase = class;
-
-  { TSynPluginSyncronizedEditUndoCurrentCell }
-
-  TSynPluginSyncronizedEditUndoCurrentCell = class(TSynEditUndoItem)
-  private
-    FCurrentCell: Integer;
-    FOwner: TSynPluginSyncronizedEditBase;
-  protected
-    function IsEqualContent(AnItem: TSynEditUndoItem): Boolean; override;
-    function DebugString: String; override;
-  public
-    //function IsCaretInfo: Boolean; override; // TODO: maybe indicator for TSynEditUndoGroup.HasUndoInfo
-    constructor Create(ACurrentCell: Integer; AOwner: TSynPluginSyncronizedEditBase);
-    function PerformUndo(Caller: TObject): Boolean; override;
-  end;
-
   { TSynPluginSyncronizedEditChangeAction }
 
   TSynPluginSyncronizedEditChangeAction = record
@@ -197,9 +179,6 @@ type
     FActive: Boolean;
     FCells: TSynPluginSyncronizedEditList;
     FCurrentCell: Integer;
-    FUndoingCurrentCell: Integer;
-    FDependsOnCurrentCell, FJustStarted: Boolean;
-    FActiveInUndo: Boolean;
     FChangeList: TSynPluginSyncronizedEditChangeList;
     FAreaMarkupEnabled: Boolean;
     FMarkupEnabled: Boolean;
@@ -217,8 +196,6 @@ type
     FOnDeactivate: TNotifyEvent;
     FPreActive: Boolean;
 
-    procedure DoUndoBegining(Sender: TObject);
-    procedure DoUndoEnding(Sender: TObject);
     function GetActive: Boolean;
     procedure SetActive(const AValue: Boolean);
     procedure SetCurrentCell(const AValue: Integer);
@@ -229,7 +206,6 @@ type
     procedure SetMarkupInfoArea(AValue: TSynSelectedColor);
     procedure SetMarkupInfoCurrent(AValue: TSynSelectedColor);
     procedure SetMarkupInfoSync(AValue: TSynSelectedColor);
-    function IsCellFromCaretAmbigious: Boolean;
   protected
     FMarkup: TSynPluginSyncronizedEditMarkup;
     FMarkupArea: TSynPluginSyncronizedEditMarkupArea;
@@ -320,55 +296,6 @@ begin
   Result := (CompareCarets(c1.LogStart, c2.LogStart) = 0) and
             (CompareCarets(c1.LogEnd, c2.LogEnd) = 0) and
             (c1.Group = c2.Group);
-end;
-
-{ TSynPluginSyncronizedEditUndoCurrentCell }
-
-function TSynPluginSyncronizedEditUndoCurrentCell.IsEqualContent(
-  AnItem: TSynEditUndoItem): Boolean;
-begin
-  Result := (FCurrentCell = TSynPluginSyncronizedEditUndoCurrentCell(AnItem).FCurrentCell) and
-            (FOwner = TSynPluginSyncronizedEditUndoCurrentCell(AnItem).FOwner);
-end;
-
-function TSynPluginSyncronizedEditUndoCurrentCell.DebugString: String;
-begin
-  Result := ClassName + ' CurCell=' + IntToStr(FCurrentCell);
-end;
-
-constructor TSynPluginSyncronizedEditUndoCurrentCell.Create(
-  ACurrentCell: Integer; AOwner: TSynPluginSyncronizedEditBase);
-begin
-  FCurrentCell := ACurrentCell;
-  FOwner := AOwner;
-end;
-
-function TSynPluginSyncronizedEditUndoCurrentCell.PerformUndo(Caller: TObject
-  ): Boolean;
-var
-  i: Integer;
-begin
-  i := TCustomSynEdit(Caller).PluginCount;
-  Result := False;
-  while (i > 0) and (not Result) do begin
-    dec(i);
-    Result := (TCustomSynEdit(Caller).Plugin[i] = FOwner);
-  end;
-  if not (Result and
-          (TObject(FOwner) is TSynPluginSyncronizedEditBase) and // in case a new plugin is at the same address
-          (FOwner.Active)  // at the current point of undo-history only the real owner can be active
-         )
-  then
-    exit;
-
-  if (FOwner.FUndoingCurrentCell >= 0) and
-     (FOwner.FUndoingCurrentCell <> FCurrentCell)
-  then
-    FOwner.ViewedTextBuffer.CurUndoList.AddChange(
-      TSynPluginSyncronizedEditUndoCurrentCell.Create(FOwner.FUndoingCurrentCell, FOwner));
-
-  FOwner.FUndoingCurrentCell := FCurrentCell;
-  FOwner.FCurrentCell := FCurrentCell;
 end;
 
 { TSynPluginSyncronizedEditList }
@@ -471,17 +398,10 @@ begin
   Result := -1;
 end;
 
-function TSynPluginSyncronizedEditList.IndexOf(aX, aY: Integer;
-  IncludeLast: Boolean; aCurrentCellIdx: Integer): Integer;
+function TSynPluginSyncronizedEditList.IndexOf(aX, aY: Integer; IncludeLast: Boolean): Integer;
 var
   a, i: Integer;
 begin
-  // If 2 cells touch, prefer current cell
-  if (aCurrentCellIdx >= 0) and IsInCell(aX, aY, aCurrentCellIdx, IncludeLast) then begin
-    Result := aCurrentCellIdx;
-    exit;
-  end;
-
   if IncludeLast then
     a := 1
   else
@@ -496,23 +416,6 @@ begin
       exit(i);
   end;
   Result := -1;
-end;
-
-function TSynPluginSyncronizedEditList.IsInCell(aX, aY, ACellIdx: Integer;
-  IncludeLast: Boolean): Boolean;
-var
-  a: Integer;
-begin
-  if IncludeLast then
-    a := 1
-  else
-    a := 0;;
-  Result :=
-     (FCells[ACellIdx].Group >= 0) and
-     ( (FCells[ACellIdx].LogStart.Y < aY) or
-       ((FCells[ACellIdx].LogStart.Y = aY) and (FCells[ACellIdx].LogStart.X <= aX)) ) and
-     ( (FCells[ACellIdx].LogEnd.Y > aY) or
-       ((FCells[ACellIdx].LogEnd.Y = aY) and (FCells[ACellIdx].LogEnd.X + a > aX)) );
 end;
 
 function TSynPluginSyncronizedEditList.Count: Integer;
@@ -874,8 +777,6 @@ begin
       ViewedTextBuffer.RemoveNotifyHandler(senrTextBufferChanging, @DoBufferChanging);
       ViewedTextBuffer.RemoveNotifyHandler(senrTextBufferChanged, @DoBufferChanged);
     end;
-    ViewedTextBuffer.RemoveNotifyHandler(senrBeginUndoRedo, @DoUndoBegining);
-    ViewedTextBuffer.RemoveNotifyHandler(senrEndUndoRedo, @DoUndoEnding);
     ViewedTextBuffer.RemoveEditHandler(@DoLinesEdited);
     ViewedTextBuffer.RemoveNotifyHandler(senrAfterIncPaintLock, @DoIncPaintLock);
     ViewedTextBuffer.RemoveNotifyHandler(senrBeforeDecPaintLock, @DoDecPaintLock);
@@ -908,8 +809,6 @@ begin
     ViewedTextBuffer.AddEditHandler(@DoLinesEdited);
     ViewedTextBuffer.AddNotifyHandler(senrAfterIncPaintLock, @DoIncPaintLock);
     ViewedTextBuffer.AddNotifyHandler(senrBeforeDecPaintLock, @DoDecPaintLock);
-    ViewedTextBuffer.AddNotifyHandler(senrBeginUndoRedo, @DoUndoBegining);
-    ViewedTextBuffer.AddNotifyHandler(senrEndUndoRedo, @DoUndoEnding);
     if not FTextBufferChanging then begin
       ViewedTextBuffer.AddNotifyHandler(senrTextBufferChanging, @DoBufferChanging);
       ViewedTextBuffer.AddNotifyHandler(senrTextBufferChanged, @DoBufferChanged);
@@ -1004,26 +903,6 @@ begin
   FMarkupInfoSync.Assign(AValue);
 end;
 
-function TSynPluginSyncronizedEditBase.IsCellFromCaretAmbigious: Boolean;
-var
-  c: TSynPluginSyncronizedEditCell;
-  p: TPoint;
-begin
-  p := CaretObj.LineBytePos;
-  if (CurrentCell < 0) then
-    Result := Cells.IndexOf(p.x, p.y, True) >= 0
-  else begin
-    c := Cells[CurrentCell];
-    Result := (
-      (CurrentCell > 0) and (CompareCarets(c.LogStart, p) = 0) and
-      (CompareCarets(Cells[CurrentCell - 1].LogEnd, p) = 0)
-    ) or (
-      (CurrentCell < Cells.Count-1) and (CompareCarets(c.LogEnd, p) = 0) and
-      (CompareCarets(Cells[CurrentCell + 1].LogStart, p) = 0)
-    );
-  end;
-end;
-
 procedure TSynPluginSyncronizedEditBase.MarkupChanged(AMarkup: TObject);
 begin
   if FMarkup <> nil then begin
@@ -1043,32 +922,6 @@ end;
 function TSynPluginSyncronizedEditBase.GetActive: Boolean;
 begin
   Result := FActive and FEnabled and (Editor <> nil);
-end;
-
-procedure TSynPluginSyncronizedEditBase.DoUndoBegining(Sender: TObject);
-begin
-  FActiveInUndo := Active;
-  if not FActiveInUndo then
-    exit;
-
-  ViewedTextBuffer.CurUndoList.BeginBlock;
-  FUndoingCurrentCell := -1;
-end;
-
-procedure TSynPluginSyncronizedEditBase.DoUndoEnding(Sender: TObject);
-begin
-  if not FActiveInUndo then
-    exit;
-
-  if FUndoingCurrentCell >= 0 then begin
-    // AppendToLastChange: Add before the caret undo info, otherwise another caret info will be added (at this point the current undo group must have some items)
-    ViewedTextBuffer.CurUndoList.AppendToLastChange(
-      TSynPluginSyncronizedEditUndoCurrentCell.Create(FUndoingCurrentCell, Self));
-  end;
-
-  FDependsOnCurrentCell := False;  // Prevent ApplyChangeList from adding undo info
-  FUndoingCurrentCell := -1;
-  ViewedTextBuffer.CurUndoList.EndBlock;
 end;
 
 procedure TSynPluginSyncronizedEditBase.SetActive(const AValue: Boolean);
@@ -1109,7 +962,7 @@ var
     if aLineBrkCnt > 0 then begin
       (* Lines Inserted *)
       if aPoint.y >= aLinePos then begin
-        if (aPoint.y = aLinePos) and (aPoint.x >= Pos.x) then
+        if (aPoint.y = aLinePos) and (aPoint.x > Pos.x) then
           Result.x := Result.x - Pos.x + 1;
         Result.y := Result.y + aLineBrkCnt;
       end;
@@ -1128,8 +981,7 @@ var
   CurCell: TSynPluginSyncronizedEditCell;
   chg: Boolean;
   edit: Boolean;
-  CellAtPos, CellCnt: Integer;
-  LastCellEndPoint, CurCellStartPos: TPoint;
+  CellAtPos: Integer;
 begin
   if not Active then begin
     if PreActive then DoPreActiveEdit(aBytePos, aLinePos, aCount, aLineBrkCnt, IsUndoing or IsRedoing);
@@ -1139,61 +991,25 @@ begin
   Pos2 := Pos;
   if not FEditing then
     DoBeforeEdit(Pos.x, Pos.y, aCount, aLineBrkCnt, IsUndoing or IsRedoing);
-  if not Active then
-    exit;
+  CellAtPos := Cells.IndexOf(Pos.x, Pos.y, True);
 
+  // Todo: need do add undo info (start/stop flag),
+  // so we know which group (if any) this applies to
   edit := FEditing or  IsUndoing or IsRedoing;
-  if (not edit) then begin
-    CellAtPos := Cells.IndexOf(Pos.x, Pos.y, True, CurrentCell);
-
-    if FJustStarted and IsCellFromCaretAmbigious // and not IsUndoing
-    then
-      FDependsOnCurrentCell := True;
-  end;
-  FJustStarted := False;
-
-  CurCellStartPos := Point(-1, -1);
-  if FCurrentCell >= 0 then
-    CurCellStartPos := Cells[FCurrentCell].LogStart;
-  LastCellEndPoint := Point(-1, -1);
-  CellCnt := FCells.Count - 1;
-  for i := 0 to CellCnt do begin
+  for i := 0 to FCells.Count - 1 do begin
     CurCell := Cells[i];
     chg := False;
-
     a := CompareCarets(Pos, CurCell.LogStart);
-    if (a = 0) and (CompareCarets(LastCellEndPoint, CurCell.LogStart) = 0) then begin
-      a := 1;
-      FDependsOnCurrentCell := True;
-    end;
     if (a > 0) then
       CurCell.LogStart := AdjustPoint(CurCell.LogStart, chg);
-
     a := CompareCarets(Pos, CurCell.LogEnd);
-    if (a = 0) then begin
-      if (CompareCarets(CurCell.LogEnd, CurCellStartPos) <> 0) or
-         (CurCell.Group=-1)
-      then
-        inc(a)
-      else
-      begin
-        FDependsOnCurrentCell := True;
-        if (i >= CurrentCell) then
-          inc(a);
-      end;
-    end;
-    if (a > 0) //or
-    then begin
-      if CurCell.Group <> -1 then
-        LastCellEndPoint := CurCell.LogEnd; // If this is adjusted, the start of the next cell (if equal to this) must be adjusted too
+    if (a > 0) or ((a = 0) and ((i = FCurrentCell) or edit)) then
       CurCell.LogEnd := AdjustPoint(CurCell.LogEnd, chg);
-    end;
-
     if chg then
       Cells[i] := CurCell;
   end;
 
-  if (not edit) and
+  if (not (FEditing or IsUndoing or IsRedoing)) and
      (CellAtPos >= 0) and (CellAtPos < Cells.Count) and
      (CompareCarets(Pos, FCells[CellAtPos].LogStart) <= 0) and
      (CompareCarets(Pos, FCells[CellAtPos].LogEnd) >= 0)
@@ -1217,35 +1033,23 @@ procedure TSynPluginSyncronizedEditBase.ApplyChangeList;
 var
   Action: TSynPluginSyncronizedEditChangeAction;
   a, i: Integer;
-  Group, Y2, X2, CurCell, LastUndoCurCell: Integer;
+  Group, Y2, X2: Integer;
   Cell: TSynPluginSyncronizedEditCell;
 begin
-  LastUndoCurCell := -1;
-  if FDependsOnCurrentCell then begin
-    ViewedTextBuffer.CurUndoList.AddChange(
-      TSynPluginSyncronizedEditUndoCurrentCell.Create(FCurrentCell, Self));
-    LastUndoCurCell := FCurrentCell;
-  end;
-
   if FChangeList.Count = 0 then
     exit;
   FEditing := True;
   ViewedTextBuffer.BeginUpdate;
   CaretObj.IncAutoMoveOnEdit;
-  CurCell := FCurrentCell; // direct access / markup does not need to know
-
   try
-    for i := 0 to FCells.Count - 1 do begin
-      FDependsOnCurrentCell := False;
-      Cell := FCells[i];
-
-      for a := 0 to FChangeList.Count - 1 do begin
-        Action := FChangeList[a];
-        Group := FCells[Action.CellIndex].Group;
+    for a := 0 to FChangeList.Count - 1 do begin
+      Action := FChangeList[a];
+      Group := FCells[Action.CellIndex].Group;
+      for i := 0 to FCells.Count - 1 do begin
+        Cell := FCells[i];
         if (i = Action.CellIndex) or (Cell.Group <> Group) then
           continue;
 
-        FCurrentCell := i; // direct access / markup does not need to know
         if Cell.LogStart.Y = Cell.LogEnd.Y then
           X2 := Cell.LogStart.X + Action.cBytePos
         else
@@ -1279,19 +1083,8 @@ begin
             ViewedTextBuffer.EditInsert(X2, Y2, Action.Text);
         end;
       end;
-
-      if FDependsOnCurrentCell then begin
-        ViewedTextBuffer.CurUndoList.AddChange(
-          TSynPluginSyncronizedEditUndoCurrentCell.Create(FCurrentCell, Self));
-        LastUndoCurCell := FCurrentCell;
-      end;
     end;
   finally
-    FCurrentCell := CurCell; // direct access / markup does not need to know
-    // for redo
-    if IsCellFromCaretAmbigious and (FCurrentCell <> LastUndoCurCell) then
-      ViewedTextBuffer.CurUndoList.AddChange(
-        TSynPluginSyncronizedEditUndoCurrentCell.Create(FCurrentCell, Self));
     FEditing := False;
     CaretObj.DecAutoMoveOnEdit;
     ViewedTextBuffer.EndUpdate;
@@ -1317,13 +1110,12 @@ end;
 
 procedure TSynPluginSyncronizedEditBase.DoPaintLockStarted;
 begin
-  FDependsOnCurrentCell := False;
-  FJustStarted := True;
+  (* Do Nothing *);
 end;
 
 procedure TSynPluginSyncronizedEditBase.DoPaintLockEnded;
 begin
-  FJustStarted := False;
+  (* Do Nothing *);
 end;
 
 procedure TSynPluginSyncronizedEditBase.DoClear;
@@ -1455,11 +1247,11 @@ begin
      - User edit outside a cell (both locations will be outside the cell => deactivate
      TODO: Hook SynEdits Lock, and check Caret before locking only
   *)
-  c1 := Cells.IndexOf(aX, aY, True, CurrentCell);
+  c1 := Cells.IndexOf(aX, aY, True);
   if aLineBrkCnt < 0 then
-    c2 := Cells.IndexOf(1, aY-aLineBrkCnt, True, CurrentCell)
+    c2 := Cells.IndexOf(1, aY-aLineBrkCnt, True)
   else if aCount < 0 then
-    c2 := Cells.IndexOf(aX - aCount, aY, True, CurrentCell)
+    c2 := Cells.IndexOf(aX - aCount, aY, True)
   else
     c2 := c1;
   // allow edit outside cell? (only if not partly cell / part cell updates are not allowed at all)
@@ -1505,7 +1297,7 @@ procedure TSynPluginCustomSyncroEdit.UpdateCurrentCell;
 var
   i: Integer;
 begin
-  i := Cells.IndexOf(CaretObj.BytePos, CaretObj.LinePos, True, CurrentCell);
+  i := Cells.IndexOf(CaretObj.BytePos, CaretObj.LinePos, True);
   if (i <> CurrentCell) and (CurrentCell >= 0) then
     FLastCell := CurrentCell;
   CurrentCell := i;
@@ -1541,7 +1333,7 @@ var
   Pos: TPoint;
 begin
   Pos := CaretObj.LineBytePos;
-  i := Cells.IndexOf(Pos.x, Pos.y, True, CurrentCell);
+  i := Cells.IndexOf(Pos.x, Pos.y, True);
   if i < 0 then begin
     x := -1;
     i := 0;
@@ -1582,7 +1374,7 @@ var
   i, j, x: Integer;
 begin
   Pos := CaretObj.LineBytePos;
-  i := Cells.IndexOf(Pos.x, Pos.y, True, CurrentCell);
+  i := Cells.IndexOf(Pos.x, Pos.y, True);
   if i < 0 then begin
     x := -1;
     i := Cells.Count - 1;

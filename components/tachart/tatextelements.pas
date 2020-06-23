@@ -57,7 +57,6 @@ type
     FOverlapPolicy: TChartMarksOverlapPolicy;
     FShape: TChartLabelShape;
     FTextFormat: TChartTextFormat;
-    FTextRect: TRect;
     procedure SetAlignment(AValue: TAlignment);
     procedure SetCalloutAngle(AValue: Cardinal);
     procedure SetClipped(AValue: Boolean);
@@ -96,7 +95,6 @@ type
       const AText: String; var APrevLabelPoly: TPointArray);
     function GetLabelPolygon(
       ADrawer: IChartDrawer; ASize: TPoint): TPointArray;
-    function GetTextRect: TRect;
     function MeasureLabel(ADrawer: IChartDrawer; const AText: String): TSize;
     function MeasureLabelHeight(ADrawer: IChartDrawer; const AText: String): TSize;
     procedure SetInsideDir(dx, dy: Double);
@@ -133,7 +131,6 @@ type
     FFont: TFont;
     FFrame: TChartTitleFramePen;
     FMargin: TChartDistance;
-    FPolygon: TPointArray;
     FText: TStrings;
 
     procedure SetBrush(AValue: TBrush);
@@ -151,7 +148,6 @@ type
   public
     procedure Assign(ASource: TPersistent); override;
     procedure Draw(ADrawer: IChartDrawer);
-    function IsPointInBounds(APoint: TPoint): boolean;
     procedure Measure(
       ADrawer: IChartDrawer; ADir, ALeft, ARight: Integer; var AY: Integer);
     procedure UpdateBidiMode;
@@ -459,11 +455,6 @@ begin
   Result := nil;
 end;
 
-function TChartTextElement.GetTextRect: TRect;
-begin
-  Result := FTextRect;
-end;
-
 function TChartTextElement.GetTextShiftNeeded: Boolean;
 var
   textdir: TDoublePoint;
@@ -611,9 +602,11 @@ begin
 end;
 
 procedure TChartTitle.Draw(ADrawer: IChartDrawer);
+var
+  dummy: TPointArray = nil;
 begin
   if not Visible or (Text.Count = 0) then exit;
-  DrawLabel(ADrawer, FCenter, FCenter, Text.Text, FPolygon);
+  DrawLabel(ADrawer, FCenter, FCenter, Text.Text, dummy);
 end;
 
 function TChartTitle.GetFrame: TChartPen;
@@ -629,11 +622,6 @@ end;
 function TChartTitle.GetLabelFont: TFont;
 begin
   Result := Font;
-end;
-
-function TChartTitle.IsPointInBounds(APoint: TPoint): Boolean;
-begin
-  Result := IsPointInPolygon(APoint, FPolygon);
 end;
 
 procedure TChartTitle.Measure(ADrawer: IChartDrawer;

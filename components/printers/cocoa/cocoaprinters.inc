@@ -144,12 +144,7 @@ var
   aInfo: NSPrintInfo;
   validationResult: Boolean;
   pmOr: PMOrientation;
-  kx, ky: Double;
 begin
-
-  kx := XDPI/72;
-  ky := YDPI/72;
-
   aInfo := NSPrintInfo.sharedPrintInfo;
   if aInfo.orientation=NSPortraitOrientation then
     pmOr := kPMPortrait
@@ -193,13 +188,13 @@ begin
 
       PaperRect.PhysicalRect.Left := 0;
       PaperRect.PhysicalRect.Top := 0;
-      PaperRect.PhysicalRect.Right := Round((paperR.right - paperR.left)*kx);
-      PaperRect.PhysicalRect.Bottom := Round((paperR.bottom - paperR.top)*ky);
+      PaperRect.PhysicalRect.Right := Round(paperR.right - paperR.left);
+      PaperRect.PhysicalRect.Bottom := Round(paperR.bottom - paperR.top);
 
-      PaperRect.WorkRect.Left := Round(-paperR.left*kx);
-      PaperRect.WorkRect.Top := Round(-paperR.top*ky);
-      PaperRect.WorkRect.Right := Round((pageR.right - pageR.left - paperR.left)*kx);
-      PaperRect.WorkRect.Bottom := Round((pageR.bottom - pageR.top - paperR.top)*ky);
+      PaperRect.WorkRect.Left := Round(-paperR.left);
+      PaperRect.WorkRect.Top := Round(-paperR.top);
+      PaperRect.WorkRect.Right := Round(pageR.right - pageR.left - paperR.left);
+      PaperRect.WorkRect.Bottom := Round(pageR.bottom - pageR.top - paperR.top);
     end;
   end;
 
@@ -385,52 +380,16 @@ end;
 
 function TCocoaPrinter.GetOutputResolution: PMResolution;
 var
+  res: OSStatus;
   pInfo: NSPrintInfo;
-  prn : PMPrinter;
-  cnt : UInt32;
-  i   : UInt32;
-  rs  : PMResolution;
 begin
-  // JRA: This method should return the user desired output resolution, and not the higher
-  //      resolution that the printer can handle. In fact, it seems that the old method of
-  //      setting up some output resolution is now deprecated in cocoa. Drawing at
-  //      "high resolution" should be now made through setting up some transformation
-  //      matrix. That is a TODO. At the moment, some printing, even if it is a lower
-  //      lower resolution, is better than no printing at all.
-  {
-  Result.vRes := 0;
-  Result.hRes := 0;
-  cnt := 0;
   pInfo := NSPrintInfo.sharedPrintInfo;
-  prn := GetCurrentPrinter();
-  // todo: the code has been changed to mirror Carbon implementation
-  //       for some drivers PMPrinterGetOutputResolution() returns failure at all times
-  //       (even if printer dialog has been called).
-  //       Enumeration of resolution doesn't return all possible values either.
-  //       (i.e. Brother MFC 7860DW only gives 300x300 resolution
-  //        while it actually supports 300, 600 and HQ1200 (2400x600) dpis)
-  //       CUPS properties do indicate the actual resoltuion, BUT there's no standard
-  //       way of reading the resolution.
-  //       (i.e. the same Brother printer reports via "lpoptions -l":
-  //         BRResolution/Resolution: 300dpi *600dpi 2400x600dpi)
-  //
-  if (PMPrinterGetOutputResolution(prn, pInfo.PMPrintSettings, rs{%H-}) = noErr) then
-    Result := rs
-  else if PMPrinterGetPrinterResolutionCount(prn, cnt) = noErr then
+  res := PMPrinterGetOutputResolution(GetCurrentPrinter(), pInfo.PMPrintSettings, result{%H-});
+  if res <> noErr then
   begin
-    for i:=1 to cnt do
-    begin
-      if (PMPrinterGetIndexedPrinterResolution(prn, i, rs) = noErr)
-        and ((rs.vRes > Result.vRes) or (rs.hRes > Result.hRes)) then
-        Result := rs;
-    end;
-  end;
-  if (Result.vRes = 0) or (Result.hRes = 0) then
-  begin
-  }
     Result.vRes := 72;
     Result.hRes := 72;
-  //end;
+  end;
 end;
 
 function TCocoaPrinter.GetXDPI: Integer;

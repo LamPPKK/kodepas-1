@@ -2,7 +2,7 @@
 {*               IPMSG.PAS - MIME message classes                 *}
 {******************************************************************}
 
-{ $Id$ }
+{ $Id: ipmsg.pas 49494 2015-07-04 23:08:00Z juha $ }
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1

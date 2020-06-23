@@ -48,7 +48,6 @@ type
     FOnBeforeShow: TBeforeShowPageEvent;
     function GetPageIndex: Integer;
   protected
-    class procedure WSRegisterClass; override;
     procedure SetParent(AParent: TWinControl); override;
   public
     constructor Create(TheOwner: TComponent); override;
@@ -271,6 +270,7 @@ type
     FPen: TPen;
     FBrush: TBrush;
     FShape: TShapeType;
+    function GetStarAngle(N: Integer; ADown: boolean): Double;
     procedure SetBrush(Value: TBrush);
     procedure SetPen(Value: TPen);
     procedure SetShape(Value: TShapeType);
@@ -428,9 +428,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnPaint;
     property ParentColor;
     property ParentDoubleBuffered;
@@ -487,9 +484,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnPaint;
     property OnResize;
 //    property OnStartDock;
@@ -599,9 +593,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnPaint;
     property OnPictureChanged;
     property OnPaintBackground;
@@ -1159,9 +1150,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnPaint;
     property OnResize;
     property OnStartDock;
@@ -1185,29 +1173,24 @@ type
     waAvoid,   // try not to wrap after this control, if the control is already at the beginning of the row, wrap though
     waForbid); // never wrap after this control
 
-  TFlowPanelControl = class(TCollectionItem, IObjInspInterface)
+  TFlowPanelControl = class(TCollectionItem)
   private
     FControl: TControl;
     FWrapAfter: TWrapAfter;
     procedure SetControl(const aControl: TControl);
     procedure SetWrapAfter(const AWrapAfter: TWrapAfter);
   protected
-    function GetDisplayName: String; override;
     procedure SetIndex(Value: Integer); override;
     procedure AssignTo(Dest: TPersistent); override;
     function FPCollection: TFlowPanelControlList;
     function FPOwner: TCustomFlowPanel;
-  public
-    // These methods are used by the Object Inspector only
-    function AllowAdd: Boolean;
-    function AllowDelete: Boolean;
   published
     property Control: TControl read FControl write SetControl;
     property WrapAfter: TWrapAfter read FWrapAfter write SetWrapAfter;
     property Index;
   end;
 
-  TFlowPanelControlList = class(TOwnedCollection, IObjInspInterface)
+  TFlowPanelControlList = class(TOwnedCollection)
   private
     function GetItem(Index: Integer): TFlowPanelControl;
     procedure SetItem(Index: Integer; const AItem: TFlowPanelControl);
@@ -1221,11 +1204,8 @@ type
     constructor Create(AOwner: TPersistent);
   public
     function IndexOf(AControl: TControl): Integer;
+
     property Items[Index: Integer]: TFlowPanelControl read GetItem write SetItem; default;
-  public
-    // These methods are used by the Object Inspector only
-    function AllowAdd: Boolean;
-    function AllowDelete: Boolean;
   end;
 
   TCustomFlowPanel = class(TCustomPanel)
@@ -1721,5 +1701,7 @@ end;
 
 initialization
   DockSplitterClass := TSplitter;
+  RegisterPropertyToSkip(TPage, 'ClientHeight', 'This property was published for a long time in Lazarus 0.9.31', '');
+  RegisterPropertyToSkip(TPage, 'ClientWidth', 'This property was published for a long time in Lazarus 0.9.31', '');
 
 end.

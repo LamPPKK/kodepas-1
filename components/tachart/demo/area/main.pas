@@ -35,10 +35,8 @@ type
     CbShowLegend: TCheckBox;
     CbCentered: TCheckBox;
     EdYCount: TSpinEdit;
-    EdDepthBrightnessDelta: TSpinEdit;
     EdZeroLevel: TFloatSpinEdit;
     Label1: TLabel;
-    LblDepthBrightnessDelta: TLabel;
     LblCount: TLabel;
     LblYCount: TLabel;
     PageControl1: TPageControl;
@@ -71,7 +69,6 @@ type
       ASource: TUserDefinedChartSource; AIndex: Integer;
       var AItem: TChartDataItem);
     procedure CbShowDropLinesChange(Sender: TObject);
-    procedure EdDepthBrightnessDeltaChange(Sender: TObject);
     procedure EdYCountChange(Sender: TObject);
     procedure EdZeroLevelChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -180,8 +177,6 @@ begin
   Chart1AreaSeries1.Depth := IfThen(Cb3D.Checked, DEPTH, 0);
   Chart1.Margins.Right := 4 + Chart1AreaSeries1.Depth;
   Chart1.Margins.Top := 4 + Chart1AreaSeries1.Depth;
-  EdDepthBrightnessDelta.Enabled := Cb3D.Checked;
-  lblDepthBrightnessDelta.Enabled := Cb3D.Checked;
 end;
 
 procedure TForm1.CbUseZeroLevelChange(Sender: TObject);
@@ -226,11 +221,6 @@ begin
     Chart1AreaSeries1.AreaLinesPen.Style := psSolid
   else
     Chart1AreaSeries1.AreaLinesPen.Style := psClear;
-end;
-
-procedure TForm1.EdDepthBrightnessDeltaChange(Sender: TObject);
-begin
-  Chart1AreaSeries1.DepthBrightnessDelta := EdDepthBrightnessDelta.Value;
 end;
 
 procedure TForm1.EdYCountChange(Sender: TObject);

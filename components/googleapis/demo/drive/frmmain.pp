@@ -126,11 +126,26 @@ begin
   If Not (Assigned(LVFiles.Selected) and Assigned(LVFiles.Selected.Data)) then
     Exit;
   Entry:=TFile(LVFiles.Selected.Data);
-  if (Entry.WebViewLink='') then
+  if (Entry.DownloadUrl='')
+     and ((Entry.exportLinks=Nil) or (Entry.exportLinks.additionalProperties=Nil) or ((Entry.exportLinks.additionalProperties.Count)=0))  then
     Exit;
-  if Entry.WebViewLink<>'' then
-    URL:=TDriveAPI.APIBaseURL+'files/'+Entry.ID+'?alt=media';
-  SDDownload.FileName:=Application.Location+Entry.name+'.'+Entry.fileExtension;
+  if Entry.DownloadUrl<>'' then
+    URL:=TDriveAPI.APIBaseURL+'files/'+Entry.ID+'?alt=media'
+  else
+    begin
+    With TSelectDownloadForm.Create(Self) do
+      try
+        Formats.BeginUpdate;
+        For D in Entry.exportLinks.additionalProperties do
+          Formats.Add(D.Key);
+        if (ShowModal=mrOK) then
+          S:=Selected;
+      finally
+        Free;
+      end;
+    URL:=Entry.exportLinks.additionalProperties.Strings[S];
+    end;
+  SDDownload.FileName:=Application.Location+Entry.Title+'.'+Entry.fileExtension;
   If Not SDDownload.Execute then
     Exit;
   Response:=Nil;
@@ -238,8 +253,9 @@ begin
     // Search for folders of indicated folder only.
     Q.q:='mimeType = ''application/vnd.google-apps.folder'' and '''+AFolderId+''' in parents';
     Q.corpus:='';
-    q.pageSize:=12;
+    q.maxResults:=0;
     Q.pageToken:='';
+    Q.projection:='';
     List:=Resource.list(Q);
     SaveRefreshToken;
     With TVFolders.Items do
@@ -247,11 +263,11 @@ begin
       BeginUpdate;
       try
         if Assigned(List) then
-          for i:= 0 to Length(List.files)-1 do
+          for i:= 0 to Length(List.items)-1 do
             begin
-            Entry:=List.files[i];
-            List.files[i]:=Nil;
-            N:=AddChild(AParent,Entry.Name);
+            Entry:=List.items[i];
+            List.Items[i]:=Nil;
+            N:=AddChild(AParent,Entry.title);
             N.Data:=Entry;
             end;
       finally
@@ -345,20 +361,20 @@ begin
       try
         Clear;
         if Assigned(List) then
-          for i:= 0 to Length(List.files)-1 do
+          for i:= 0 to Length(List.items)-1 do
             begin
-            Entry:=List.files[i];
-            List.files[i]:=Nil;
+            Entry:=List.items[i];
+            List.Items[i]:=Nil;
             LI:=Add;
-            LI.Caption:=Entry.Name;
+            LI.Caption:=Entry.Title;
             With LI.SubItems do
               begin
-              Add(DateTimeToStr(Entry.createdTime));
+              Add(DateTimeToStr(Entry.createdDate));
               Add(Entry.Description);
-              Add(BoolToStr(Entry.capabilities.canEdit,'Yes','No'));
-              Add(Entry.Size);
-              Add(Entry.lastModifyingUser.displayName);
-              Add(Entry.webContentLink);
+              Add(BoolToStr(Entry.Editable,'Yes','No'));
+              Add(Entry.fileSize);
+              Add(Entry.lastModifyingUserName);
+              Add(Entry.downloadUrl);
               Add(Entry.version);
               Add(Entry.mimeType);
               end;

@@ -101,7 +101,6 @@ var
   {$ENDIF}
 begin
   IsConsole := true; // dont show unhandled exceptions
-  ExceptProc := NIL;
   {$IFnDEF TEST_NO_POINTER_VAR}
   p := nil;
   {$ENDIF}
@@ -146,9 +145,7 @@ begin
   {$ENDIF}
 
   {$IFnDEF TEST_NO_EXCEPTION_TYPE}
-  try
   foo;
-  except end;
   {$ENDIF}
 
   Freemem(GetMem(1));

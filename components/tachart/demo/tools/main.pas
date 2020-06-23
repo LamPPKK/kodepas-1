@@ -6,8 +6,7 @@ interface
 
 uses
   Classes, ExtCtrls, StdCtrls, SysUtils, FileUtil, LResources, Forms, Controls,
-  Graphics, Dialogs, Types,
-  TAFuncSeries, TAGraph, TASeries, TASources, TATools, TADrawUtils;
+  Graphics, Dialogs, Types, TAFuncSeries, TAGraph, TASeries, TASources, TATools;
 
 type
 
@@ -43,8 +42,8 @@ type
     procedure Chart1FuncSeries1Calculate(const AX: Double; out AY: Double);
     procedure ChartToolset1DataPointCrosshairTool1AfterKeyUp(ATool: TChartTool;
       APoint: TPoint);
-    procedure ChartToolset1DataPointCrosshairTool1CustomDraw(
-      ASender: TDataPointCrosshairTool; ADrawer: IChartDrawer);
+    procedure ChartToolset1DataPointCrosshairTool1Draw(
+      ASender: TDataPointCrosshairTool);
     procedure ChartToolset1DataPointDragTool1BeforeMouseMove(ATool: TChartTool;
       APoint: TPoint);
     procedure rgPanClick(Sender: TObject);
@@ -69,7 +68,7 @@ var
 begin
   for t in ChartToolset1.Tools do
     if t is TBasicZoomTool then
-      TBasicZoomTool(t).AnimationSteps := IfThen(cbAnimate.Checked, 3, 0);
+      (t as TBasicZoomTool).AnimationSteps := IfThen(cbAnimate.Checked, 3, 0);
 end;
 
 procedure TForm1.cbFixedPointChange(Sender: TObject);
@@ -78,7 +77,7 @@ var
 begin
   for t in ChartToolset1.Tools do
     if t is TBasicZoomStepTool then
-      TBasicZoomStepTool(t).FixedPoint := cbFixedPoint.Checked;
+      (t as TBasicZoomStepTool).FixedPoint := cbFixedPoint.Checked;
 end;
 
 procedure TForm1.Chart1FuncSeries1Calculate(const AX: Double; out AY: Double);
@@ -93,8 +92,8 @@ begin
   ChartToolset1DataPointCrosshairTool1.Hide;
 end;
 
-procedure TForm1.ChartToolset1DataPointCrosshairTool1CustomDraw(
-  ASender: TDataPointCrosshairTool; ADrawer: IChartDrawer);
+procedure TForm1.ChartToolset1DataPointCrosshairTool1Draw(
+  ASender: TDataPointCrosshairTool);
 const
   R = 20;
 begin

@@ -293,20 +293,12 @@ begin
     PackageGraph.IteratePackages(fpfSearchAllExisting,@AddUniquePackagesToList);
     ANode:=fPackages.FindLowest;
     while ANode<>nil do begin
-      if Assigned(OPMInterface) then
+      if (TPackageLink(ANode.Data).Origin = ploOnline) and (cbOnlinePkg.Checked) and Assigned(OPMInterface) then
       begin
-        if (TPackageLink(ANode.Data).Origin = ploOnline) and (cbOnlinePkg.Checked) then
-        begin
-          Inc(CntOnlinePkg);
-          fSL.AddObject(TLazPackageID(ANode.Data).Name, TLazPackageID(ANode.Data));
-        end;
-        if (TPackageLink(ANode.Data).Origin <> ploOnline) and (cbLocalPkg.Checked) then
-        begin
-          Inc(CntLocalPkg);
-          fSL.AddObject(TLazPackageID(ANode.Data).Name, TLazPackageID(ANode.Data));
-        end;
-      end
-      else
+        Inc(CntOnlinePkg);
+        fSL.AddObject(TLazPackageID(ANode.Data).Name, TLazPackageID(ANode.Data));
+      end;
+      if (TPackageLink(ANode.Data).Origin <> ploOnline) and (cbLocalPkg.Checked) then
       begin
         Inc(CntLocalPkg);
         fSL.AddObject(TLazPackageID(ANode.Data).Name, TLazPackageID(ANode.Data));

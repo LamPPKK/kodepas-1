@@ -7,21 +7,13 @@ unit RegProjectGroup;
 interface
 
 uses
-  Classes, SysUtils, LCLType,
-  MenuIntf, IDECommands, ToolBarIntf, IDEOptEditorIntf, IDEOptionsIntf,
-  LazIDEIntf, ProjectGroupIntf,
-  // project groups
-  ProjectGroupStrConst, ProjectGroup, ProjectGroupEditor, PrjGrpOptionsFrm;
-
-var
-  PGOptionsFrameID: integer = 1000;
+  Classes, SysUtils, ProjectGroupIntf, MenuIntf, IDECommands, ToolBarIntf,
+  ProjectGroupStrConst, ProjectGroup, ProjectGroupEditor;
 
 procedure RegisterProjectGroupEditorMenuItems;
 procedure Register;
 
 implementation
-
-{$R pg_images.res}
 
 const
   ProjectGroupEditorMenuRootName = 'ProjectGroupEditorMenu';
@@ -54,7 +46,7 @@ begin
   PGEditMenuSectionAddRemove:=MnuSection;
   RegisterMenuCmd(MnuCmdTargetAdd,MnuSection,'TargetAdd',lisTargetAdd);
   RegisterMenuCmd(MnuCmdTargetRemove,MnuSection,'TargetRemove',lisTargetRemove);
-  // ToDo: redo
+  // ToDo: undo
 
   MnuSection:=RegisterIDEMenuSection(MnuRoot,'Use');
   PGEditMenuSectionUse:=MnuSection;
@@ -69,10 +61,8 @@ begin
 
   MnuSection:=RegisterIDEMenuSection(MnuRoot,'Misc');
   PGEditMenuSectionMisc:=MnuSection;
+
   RegisterMenuCmd(MnuCmdTargetCopyFilename,MnuSection,'CopyFilename',lisTargetCopyFilename);
-  RegisterMenuCmd(MnuCmdProjGrpUndo, MnuSection, 'Undo', lisUndo);
-  RegisterMenuCmd(MnuCmdProjGrpRedo, MnuSection, 'Redo', lisRedo);
-  RegisterMenuCmd(MnuCmdProjGrpOptions, MnuSection, 'Options', lisOptions);
   // ToDo: View source (project)
 
   // ToDo: find in files
@@ -81,85 +71,42 @@ begin
   // ToDo: D&D order compile targets
 end;
 
-procedure ViewProjectGroupsClicked(Sender: TObject);
-begin
-  ShowProjectGroupEditor(Sender,IDEProjectGroupManager.CurrentProjectGroup);
-end;
-
 procedure Register;
 
   procedure RegisterMnuCmd(out Cmd: TIDECommand; out MenuCmd: TIDEMenuCommand;
     Section: TIDEMenuSection; const Name, Caption: string;
-    const OnExecuteMethod: TNotifyEvent;
-    const ResourceName: String = '');
-  var
-    ButtonCmd: TIDEButtonCommand;
+    const OnExecuteMethod: TNotifyEvent);
   begin
     Cmd:=RegisterIDECommand(PGCmdCategory,Name,Caption,OnExecuteMethod);
-    MenuCmd:=RegisterIDEMenuCommand(Section,Name,Caption,nil,nil,Cmd,ResourceName);
-    ButtonCmd:=RegisterIDEButtonCommand(Cmd);
-    ButtonCmd.ImageIndex:=MenuCmd.ImageIndex;
+    MenuCmd:=RegisterIDEMenuCommand(Section,Name,Caption,nil,nil,Cmd);
+    RegisterIDEButtonCommand(Cmd);
   end;
 
-var
-  IDECommandCategory: TIDECommandCategory;
-  ViewProjectGroupsIDEMenuCommand: TIDEMenuCommand;
 begin
   IDEProjectGroupManager:=TIDEProjectGroupManager.Create;
-  ProjectGroupManager:=IDEProjectGroupManager;
   IDEProjectGroupManager.Options.LoadSafe;
 
   PGCmdCategory:=RegisterIDECommandCategory(nil,ProjectGroupCmdCategoryName,lisProjectGroups);
 
   RegisterMnuCmd(CmdNewProjectGroup,MnuCmdNewProjectGroup,itmProjectNewSection,
-    'New Project Group',lisNewProjectGroupMenuC,@IDEProjectGroupManager.DoNewClick,
-    'pg_new');
+    'New Project Group',lisNewProjectGroupMenuC,@IDEProjectGroupManager.DoNewClick);
   RegisterMnuCmd(CmdOpenProjectGroup,MnuCmdOpenProjectGroup,itmProjectOpenSection,
-    'Open Project Group',lisOpenProjectGroup,@IDEProjectGroupManager.DoOpenClick,
-    'pg_open');
+    'Open Project Group',lisOpenProjectGroup,@IDEProjectGroupManager.DoOpenClick);
   PGOpenRecentSubMenu:=RegisterIDESubMenu(itmProjectOpenSection,
-    'Open recent Project Group',lisOpenRecentProjectGroup, nil, nil,
-    'pg_open_recent');
+    'Open recent Project Group',lisOpenRecentProjectGroup);
   RegisterMnuCmd(CmdSaveProjectGroup,MnuCmdSaveProjectGroup,itmProjectSaveSection,
-    'Save Project Group',lisSaveProjectGroup,@IDEProjectGroupManager.DoSaveClick,
-    'pg_save');
+    'Save Project Group',lisSaveProjectGroup,@IDEProjectGroupManager.DoSaveClick);
   MnuCmdSaveProjectGroup.Enabled:=false;
   RegisterMnuCmd(CmdSaveProjectGroupAs,MnuCmdSaveProjectGroupAs,itmProjectSaveSection,
-    'Save Project Group as',lisSaveProjectGroupAs,@IDEProjectGroupManager.DoSaveAsClick,
-    'pg_save_as');
+    'Save Project Group as',lisSaveProjectGroupAs,@IDEProjectGroupManager.DoSaveAsClick);
   MnuCmdSaveProjectGroupAs.Enabled:=false;
 
   RegisterProjectGroupEditorMenuItems;
 
   IDEProjectGroupManager.UpdateRecentProjectGroupMenu;
 
+  ProjectGroupManager:=IDEProjectGroupManager;
   SetProjectGroupEditorCallBack;
-
-  ViewProjectGroupsIDEMenuCommand:=RegisterIDEMenuCommand(itmViewMainWindows,
-    'mnuProjectGroups', lisProjectGroups, nil, @ViewProjectGroupsClicked, nil,
-    'pg_item');
-
-  ViewProjGrpShortCutX := IDEShortCut(VK_UNKNOWN, [], VK_UNKNOWN, []);
-  IDECommandCategory := IDECommandList.FindCategoryByName(CommandCategoryViewName);
-  if IDECommandCategory <> nil then
-  begin
-    ViewProjectGroupsCommand := RegisterIDECommand(IDECommandCategory, 'Project Groups',
-      lisProjectGroups, ViewProjGrpShortCutX, nil, @ViewProjectGroupsClicked);
-    if ViewProjectGroupsCommand <> nil then
-    begin
-      ViewProjectGroupsButtonCommand := RegisterIDEButtonCommand(ViewProjectGroupsCommand);
-      if ViewProjectGroupsButtonCommand<>nil then
-        ViewProjectGroupsButtonCommand.ImageIndex:=ViewProjectGroupsIDEMenuCommand.ImageIndex
-      else
-        ;
-    end;
-  end;
-
-  // add IDE options frame
-  PGOptionsFrameID:=RegisterIDEOptionsEditor(GroupEnvironment,
-                                  TProjGrpOptionsFrame,PGOptionsFrameID)^.Index;
-
-
 end;
 
 finalization

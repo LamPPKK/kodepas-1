@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, Spin, Buttons, ComCtrls,
-  TAGraph, TASources, TAFuncSeries, TATransformations, Types, TAFitUtils;
+  TAGraph, TASources, TAFuncSeries, TATransformations, Types;
 
 type
 
@@ -24,8 +24,6 @@ type
     cbShowErrorbars: TCheckBox;
     cbShowConfidenceIntervals: TCheckBox;
     cbShowPredictionIntervals: TCheckBox;
-    CbHTML: TCheckBox;
-    CbCombinedExtent: TCheckBox;
     UpperConfIntervalSeries: TFuncSeries;
     LowerConfIntervalSeries: TFuncSeries;
     UpperPredIntervalSeries: TFuncSeries;
@@ -70,16 +68,12 @@ type
     TabSheet2: TTabSheet;
     procedure BtnLoadClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
-    procedure CbCombinedExtentChange(Sender: TObject);
     procedure cbDrawFitRangeOnlyClick(Sender: TObject);
     procedure cbFitEquationSelect(Sender: TObject);
-    procedure CbHTMLChange(Sender: TObject);
     procedure cbShowConfidenceIntervalsChange(Sender: TObject);
     procedure cbShowErrorbarsChange(Sender: TObject);
     procedure cbShowPredictionIntervalsChange(Sender: TObject);
     procedure EdPointsCountChange(Sender: TObject);
-    procedure FitSeriesFitEquationText(ASeries: TFitSeries;
-      AEquationText: IFitEquationText);
     procedure FixedParamsChanged(Sender: TObject);
     procedure cbFitRangeUseMaxClick(Sender:TObject);
     procedure cbFitRangeUseMinClick(Sender:TObject);
@@ -110,7 +104,7 @@ implementation
 
 uses
   Math, typ, spe, StrUtils,
-  TAChartAxis, TATypes, TAChartUtils, TACustomSource, TAFitLib;
+  TAChartAxis, TATypes, TAChartUtils, TACustomSource, TAFitLib, TAFitUtils;
 
 const
   // Parameters used for data generation; should be reproduced by the fit.
@@ -180,11 +174,6 @@ begin
   end;
 end;
 
-procedure TfrmMain.CbCombinedExtentChange(Sender: TObject);
-begin
-  FitSeries.UseCombinedExtentY := CbCombinedExtent.Checked;
-end;
-
 procedure TfrmMain.BtnLoadClick(Sender: TObject);
 begin
   if OpenDialog1.Execute then
@@ -238,7 +227,6 @@ begin
     feCustom:
       begin
         FitSeries.ParamCount := 4;
-        FitSeries.SetFitBasisFunc(0, @FitBaseFunc_Const, '');
         FitSeries.SetFitBasisFunc(1, @HarmonicBaseFunc, 'sin(x)');
         FitSeries.SetFitBasisFunc(2, @HarmonicBaseFunc, 'sin(3 x)');
         FitSeries.SetFitBasisFunc(3, @HarmonicBaseFunc, 'sin(5 x)');
@@ -248,13 +236,6 @@ begin
         edFitParam1.Value := HARMONIC_PARAMS[1];
       end;
   end;
-end;
-
-procedure TfrmMain.CbHTMLChange(Sender: TObject);
-begin
-  if CbHtml.Checked then Chart.Legend.TextFormat := tfHTML else Chart.Legend.TextFormat := tfNormal;
-  FitSeries.Title := 'fitted data';
-    // the fit equation is appended automatically due to FitSeries.Legend.Format
 end;
 
 procedure TfrmMain.cbShowConfidenceIntervalsChange(Sender: TObject);
@@ -291,16 +272,6 @@ end;
 procedure TfrmMain.EdPointsCountChange(Sender: TObject);
 begin
   CreateData;
-end;
-
-procedure TfrmMain.FitSeriesFitEquationText(ASeries: TFitSeries;
-  AEquationText: IFitEquationText);
-begin
-  AEquationText.NumFormat('%.5f');
-  if CbHTML.Checked then
-    AEquationText.TextFormat(tfHtml)
-  else
-    AEquationText.TextFormat(tfNormal);
 end;
 
 procedure TfrmMain.FixedParamsChanged(Sender: TObject);
@@ -530,8 +501,14 @@ begin
             LowerPredIntervalSeries.OnCalculate := @FitSeries.GetLowerPredictionInterval;
             {$IFEND}
           end;
-        else
-          Add(FitSeries.ErrorMsg);
+        fitDimError:
+          Add('The lengths of the data vectors do not match.');
+        fitMoreParamsThanValues:
+          Add('There are more fitting parameters than data values.');
+        fitNoFitParams:
+          Add('No fit parameters specified');
+        fitSingular:
+          Add('Matrix is (nearly) singular');
       end;
     finally
       EndUpdate;

@@ -32,7 +32,6 @@ msgid "Delete item"
 msgstr "Elem törlése"
 
 #: externhelpfrm.ehrsdirectorynotfound
-#, object-pascal-format
 msgid "Directory not found: %s"
 msgstr "A könyvtár nem található: %s"
 
@@ -45,7 +44,6 @@ msgid "External"
 msgstr "Külső"
 
 #: externhelpfrm.ehrsfilenotfound
-#, object-pascal-format
 msgid "File not found: %s"
 msgstr "A fájl nem található: %s"
 

@@ -427,6 +427,7 @@ type
       AWidth: Integer; AReferenceHandle: TLCLHandle);
     procedure SetImageListAsync(Data: PtrInt);
   protected
+    PageClass: TCustomPageClass;
     procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
       const AXProportion, AYProportion: Double); override;
     function GetPageClass: TCustomPageClass; virtual;
@@ -464,6 +465,12 @@ type
   //Delphi compatible properties
     function CanChange: Boolean; virtual;
     property DisplayRect: TRect read GetDisplayRect;
+    property HotTrack: Boolean read FHotTrack write FHotTrack default False;
+    property MultiSelect: Boolean read FMultiSelect write FMultiSelect default False;
+    property OwnerDraw: Boolean read FOwnerDraw write FOwnerDraw default False;
+    property RaggedRight: Boolean read FRaggedRight write FRaggedRight default False;
+    property ScrollOpposite: Boolean read FScrollOpposite write FScrollOpposite default False;
+    property Style: TTabStyle read FStyle write SetStyle default tsTabs;
     property Tabs: TStrings read FAccess write SetPages;
     property TabIndex: Integer read FPageIndex write SetPageIndex default -1;
     property OnChange: TNotifyEvent read FOnPageChanged write FOnPageChanged;
@@ -482,27 +489,21 @@ type
     function PageToTabIndex(AIndex: integer): integer;
   public
     procedure DoCloseTabClicked(APage: TCustomPage); virtual;
-    property HotTrack: Boolean read FHotTrack write FHotTrack default False;
     property Images: TCustomImageList read FImages write SetImages;
     property ImagesWidth: Integer read FImagesWidth write SetImagesWidth default 0;
     property MultiLine: Boolean read GetMultiLine write SetMultiLine default False;
-    property MultiSelect: Boolean read FMultiSelect write FMultiSelect default False;
     property OnChanging: TTabChangingEvent read FOnChanging write FOnChanging;
     property OnCloseTabClicked: TNotifyEvent read FOnCloseTabClicked
                                              write FOnCloseTabClicked;
     property OnGetImageIndex: TTabGetImageEvent read FOnGetImageIndex
                                                 write FOnGetImageIndex;
     property Options: TCTabControlOptions read FOptions write SetOptions default [];
-    property OwnerDraw: Boolean read FOwnerDraw write FOwnerDraw default False;
     property Page[Index: Integer]: TCustomPage read GetPage;
     property PageCount: integer read GetPageCount;
     property PageIndex: Integer read FPageIndex write SetPageIndex default -1;
     //property PageList: TList read FPageList; - iff paged
     property Pages: TStrings read FAccess write SetPages;
-    property RaggedRight: Boolean read FRaggedRight write FRaggedRight default False;
-    property ScrollOpposite: Boolean read FScrollOpposite write FScrollOpposite default False;
     property ShowTabs: Boolean read FShowTabs write SetShowTabs default True;
-    property Style: TTabStyle read FStyle write SetStyle default tsTabs;
     property TabHeight: Smallint read FTabHeight write SetTabHeight default 0;
     property TabPosition: TTabPosition read FTabPosition write SetTabPosition default tpTop;
     property TabWidth: Smallint read FTabWidth write SetTabWidth default 0;
@@ -615,7 +616,7 @@ type
     property DragMode;
     property Enabled;
     property Font;
-    property HotTrack;
+    //property HotTrack;
     property Images;
     property ImagesWidth;
     property MultiLine;
@@ -624,11 +625,11 @@ type
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
-    property RaggedRight;
-    property ScrollOpposite;
+    //property RaggedRight;
+    //property ScrollOpposite;
     property ShowHint;
     property ShowTabs;
-    property Style;
+    //property Style;
     property TabHeight;
     property TabIndex;
     property TabOrder;
@@ -818,7 +819,6 @@ type
     procedure SetTabStop(const AValue: Boolean);
     procedure SetTabWidth(AValue: Smallint);
   protected
-    class procedure WSRegisterClass; override;
     procedure SetOptions(const AValue: TCTabControlOptions); override;
     procedure AddRemovePageHandle(APage: TCustomPage); override;
     function CanChange: Boolean; override;
@@ -1749,9 +1749,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnResize;
     property OnSelectItem;
     property OnShowHint;
@@ -2725,12 +2722,10 @@ type
     class function GetControlClassDefaultSize: TSize; override;
     procedure InitializeWnd; override;
     procedure Loaded; override;
-    procedure ShouldAutoAdjust(var AWidth, AHeight: Boolean); override;
   public
     constructor Create(AOwner: TComponent); override;
     procedure SetTick(Value: Integer);
   published
-    property AutoSize;
     property Frequency: Integer read FFrequency write SetFrequency default 1;
     property LineSize: Integer read FLineSize write SetLineSize default 1;
     property Max: Integer read FMax write SetMax default 10;
@@ -2785,9 +2780,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnKeyDown;
     property OnKeyPress;
     property OnKeyUp;
@@ -3342,7 +3334,6 @@ type
     fMouseDownPos: TPoint;
     FMultiSelectStyle: TMultiSelectStyle;
     FHotTrackColor: TColor;
-    FDisabledFontColor: TColor;
     FOnAddition: TTVExpandedEvent;
     FOnAdvancedCustomDraw: TTVAdvancedCustomDrawEvent;
     FOnAdvancedCustomDrawItem: TTVAdvancedCustomDrawItemEvent;
@@ -3573,7 +3564,6 @@ type
       read GetHideSelection write SetHideSelection default True;
     property HotTrack: Boolean read GetHotTrack write SetHotTrack default False;
     property HotTrackColor: TColor read FHotTrackColor write FHotTrackColor default clNone;
-    property DisabledFontColor: TColor read FDisabledFontColor write FDisabledFontColor default clGrayText;
     property Indent: Integer read GetIndent write SetIndent stored IndentIsStored;
     property MultiSelect: Boolean read GetMultiSelect write SetMultiSelect default False;
     property OnAddition: TTVExpandedEvent read FOnAddition write FOnAddition;
@@ -3713,7 +3703,6 @@ type
     property Color;
     property Constraints;
     property DefaultItemHeight;
-    property DisabledFontColor;
     property DragKind;
     property DragCursor;
     property DragMode;
@@ -3794,9 +3783,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnNodeChanged;
     property OnResize;
     property OnSelectionChanged;
@@ -4054,9 +4040,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnResize;
     property OnSectionClick;
     property OnSectionResize;
@@ -4207,5 +4190,8 @@ begin
     RegisterWSComponent(TCustomTabControl, TWSCustomTabControl);
   Done := True;
 end;
+
+initialization
+  RegisterPropertyToSkip(TTabControl, 'OnDrawTab', 'Property streamed in older Lazarus revision','');
 
 end.

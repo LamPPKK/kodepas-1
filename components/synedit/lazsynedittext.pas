@@ -68,9 +68,7 @@ type
                            senrBeforeDecPaintLock,
                            senrAfterDecPaintLock,
                            senrTextBufferChanging, // About to change
-                           senrTextBufferChanged,
-                           senrBeginUndoRedo,
-                           senrEndUndoRedo
+                           senrTextBufferChanged
                           );
 
   TPhysicalCharWidth = Byte;
@@ -1000,7 +998,7 @@ end;
 procedure TSynEditStrings.AddNotifyHandler(AReason: TSynEditNotifyReason;
   AHandler: TNotifyEvent);
 begin
-  assert(AReason in [senrCleared..senrEndUndoRedo], 'AddNotifyHandler');
+  assert(AReason in [senrCleared..senrTextBufferChanged], 'AddNotifyHandler');
   AddGenericHandler(AReason, TMethod(AHandler));
 end;
 
@@ -1021,7 +1019,7 @@ end;
 procedure TSynEditStrings.RemoveNotifyHandler(AReason: TSynEditNotifyReason;
   AHandler: TNotifyEvent);
 begin
-  assert(AReason in [senrCleared..senrEndUndoRedo], 'RemoveNotifyHandler');
+  assert(AReason in [senrCleared..senrTextBufferChanged], 'RemoveNotifyHandler');
   RemoveGenericHandler(AReason, TMethod(AHandler));
 end;
 

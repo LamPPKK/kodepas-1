@@ -1,4 +1,4 @@
-{ $Id$ }
+{ $Id: fpdloop.pas 54031 2017-01-29 21:04:32Z joost $ }
 {
  ---------------------------------------------------------------------------
  fpdloop.pas  -  FP standalone debugger - Debugger main loop
@@ -10,7 +10,7 @@
  ---------------------------------------------------------------------------
 
  @created(Mon Apr 10th WET 2006)
- @lastmod($Date$)
+ @lastmod($Date: 2017-01-29 22:04:32 +0100 (So, 29 Jan 2017) $)
  @author(Marc Weustink <marc@@dommelstein.nl>)
 
  ***************************************************************************
@@ -37,8 +37,10 @@ unit FPDLoop;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, LazFileUtils, LazUTF8, FpDbgInfo, FpDbgClasses,
-  FpDbgDisasX86, DbgIntfBaseTypes, FpDbgDwarf, FpdMemoryTools, CustApp;
+  Classes, SysUtils, FileUtil, FpDbgInfo, FpDbgClasses, FpDbgDisasX86, DbgIntfBaseTypes,
+  FpDbgDwarf,
+  FpdMemoryTools,
+  CustApp;
 
 type
 
@@ -49,14 +51,14 @@ type
     FLast: string;
     FMemReader: TDbgMemReader;
     FMemManager: TFpDbgMemManager;
-    FMemConvertor: TFpDbgMemConvertor;
     procedure ShowDisas;
     procedure ShowCode;
     procedure GControllerExceptionEvent(var continue: boolean; const ExceptionClass, ExceptionMessage: string);
     procedure GControllerCreateProcessEvent(var continue: boolean);
-    procedure GControllerHitBreakpointEvent(var continue: boolean; const Breakpoint: TFpDbgBreakpoint);
+    procedure GControllerHitBreakpointEvent(var continue: boolean; const Breakpoint: TDbgBreakpoint);
     procedure GControllerProcessExitEvent(ExitCode: DWord);
     procedure GControllerDebugInfoLoaded(Sender: TObject);
+    procedure OnLog(const AString: string; const ALogLevel: TFPDLogLevel);
   protected
     Procedure DoRun; override;
   public
@@ -130,14 +132,14 @@ var
   i: integer;
 begin
   WriteLN('===');
-  a := GController.CurrentThread.GetInstructionPointerRegisterValue;
+  a := GController.CurrentProcess.GetInstructionPointerRegisterValue;
   for i := 0 to 5 do
   begin
     Write('  [', FormatAddress(a), ']');
 
     if not GController.CurrentProcess.ReadData(a,sizeof(CodeBin),CodeBin)
     then begin
-      //debugln('Disassemble: Failed to read memory at %s.', [FormatAddress(a)]);
+      //Log('Disassemble: Failed to read memory at %s.', [FormatAddress(a)]);
       Code := '??';
       CodeBytes := '??';
       Inc(a);
@@ -155,13 +157,13 @@ end;
 procedure TFPDLoop.ShowCode;
 var
   a: TDbgPtr;
-  sym, symproc: TFpSymbol;
+  sym, symproc: TFpDbgSymbol;
   S: TStringList;
   AName: String;
 begin
   WriteLN('===');
-  a := GController.CurrentThread.GetInstructionPointerRegisterValue;
-  sym := GController.CurrentProcess.FindProcSymbol(a);
+  a := GController.CurrentProcess.GetInstructionPointerRegisterValue;
+  sym := GController.CurrentProcess.FindSymbol(a);
   if sym = nil
   then begin
     WriteLn('  [', FormatAddress(a), '] ???');
@@ -222,16 +224,25 @@ begin
   continue:=false;
 end;
 
-procedure TFPDLoop.GControllerHitBreakpointEvent(var continue: boolean; const Breakpoint: TFpDbgBreakpoint);
+procedure TFPDLoop.GControllerHitBreakpointEvent(var continue: boolean; const Breakpoint: TDbgBreakpoint);
 begin
   if assigned(Breakpoint) then
-    writeln(Format(sBreakpointReached, ['' {FormatAddress(Breakpoint.Location)}]))
+    writeln(Format(sBreakpointReached, [FormatAddress(Breakpoint.Location)]))
   else
     writeln(sProcessPaused);
   if not continue then
   begin
     ShowCode;
     ShowDisas;
+  end;
+end;
+
+procedure TFPDLoop.OnLog(const AString: string; const ALogLevel: TFPDLogLevel);
+begin
+  case ALogLevel of
+    dllDebug : writeln('Debug: '+AString);
+    dllInfo  : writeln(AString);
+    dllError : writeln('Error: '+AString);
   end;
 end;
 
@@ -259,10 +270,8 @@ procedure TFPDLoop.Initialize;
 begin
   inherited Initialize;
   FMemReader := TPDDbgMemReader.Create;
-  FMemConvertor := TFpDbgMemConvertorLittleEndian.Create;
-  FMemManager := TFpDbgMemManager.Create(FMemReader, FMemConvertor);
-  //TODO: Maybe DebugLogger.OnLog ....
-  //GController.OnLog:=@OnLog;
+  FMemManager := TFpDbgMemManager.Create(FMemReader, TFpDbgMemConvertorLittleEndian.Create);
+  GController.OnLog:=@OnLog;
   GController.OnHitBreakpointEvent:=@GControllerHitBreakpointEvent;
   GController.OnCreateProcessEvent:=@GControllerCreateProcessEvent;
   GController.OnExceptionEvent:=@GControllerExceptionEvent;
@@ -274,7 +283,6 @@ destructor TFPDLoop.Destroy;
 begin
   FMemManager.Free;
   FMemReader.Free;
-  FMemConvertor.Free;
   inherited Destroy;
 end;
 

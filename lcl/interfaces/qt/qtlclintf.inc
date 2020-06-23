@@ -1,5 +1,5 @@
 {%MainUnit qtint.pp}
-{ $Id$ }
+{ $Id: qtlclintf.inc 56639 2017-12-05 21:30:51Z juha $ }
 
 {******************************************************************************
                   All QT interface support routines
@@ -311,6 +311,16 @@ end;
 procedure TQtWidgetSet.DestroyRubberBand(ARubberBand: HWND);
 begin
   QWidget_destroy(QRubberBandH(ARubberBand));
+end;
+
+{------------------------------------------------------------------------------
+  Function: FontCanUTF8
+  Params:
+  Returns:
+ ------------------------------------------------------------------------------}
+function TQtWidgetSet.FontCanUTF8(Font: HFont): boolean;
+begin
+  Result := IsValidGDIObject(Font);
 end;
 
 {------------------------------------------------------------------------------

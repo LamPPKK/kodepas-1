@@ -62,14 +62,14 @@ uses
   // FCL, RTL
   Classes, SysUtils, Math, StrUtils, Laz_AVL_Tree,
   // LCL
-  LCLType, LclIntf, Forms, Controls, StdCtrls, Dialogs, ComCtrls,
+  LCLProc, LCLType, LclIntf, Forms, Controls, StdCtrls, Dialogs, ComCtrls,
   ActnList, XMLPropStorage,
   // LazUtils
-  LazUTF8Classes, LazFileUtils, LazStringUtils, LazFileCache, LazLoggerBase, LazTracer,
+  LazUTF8Classes, LazFileUtils, LazFileCache, LazLoggerBase,
   // Codetools
   CodeCache, CodeToolManager, BasicCodeTools, FileProcs,
   // IDEIntf
-  LazIDEIntf, IDEImagesIntf, PackageIntf, ProjectIntf,
+  LazIDEIntf, IDEImagesIntf, PackageIntf, ProjectIntf, PackageDependencyIntf,
   // ToDoList
   ToDoListStrConsts;
 
@@ -169,6 +169,7 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift:TShiftState);
     procedure FormShow(Sender: TObject);
     procedure lvTodoClick(Sender: TObject);
+    procedure lvTodoColumnClick(Sender : TObject; Column : TListColumn);
     procedure lvTodoCompare(Sender : TObject; Item1, Item2 : TListItem;
       {%H-}Data : Integer; var Compare : Integer);
     procedure SaveDialogShow(Sender: TObject);
@@ -346,6 +347,26 @@ end;
 procedure TIDETodoWindow.lvTodoClick(Sender: TObject);
 begin
   acGoto.Execute;
+end;
+
+procedure TIDETodoWindow.lvTodoColumnClick(Sender : TObject; Column : TListColumn);
+Var
+  aListItem : TListItem;
+begin
+  aListItem := lvTodo.Selected;
+
+  If lvTodo.SortDirection = sdAscending then
+    lvTodo.SortDirection := sdDescending
+  Else
+    lvTodo.SortDirection := sdAscending;
+
+  lvTodo.SortColumn := Column.Index;
+
+  lvTodo.Selected := nil;  // Otherwise wrong selection - bug??
+  lvTodo.Selected := aListItem;
+
+  lvTodo.Update;  // First row not redrawn?
+  //lvTodo.Repaint;
 end;
 
 procedure TIDETodoWindow.lvTodoCompare(Sender : TObject;

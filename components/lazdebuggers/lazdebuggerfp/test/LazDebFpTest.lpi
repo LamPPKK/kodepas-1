@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="12"/>
+    <Version Value="11"/>
     <PathDelim Value="\"/>
     <General>
-      <Flags>
-        <CompatibilityMode Value="True"/>
-      </Flags>
       <SessionStorage Value="InProjectDir"/>
+      <MainUnit Value="0"/>
       <Title Value="LazDebFpTest"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
@@ -22,6 +20,7 @@
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
+      <Modes Count="0"/>
     </RunParams>
     <RequiredPackages Count="5">
       <Item1>
@@ -40,7 +39,7 @@
         <PackageName Value="FCL"/>
       </Item5>
     </RequiredPackages>
-    <Units Count="6">
+    <Units Count="3">
       <Unit0>
         <Filename Value="LazDebFpTest.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -55,21 +54,6 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="TestBase"/>
       </Unit2>
-      <Unit3>
-        <Filename Value="testvarious.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TestVarious"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="testbreakpoint.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TestBreakPoint"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="teststepping.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TestStepping"/>
-      </Unit5>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -85,7 +69,6 @@
     <Linking>
       <Debugging>
         <DebugInfoType Value="dsDwarf2Set"/>
-        <UseHeaptrc Value="True"/>
       </Debugging>
     </Linking>
   </CompilerOptions>

@@ -16,7 +16,6 @@
 }
 
 {$MODE objfpc}
-{$modeswitch advancedrecords}
 {$H+}
 
 unit Laz2_XMLCfg;
@@ -51,23 +50,10 @@ type
     procedure SetFilename(const AFilename: String);
   protected
     type
-      TDomNodeArray = array of TDomNode;
       TNodeCache = record
         Node: TDomNode;
-        NodeSearchName: string;
         ChildrenValid: boolean;
-        Children: TDomNodeArray; // child nodes with NodeName<>'' and sorted
-
-        NodeListName: string;
-        NodeList: TDomNodeArray; // child nodes that are accessed with "name[?]" XPath
-
-      public
-        class procedure GrowArray(var aArray: TDomNodeArray; aCount: Integer); static;
-        procedure RefreshChildren;
-        procedure RefreshChildrenIfNeeded;
-        procedure RefreshNodeList(const ANodeName: string);
-        procedure RefreshNodeListIfNeeded(const ANodeName: string);
-        function AddNodeToList: TDOMNode;
+        Children: array of TDomNode; // nodes with NodeName<>'' and sorted
       end;
   protected
     doc: TXMLDocument;
@@ -82,15 +68,13 @@ type
     procedure ReadXMLFile(out ADoc: TXMLDocument; const AFilename: String); virtual;
     procedure WriteXMLFile(ADoc: TXMLDocument; const AFileName: String); virtual;
     procedure FreeDoc; virtual;
-    procedure SetPathNodeCache(Index: integer; aNode: TDomNode; aNodeSearchName: string = '');
+    procedure SetPathNodeCache(Index: integer; aNode: TDomNode);
     function GetCachedPathNode(Index: integer): TDomNode; inline;
-    function GetCachedPathNode(Index: integer; out aNodeSearchName: string): TDomNode; inline;
     procedure InvalidateCacheTilEnd(StartIndex: integer);
     function InternalFindNode(const APath: String; PathLen: integer;
                               CreateNodes: boolean = false): TDomNode;
     procedure InternalCleanNode(Node: TDomNode);
-    function FindChildNode(PathIndex: integer; const aName: string;
-      CreateNodes: boolean = false): TDomNode;
+    function FindChildNode(PathIndex: integer; const aName: string): TDomNode;
   public
     constructor Create(AOwner: TComponent); override; overload;
     constructor Create(const AFilename: String); overload; // create and load
@@ -125,12 +109,6 @@ type
     // checks if the path has values, set PathHasValue=true to skip the last part
     function HasPath(const APath: string; PathHasValue: boolean): boolean;
     function HasChildPaths(const APath: string): boolean;
-    function GetChildCount(const APath: string): Integer;
-    function IsLegacyList(const APath: string): Boolean;
-    function GetListItemCount(const APath, AItemName: string; const aLegacyList: Boolean): Integer;
-    class function GetListItemXPath(const AName: string; const AIndex: Integer; const aLegacyList: Boolean;
-      const aLegacyList1Based: Boolean = False): string;
-    procedure SetListItemCount(const APath: string; const ACount: Integer; const ALegacyList: Boolean);
     property Modified: Boolean read FModified write FModified;
     procedure InvalidatePathCache;
   published
@@ -172,119 +150,13 @@ begin
   Result:=CompareStr(Node1.NodeName,Node2.NodeName);
 end;
 
-{ TXMLConfig.TNodeCache }
-
-function TXMLConfig.TNodeCache.AddNodeToList: TDOMNode;
-begin
-  Result:=Node.OwnerDocument.CreateElement(NodeListName);
-  Node.AppendChild(Result);
-  SetLength(NodeList, Length(NodeList)+1);
-  NodeList[High(NodeList)]:=Result;
-end;
-
-class procedure TXMLConfig.TNodeCache.GrowArray(var aArray: TDomNodeArray;
-  aCount: Integer);
-var
-  cCount: Integer;
-begin
-  cCount:=length(aArray);
-  if aCount>cCount then begin
-    if cCount<8 then
-      cCount:=8
-    else
-      cCount:=cCount*2;
-    if aCount>cCount then
-      cCount := aCount;
-    SetLength(aArray,cCount);
-  end;
-end;
-
-procedure TXMLConfig.TNodeCache.RefreshChildren;
-var
-  aCount, m: Integer;
-  aChild: TDOMNode;
-begin
-  // collect all children and sort
-  aCount:=0;
-  aChild:=Node.FirstChild;
-  while aChild<>nil do begin
-    if aChild.NodeName<>'' then begin
-      GrowArray(Children, aCount+1);
-      Children[aCount]:=aChild;
-      inc(aCount);
-    end;
-    aChild:=aChild.NextSibling;
-  end;
-  SetLength(Children,aCount);
-  if aCount>1 then
-    MergeSortWithLen(@Children[0],aCount,@CompareDomNodeNames); // sort ascending [0]<[1]
-  for m:=0 to aCount-2 do
-    if Children[m].NodeName=Children[m+1].NodeName then begin
-      // duplicate found: nodes with same name
-      // -> use only the first
-      Children[m+1]:=Children[m];
-    end;
-  ChildrenValid:=true;
-end;
-
-procedure TXMLConfig.TNodeCache.RefreshChildrenIfNeeded;
-begin
-  if not ChildrenValid then
-    RefreshChildren;
-end;
-
-procedure TXMLConfig.TNodeCache.RefreshNodeList(const ANodeName: string);
-var
-  aCount: Integer;
-  aChild: TDOMNode;
-begin
-  aCount:=0;
-  aChild:=Node.FirstChild;
-  while aChild<>nil do
-  begin
-    if aChild.NodeName=ANodeName then
-    begin
-      GrowArray(NodeList, aCount+1);
-      NodeList[aCount]:=aChild;
-      inc(aCount);
-    end;
-    aChild:=aChild.NextSibling;
-  end;
-  SetLength(NodeList,aCount);
-  NodeListName := ANodeName;
-end;
-
-procedure TXMLConfig.TNodeCache.RefreshNodeListIfNeeded(const ANodeName: string
-  );
-begin
-  if NodeListName<>ANodeName then
-    RefreshNodeList(ANodeName);
-end;
-
 // inline
-function TXMLConfig.GetCachedPathNode(Index: integer; out
-  aNodeSearchName: string): TDomNode;
+function TXMLConfig.GetCachedPathNode(Index: integer): TDomNode;
 begin
   if Index<length(fPathNodeCache) then
-  begin
-    Result:=fPathNodeCache[Index].Node;
-    aNodeSearchName:=fPathNodeCache[Index].NodeSearchName;
-  end else
-  begin
-    Result:=nil;
-    aNodeSearchName:='';
-  end;
-end;
-
-function TXMLConfig.GetChildCount(const APath: string): Integer;
-var
-  Node: TDOMNode;
-begin
-  Node:=FindNode(APath,false);
-  if Node=nil then
-    Result := 0
+    Result:=fPathNodeCache[Index].Node
   else
-    Result := Node.GetChildCount;
+    Result:=nil;
 end;
 
 constructor TXMLConfig.Create(const AFilename: String);
@@ -420,41 +292,6 @@ function TXMLConfig.GetExtendedValue(const APath: String;
   const ADefault: extended): extended;
 begin
   Result:=StrToExtended(GetValue(APath,''),ADefault);
-end;
-
-function TXMLConfig.GetListItemCount(const APath, AItemName: string;
-  const aLegacyList: Boolean): Integer;
-var
-  Node: TDOMNode;
-  NodeLevel: SizeInt;
-begin
-  if aLegacyList then
-    Result := GetValue(APath+'Count',0)
-  else
-  begin
-    Node:=InternalFindNode(APath,Length(APath));
-    if Node<>nil then
-    begin
-      NodeLevel := Node.GetLevel-1;
-      fPathNodeCache[NodeLevel].RefreshNodeListIfNeeded(AItemName);
-      Result := Length(fPathNodeCache[NodeLevel].NodeList);
-    end else
-      Result := 0;
-  end;
-end;
-
-class function TXMLConfig.GetListItemXPath(const AName: string;
-  const AIndex: Integer; const aLegacyList: Boolean;
-  const aLegacyList1Based: Boolean): string;
-begin
-  if ALegacyList then
-  begin
-    if aLegacyList1Based then
-      Result := AName+IntToStr(AIndex+1)
-    else
-      Result := AName+IntToStr(AIndex);
-  end else
-    Result := AName+'['+IntToStr(AIndex+1)+']';
 end;
 
 procedure TXMLConfig.SetValue(const APath, AValue: String);
@@ -613,11 +450,6 @@ begin
   InvalidateCacheTilEnd(0);
 end;
 
-function TXMLConfig.IsLegacyList(const APath: string): Boolean;
-begin
-  Result := GetValue(APath+'Count',-1)>=0;
-end;
-
 function TXMLConfig.ExtendedToStr(const e: extended): string;
 begin
   Result := FloatToStr(e, FPointSettings);
@@ -646,15 +478,7 @@ begin
   FreeAndNil(doc);
 end;
 
-function TXMLConfig.GetCachedPathNode(Index: integer): TDomNode;
-var
-  x: string;
-begin
-  Result := GetCachedPathNode(Index, x);
-end;
-
-procedure TXMLConfig.SetPathNodeCache(Index: integer; aNode: TDomNode;
-  aNodeSearchName: string);
+procedure TXMLConfig.SetPathNodeCache(Index: integer; aNode: TDomNode);
 var
   OldLength, NewLength: Integer;
 begin
@@ -671,13 +495,9 @@ begin
     exit
   else
     InvalidateCacheTilEnd(Index+1);
-  if aNodeSearchName='' then
-    aNodeSearchName:=aNode.NodeName;
   with fPathNodeCache[Index] do begin
     Node:=aNode;
-    NodeSearchName:=aNodeSearchName;
     ChildrenValid:=false;
-    NodeListName:='';
   end;
 end;
 
@@ -690,7 +510,6 @@ begin
       if Node=nil then break;
       Node:=nil;
       ChildrenValid:=false;
-      NodeListName:='';
     end;
   end;
 end;
@@ -698,9 +517,11 @@ end;
 function TXMLConfig.InternalFindNode(const APath: String; PathLen: integer;
   CreateNodes: boolean): TDomNode;
 var
-  NodePath, NdName: String;
+  NodePath: String;
   StartPos, EndPos: integer;
   PathIndex: Integer;
+  Parent: TDOMNode;
+  NdName: DOMString;
   NameLen: Integer;
 begin
   //debugln(['TXMLConfig.InternalFindNode APath="',copy(APath,1,PathLen),'" CreateNodes=',CreateNodes]);
@@ -718,15 +539,25 @@ begin
     NameLen:=EndPos-StartPos;
     if NameLen=0 then break;
     inc(PathIndex);
-    Result:=GetCachedPathNode(PathIndex,NdName);
+    Parent:=Result;
+    Result:=GetCachedPathNode(PathIndex);
+    if Result<>nil then
+      NdName:=Result.NodeName;
     if (Result=nil) or (length(NdName)<>NameLen)
     or not CompareMem(PChar(NdName),@APath[StartPos],NameLen) then begin
       // different path => search
       NodePath:=copy(APath,StartPos,NameLen);
-      Result:=FindChildNode(PathIndex-1,NodePath,CreateNodes);
-      if Result=nil then
-        Exit;
-      SetPathNodeCache(PathIndex,Result,NodePath);
+      Result:=FindChildNode(PathIndex-1,NodePath);
+      if Result=nil then begin
+        if not CreateNodes then exit;
+        // create missing node
+        Result:=Doc.CreateElement(NodePath);
+        Parent.AppendChild(Result);
+        fPathNodeCache[PathIndex-1].ChildrenValid:=false;
+        InvalidateCacheTilEnd(PathIndex);
+        if EndPos>PathLen then exit;
+      end;
+      SetPathNodeCache(PathIndex,Result);
     end;
     StartPos:=EndPos+1;
     if StartPos>PathLen then exit;
@@ -750,56 +581,62 @@ begin
   end;
 end;
 
-function TXMLConfig.FindChildNode(PathIndex: integer; const aName: string;
-  CreateNodes: boolean): TDomNode;
+function TXMLConfig.FindChildNode(PathIndex: integer; const aName: string
+  ): TDomNode;
 var
+  aParent, aChild: TDOMNode;
+  aCount: Integer;
+  NewLength: Integer;
   l, r, m: Integer;
-  cmp, BrPos: Integer;
-  NodeName: string;
+  cmp: Integer;
 begin
-  BrPos := Pos('[', aName);
-  if (Length(aName)>=BrPos+2) and (aName[Length(aName)]=']')
-  and TryStrToInt(Trim(Copy(aName, BrPos+1, Length(aName)-BrPos-1)), m) then
-  begin
-    // support XPath in format "name[?]"
-    NodeName := Trim(Copy(aName, 1, BrPos-1));
-    fPathNodeCache[PathIndex].RefreshNodeListIfNeeded(NodeName);
-    if m<=0 then
-      raise Exception.CreateFmt('Invalid node index in XPath descriptor "%s".', [aName])
-    else if (m<=Length(fPathNodeCache[PathIndex].NodeList)) then
-      Result:=fPathNodeCache[PathIndex].NodeList[m-1]
-    else if CreateNodes then
-    begin
-      for l := Length(fPathNodeCache[PathIndex].NodeList)+1 to m do
-        Result := fPathNodeCache[PathIndex].AddNodeToList;
-      InvalidateCacheTilEnd(PathIndex+1);
+  with fPathNodeCache[PathIndex] do begin
+    if not ChildrenValid then begin
+      // collect all children and sort
+      aParent:=Node;
+      aCount:=0;
+      aChild:=aParent.FirstChild;
+      while aChild<>nil do begin
+        if aChild.NodeName<>'' then begin
+          if aCount=length(Children) then begin
+            NewLength:=length(Children);
+            if NewLength<8 then
+              NewLength:=8
+            else
+              NewLength:=NewLength*2;
+            SetLength(Children,NewLength);
+          end;
+          Children[aCount]:=aChild;
+          inc(aCount);
+        end;
+        aChild:=aChild.NextSibling;
+      end;
+      SetLength(Children,aCount);
+      if aCount>1 then
+        MergeSortWithLen(@Children[0],aCount,@CompareDomNodeNames); // sort ascending [0]<[1]
+      for m:=0 to aCount-2 do
+        if Children[m].NodeName=Children[m+1].NodeName then begin
+          // duplicate found: nodes with same name
+          // -> use only the first
+          Children[m+1]:=Children[m];
+        end;
+      ChildrenValid:=true;
     end;
-  end else
-  begin
-    fPathNodeCache[PathIndex].RefreshChildrenIfNeeded;
 
     // binary search
     l:=0;
-    r:=length(fPathNodeCache[PathIndex].Children)-1;
+    r:=length(Children)-1;
     while l<=r do begin
       m:=(l+r) shr 1;
-      cmp:=CompareStr(aName,fPathNodeCache[PathIndex].Children[m].NodeName);
+      cmp:=CompareStr(aName,Children[m].NodeName);
       if cmp<0 then
         r:=m-1
       else if cmp>0 then
         l:=m+1
       else
-        exit(fPathNodeCache[PathIndex].Children[m]);
+        exit(Children[m]);
     end;
-    if CreateNodes then
-    begin
-      // create missing node
-      Result:=Doc.CreateElement(aName);
-      fPathNodeCache[PathIndex].Node.AppendChild(Result);
-      fPathNodeCache[PathIndex].ChildrenValid:=false;
-      InvalidateCacheTilEnd(PathIndex+1);
-    end else
-      Result:=nil;
+    Result:=nil;
   end;
 end;
 
@@ -847,13 +684,6 @@ begin
 
   CreateConfigNode;
   {$IFDEF MEM_CHECK}CheckHeapWrtMemCnt('TXMLConfig.SetFilename END');{$ENDIF}
-end;
-
-procedure TXMLConfig.SetListItemCount(const APath: string;
-  const ACount: Integer; const ALegacyList: Boolean);
-begin
-  if ALegacyList then
-    SetDeleteValue(APath+'Count',ACount,0)
 end;
 
 procedure TXMLConfig.CreateConfigNode;
@@ -913,7 +743,6 @@ var
   StrValue, DefStrValue: String;
   //Int64Value, DefInt64Value: Int64;
   BoolValue, DefBoolValue: boolean;
-  obj: TObject;
 
 begin
   // do not stream properties without getter and setter
@@ -932,9 +761,7 @@ begin
         Value := GetOrdProp(Instance, PropInfo);
         if (DefInstance <> nil) then
           DefValue := GetOrdProp(DefInstance, PropInfo);
-        if ((DefInstance <> nil)  and (Value = DefValue)) or
-           ((DefInstance =  nil)  and (not IsStoredProp(Instance, PropInfo)))
-        then
+        if (DefInstance <> nil)  and (Value = DefValue) then
           DeleteValue(Path)
         else begin
           case PropType^.Kind of
@@ -971,9 +798,7 @@ begin
         FloatValue := GetFloatProp(Instance, PropInfo);
         if (DefInstance <> nil) then
          DefFloatValue := GetFloatProp(DefInstance, PropInfo);
-        if ((DefInstance <> nil)  and (DefFloatValue = FloatValue)) or
-           ((DefInstance =  nil)  and (not IsStoredProp(Instance, PropInfo)))
-        then
+        if (DefInstance <> nil)  and (DefFloatValue = FloatValue) then
           DeleteValue(Path)
         else
           SetValue(Path, FloatToStr(FloatValue));
@@ -983,9 +808,7 @@ begin
         StrValue := GetStrProp(Instance, PropInfo);
         if (DefInstance <> nil) then
            DefStrValue := GetStrProp(DefInstance, PropInfo);
-        if ((DefInstance <> nil)  and (DefStrValue = StrValue)) or
-           ((DefInstance =  nil)  and (not IsStoredProp(Instance, PropInfo)))
-        then
+        if (DefInstance <> nil)  and (DefStrValue = StrValue) then
           DeleteValue(Path)
         else
           SetValue(Path, StrValue);
@@ -995,9 +818,7 @@ begin
         WStrValue := GetWideStrProp(Instance, PropInfo);
         if (DefInstance <> nil) then
            WDefStrValue := GetWideStrProp(DefInstance, PropInfo);
-        if ((DefInstance <> nil)  and (WDefStrValue = WStrValue)) or
-           ((DefInstance =  nil)  and (not IsStoredProp(Instance, PropInfo)))
-        then
+        if (DefInstance <> nil)  and (WDefStrValue = WStrValue) then
           DeleteValue(Path)
         else
           SetValue(Path, WStrValue);
@@ -1007,9 +828,7 @@ begin
         Int64Value := GetInt64Prop(Instance, PropInfo);
         if (DefInstance <> nil) then
           DefInt64Value := GetInt64Prop(DefInstance, PropInfo)
-        if ((DefInstance <> nil) and (Int64Value = DefInt64Value)) or
-           ((DefInstance =  nil)  and (not IsStoredProp(Instance, PropInfo)))
-        then
+        if (DefInstance <> nil) and (Int64Value = DefInt64Value) then
           DeleteValue(Path, Path)
         else
           SetValue(StrValue);
@@ -1019,20 +838,10 @@ begin
         BoolValue := GetOrdProp(Instance, PropInfo)<>0;
         if (DefInstance <> nil) then
           DefBoolValue := GetOrdProp(DefInstance, PropInfo)<>0;
-        if ((DefInstance <> nil) and (BoolValue = DefBoolValue)) or
-           ((DefInstance =  nil)  and (not IsStoredProp(Instance, PropInfo)))
-        then
+        if (DefInstance <> nil) and (BoolValue = DefBoolValue) then
           DeleteValue(Path)
         else
           SetValue(Path, BoolValue);
-      end;
-    tkClass:
-      begin
-        obj := GetObjectProp(Instance, PropInfo);
-        if (obj is TPersistent) and IsStoredProp(Instance, PropInfo) then
-          WriteObject(Path+'/', TPersistent(obj))
-        else
-          DeleteValue(Path);
       end;
   end;
 end;
@@ -1053,7 +862,6 @@ var
   StrValue, DefStrValue: String;
   //Int64Value, DefInt64Value: Int64;
   BoolValue, DefBoolValue: boolean;
-  obj: TObject;
 
 begin
   // do not stream properties without getter and setter
@@ -1159,12 +967,6 @@ begin
         DefBoolValue := GetOrdProp(DefInstance, PropInfo) <> 0;
         BoolValue := GetValue(Path, DefBoolValue);
         SetOrdProp(Instance, PropInfo, ord(BoolValue));
-      end;
-    tkClass:
-      begin
-        obj := GetObjectProp(Instance, PropInfo);
-        if (obj is TPersistent) and HasPath(Path, False) then
-          ReadObject(Path+'/', TPersistent(obj));
       end;
   end;
 end;

@@ -22,14 +22,8 @@ unit LldbDebugger;
 interface
 
 uses
-  Classes, SysUtils, strutils, math,
-  // LazUtils
-  LazClasses, LazFileUtils, LazLoggerBase, LazStringUtils, Maps,
-  // DebuggerIntf
-  DbgIntfDebuggerBase, DbgIntfBaseTypes,
-  // CmdLineDebuggerBase
-  DebugProcess,
-  // LazDebuggerLldb
+  Classes, SysUtils, math, DbgIntfDebuggerBase, DbgIntfBaseTypes, LazLoggerBase,
+  LazClasses, LazFileUtils, Maps, LCLProc, strutils, DebugProcess,
   LldbInstructions, LldbHelper;
 
 type
@@ -371,7 +365,6 @@ type
     class function CreateProperties: TDebuggerProperties; override; // Creates debuggerproperties
     class function Caption: String; override;
     class function ExePaths: String; override;
-    class function ExePathsMruGroup: TDebuggerClass; override;
 
     constructor Create(const AExternalDebugger: String); override;
     destructor Destroy; override;
@@ -559,11 +552,9 @@ end;
 procedure TLldbDebuggerProperties.Assign(Source: TPersistent);
 begin
   inherited Assign(Source);
-  if Source is TLldbDebuggerProperties then begin
-    FLaunchNewTerminal := TLldbDebuggerProperties(Source).FLaunchNewTerminal;
-    FSkipGDBDetection := TLldbDebuggerProperties(Source).FSkipGDBDetection;
-    FIgnoreLaunchWarnings := TLldbDebuggerProperties(Source).FIgnoreLaunchWarnings;
-  end;
+  FLaunchNewTerminal := TLldbDebuggerProperties(Source).FLaunchNewTerminal;
+  FSkipGDBDetection := TLldbDebuggerProperties(Source).FSkipGDBDetection;
+  FIgnoreLaunchWarnings := TLldbDebuggerProperties(Source).FIgnoreLaunchWarnings;
 end;
 
 { TLldbDebuggerCommandRun }
@@ -855,7 +846,7 @@ const
     i := pos('.', AReason);
     if i = 0 then i := Length(AReason)+1;
     Result := StrToIntDef(copy(AReason, 12, i-12), -1);
-    debugln(DBG_VERBOSE, ['DoBreakPointHit ', AReason, ' / ', Result]);
+    debugln(['DoBreakPointHit ', AReason, ' / ', Result]);
   end;
 
   procedure DoException;
@@ -1049,7 +1040,7 @@ begin
 
   if Instr <> nil then begin
     ALine := '';
-    debugln(DBG_VERBOSE, ['Reading exception info']);
+    debugln(['Reading exception info']);
     assert(InstructionQueue.RunningInstruction = nil, 'InstructionQueue.RunningInstruction = nil');
     QueueInstruction(Instr);
     Instr.ReleaseReference;
@@ -1060,7 +1051,7 @@ begin
   // STEP 1:   Process 10992 stopped
   if (FState = crRunning) and StrMatches(ALine, ['Process ', 'stopped']) then begin
     FState := crReadingThreads;
-    debugln(DBG_VERBOSE, ['Reading thread info']);
+    debugln(['Reading thread info']);
     FThreadInstr := TLldbInstructionThreadListReader.Create();
     FThreadInstr.OnSuccess := @ThreadInstructionSucceeded;
     QueueInstruction(FThreadInstr);
@@ -1070,7 +1061,7 @@ begin
   // STEP 2:   * thread #1, stop reason = breakpoint 6.1
   if StrMatches(ALine, ['* thread #', ', stop reason = ', ''], found) then begin
     FState := crStopped;
-    debugln(DBG_VERBOSE, ['Reading stopped thread']);
+    debugln(['Reading stopped thread']);
     SetDebuggerLocation(0, 0, '', '', '', 0);
     if StrStartsWith(found[1], 'breakpoint ') then begin
       FCurBrkId := GetBreakPointId(found[1])
@@ -1704,7 +1695,7 @@ var
   Instr: TLldbInstruction;
   en: Boolean;
 begin
-  debugln(DBG_VERBOSE, ['TLldbBreakPoint.SetBreakPoint ']);
+  debugln(['TLldbBreakPoint.SetBreakPoint ']);
 
   if FCurrentInstruction <> nil then begin
     if (FBreakID <> 0) or (not FCurrentInstruction.IsRunning) then begin
@@ -2025,7 +2016,7 @@ end;
 
 procedure TLldbDebuggerCommandQueue.QueueCommand(AValue: TLldbDebuggerCommand);
 begin
-  debugln(DBG_VERBOSE, ['CommandQueue.QueueCommand ', AValue.ClassName]);
+debugln(['CommandQueue.QueueCommand ', AValue.ClassName]);
   Insert(Count, AValue);
   Run;
 end;
@@ -2056,7 +2047,7 @@ begin
   FRunningCommand := Items[0];
   FRunningCommand.AddReference;
   Delete(0);
-DebugLnEnter(DBG_VERBOSE, ['||||||||>>> CommandQueue.Run ', FRunningCommand.ClassName, ', ', dbgs(fDebugger.State), ' Cnt:',Count]);
+DebugLnEnter(['||||||||>>> CommandQueue.Run ', FRunningCommand.ClassName, ', ', dbgs(fDebugger.State), ' Cnt:',Count]);
   FRunningCommand.Execute;
   // debugger and queue may get destroyed at the end of execute
 end;
@@ -2065,10 +2056,10 @@ procedure TLldbDebuggerCommandQueue.CommandFinished(
   ACommand: TLldbDebuggerCommand);
 begin
   if FRunningCommand = ACommand then begin
-DebugLnExit(DBG_VERBOSE, ['||||||||<<< CommandQueue.Run ', FRunningCommand.ClassName, ', ', dbgs(fDebugger.State), ' Cnt:',Count]);
+DebugLnExit(['||||||||<<< CommandQueue.Run ', FRunningCommand.ClassName, ', ', dbgs(fDebugger.State), ' Cnt:',Count]);
     ReleaseRefAndNil(FRunningCommand);
   end//;
-else DebugLn(DBG_VERBOSE, ['|||||||| TLldbDebuggerCommandQueue.CommandFinished >> unknown ???', ', ', dbgs(fDebugger.State), ' Cnt:',Count]);
+else DebugLn(['|||||||| TLldbDebuggerCommandQueue.CommandFinished >> unknown ???', ', ', dbgs(fDebugger.State), ' Cnt:',Count]);
   if not(FDebugger.State in [dsError, dsDestroying, dsNone]) then
     Run;
 end;
@@ -2084,7 +2075,7 @@ begin
   while Count > 0 do
     Delete(0);
   if FRunningCommand <> nil then begin
-DebugLnExit(DBG_VERBOSE, ['<<< CommandQueue.Run (Destroy)', FRunningCommand.ClassName, ', ', fDebugger.State]);
+DebugLnExit(['<<< CommandQueue.Run (Destroy)', FRunningCommand.ClassName, ', ', fDebugger.State]);
     ReleaseRefAndNil(FRunningCommand);
   end;
   inherited Destroy;
@@ -2124,12 +2115,12 @@ end;
 procedure TLldbDebuggerCommandQueue.LockQueueRun;
 begin
   inc(FLockQueueRun);
-  debugln(DBG_VERBOSE, ['TLldbDebuggerCommandQueue.LockQueueRun ',FLockQueueRun]);
+  debugln(['TLldbDebuggerCommandQueue.LockQueueRun ',FLockQueueRun]);
 end;
 
 procedure TLldbDebuggerCommandQueue.UnLockQueueRun;
 begin
-  debugln(DBG_VERBOSE, ['TLldbDebuggerCommandQueue.UnLockQueueRun ',FLockQueueRun]);
+  debugln(['TLldbDebuggerCommandQueue.UnLockQueueRun ',FLockQueueRun]);
   dec(FLockQueueRun);
   if FLockQueueRun = 0 then Run;
 end;
@@ -2709,7 +2700,7 @@ function TLldbDebugger.LldbRun: Boolean;
 var
   Cmd: TLldbDebuggerCommandRunLaunch;
 begin
-  DebugLn(DBG_VERBOSE, '*** Run');
+  DebugLn('*** Run');
   Result := True;
 
   if State in [dsPause, dsInternalPause, dsRun] then begin // dsRun in case of exception
@@ -2798,7 +2789,7 @@ function TLldbDebugger.LldbStop: Boolean;
 var
   Cmd: TLldbDebuggerCommandStop;
 begin
-  DebugLn(DBG_VERBOSE, '*** Stop');
+  DebugLn('*** Stop');
   Result := True;
 
   CommandQueue.CancelAll;
@@ -2834,7 +2825,7 @@ var
   Instr: TLldbInstruction;
   s: String;
 begin
-  debugln(DBG_VERBOSE, ['-----------------------------------------', AVariable]);
+  debugln(['-----------------------------------------', AVariable]);
   if ASet then
     Instr := TLldbInstructionSettingSet.Create('target.env-vars', AVariable, False, True)
   else begin
@@ -2941,7 +2932,7 @@ begin
   else
   if (State = dsRun)
   then begin
-    debugln(DBG_VERBOSE, ['********** WARNING: breakpoint hit, but nothing known about it ABreakId=', BrkId]);
+    debugln(['********** WARNING: breakpoint hit, but nothing known about it ABreakId=', BrkId]);
   end;
 end;
 
@@ -3053,11 +3044,6 @@ begin
   {$ENDIF}
 end;
 
-class function TLldbDebugger.ExePathsMruGroup: TDebuggerClass;
-begin
-  Result := TLldbDebugger;
-end;
-
 constructor TLldbDebugger.Create(const AExternalDebugger: String);
 begin
   inherited Create(AExternalDebugger);
@@ -3083,7 +3069,7 @@ end;
 
 destructor TLldbDebugger.Destroy;
 begin
-  debugln(DBG_VERBOSE, ['!!!!!!!!!!!!!!! TLldbDebugger.Destroy ']);
+debugln(['!!!!!!!!!!!!!!! TLldbDebugger.Destroy ']);
   FBreakErrorBreak.Remove;
   FRunErrorBreak.Remove;
   FExceptionBreak.Remove;
@@ -3117,12 +3103,12 @@ end;
 
 procedure TLldbDebugger.Done;
 begin
-  DebugLnEnter(DBG_VERBOSE, '!!! TLldbDebugger.Done;');
+  DebugLnEnter('!!! TLldbDebugger.Done;');
   // TODO: cancel all commands
 
   TerminateLldb;
   inherited Done;
-  DebugLnExit(DBG_VERBOSE, '!!! TLldbDebugger.Done;');
+  DebugLnExit('!!! TLldbDebugger.Done;');
 end;
 
 class function TLldbDebugger.RequiredCompilerOpts(ATargetCPU, ATargetOS: String

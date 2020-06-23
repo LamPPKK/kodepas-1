@@ -54,9 +54,6 @@ implementation
 uses
   FpDbgLoader;
 
-var
-  DBG_VERBOSE, DBG_WARNINGS: PLazLoggerLogGroup;
-
 type
   PnlistArray = ^nlist; // ^array[0..infinite] of nlist;
   PnlistArray64 = ^nlist_64; // ^array[0..infinite] of nlist_64;
@@ -80,7 +77,7 @@ type
 
   TAppleDwarfDebugMap = class(TObject)
   private
-    //FAddressMap: TDbgAddressMapList;
+    FAddressMap: TDbgAddressMapList;
     FDir: string;
     FGlobalList: TDbgAddressMapHashList;
     FObjectFile: string;
@@ -90,7 +87,6 @@ type
   public
     constructor create;
     destructor destroy; override;
-    procedure clear;
     property Offset: TDBGPtr read FOffset write FOffset;
     property Dir: string read FDir write FDir;
     property ObjectFile: string read FObjectFile write FObjectFile;
@@ -105,7 +101,7 @@ type
     // in the main executable.
     // This property is only available in the debug-map for a specific
     // object-file.
-    //property AddressMap: TDbgAddressMapList read FAddressMap;
+    property AddressMap: TDbgAddressMapList read FAddressMap;
   end;
 
 function isValidMachoStream(ASource: TDbgFileLoader): Boolean;
@@ -135,25 +131,14 @@ end;
 constructor TAppleDwarfDebugMap.create;
 begin
   FGlobalList := TDbgAddressMapHashList.Create;
-  //FAddressMap := TDbgAddressMapList.Create;
+  FAddressMap := TDbgAddressMapList.Create;
 end;
 
 destructor TAppleDwarfDebugMap.destroy;
 begin
-  //FAddressMap.Free;
+  FAddressMap.Free;
   FGlobalList.Free;
   inherited destroy;
-end;
-
-procedure TAppleDwarfDebugMap.clear;
-begin
-  //FAddressMap.Clear;
-  FDir := '';
-  FGlobalList.Clear;
-  FObjectFile := '';
-  FObjFileAge := 0;
-  FOffset := 0;
-  FSourceFile := '';
 end;
 
 { TDbgMachoDataSource }
@@ -374,19 +359,19 @@ begin
     if GUIDToString(ALoader.UUID)<>GUIDToString(PLoader.UUID) then
       begin
       AddReaderError('The unique UUID''s of the executable and the dSYM bundle with debug-info ('+dSYMFilename+') do not match.');
-      debugln(DBG_WARNINGS, 'The unique UUID''s of the executable and the dSYM bundle with debug-info ('+dSYMFilename+') do not match.');
+      Log('The unique UUID''s of the executable and the dSYM bundle with debug-info ('+dSYMFilename+') do not match.');
       FreeAndNil(ALoader);
       end
     else
       begin
-      debugln(DBG_VERBOSE, 'Load debug-info from dSYM bundle ('+dSYMFilename+').');
+      log('Load debug-info from dSYM bundle ('+dSYMFilename+').');
       LList.Add(ALoader);
       end;
     end;
 
   if not assigned(ALoader) then
     begin
-    debugln(DBG_VERBOSE, 'Read debug-info from separate object files.');
+    log('Read debug-info from separate object files.');
     TDbgMachoDataSource.LoadSubFiles(PLoader.SubFiles, LList);
     end;
 end;
@@ -656,10 +641,9 @@ begin
           begin
             if SymbolType = N_SO then
             begin
-              if not assigned(DwarfDebugMap) then
-                DwarfDebugMap := TAppleDwarfDebugMap.Create
-              else
-                DwarfDebugMap.clear;
+              if assigned(DwarfDebugMap) then
+                DwarfDebugMap.Free;
+              DwarfDebugMap := TAppleDwarfDebugMap.Create;
               DwarfDebugMap.Dir := pchar(SymbolStr+StringOffset);
               state := dtsDir;
             end
@@ -821,7 +805,5 @@ end;
 initialization
   RegisterImageReaderClass( TDbgMachoDataSource );
 
-  DBG_VERBOSE := DebugLogger.FindOrRegisterLogGroup('DBG_VERBOSE' {$IFDEF DBG_VERBOSE} , True {$ENDIF} );
-  DBG_WARNINGS := DebugLogger.FindOrRegisterLogGroup('DBG_WARNINGS' {$IFDEF DBG_WARNINGS} , True {$ENDIF} );
 end.
 

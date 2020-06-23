@@ -72,17 +72,14 @@ type
     LPKParsingTimer: TTimer;
     NoteLabel: TLabel;
     Panel1: TPanel;
-    Panel2: TPanel;
     PkgInfoMemo: TMemo;
     PkgInfoGroupBox: TGroupBox;
     ImportButton: TButton;
-    PkgInfoMemoLicense: TMemo;
     SaveAndExitButton: TBitBtn;
     InstallPkgGroupBox: TGroupBox;
     SaveAndRebuildButton: TBitBtn;
     InstalledFilterEdit: TTreeFilterEdit;
     Splitter1: TSplitter;
-    Splitter2: TSplitter;
     UninstallButton: TBitBtn;
     procedure AddToInstallButtonClick(Sender: TObject);
     function FilterEditGetImageIndex({%H-}Str: String; {%H-}Data: TObject;
@@ -251,7 +248,6 @@ begin
 
   FNewInstalledPackages:=TObjectList.Create(true);
   PkgInfoMemo.Clear;
-  PkgInfoMemoLicense.Clear;
   LPKInfoCache.AddOnQueueEmpty(@OnAllLPKParsed);
   LPKInfoCache.StartLPKReaderWithAllAvailable;
 
@@ -271,8 +267,7 @@ procedure TInstallPkgSetDialog.InstallPkgSetDialogShow(Sender: TObject);
 begin
   InstalledFilterEdit.Filter:='';    // (filter) - text is shown after this.
   AvailableFilterEdit.Filter:='';
-  SetControlsWidthOnMax([UninstallButton, AddToInstallButton]);
-  SetControlsWidthOnMax([ImportButton, ExportButton]);
+  SetControlsWidthOnMax([UninstallButton, ImportButton, ExportButton, AddToInstallButton]);
 end;
 
 procedure TInstallPkgSetDialog.SaveAndRebuildButtonClick(Sender: TObject);
@@ -788,7 +783,6 @@ begin
     then
       exit; // no change
     PkgInfoMemo.Clear;
-    PkgInfoMemoLicense.Clear;
     if (Info=nil) then begin
       FSelectedPkgID:='';
       exit;
@@ -807,25 +801,24 @@ begin
     if PackageLink = nil then
     begin
       Author := Info.Author;
-      Description := Trim(Info.Description);
+      Description := Info.Description;
       License := Info.License;
     end
     else
     begin
       Author := PackageLink.Author;
-      Description := Trim(PackageLink.Description);
+      Description := PackageLink.Description;
       License := PackageLink.License;
     end;
 
-    if Description<>'' then         // Description is the most interesting piece.
-      PkgInfoMemo.Lines.Add(Description); // Put it first.
-    PkgInfoMemo.Lines.Add('');
     if Author<>'' then
-      PkgInfoMemo.Lines.Add(lisPckOptsAuthor + ': ' + Author);         // Author
-    PkgInfoMemo.Lines.Add(Format(lisOIPFilename, [Info.LPKFilename])); // Pkg name
+      PkgInfoMemo.Lines.Add(lisPckOptsAuthor + ': ' + Author);
+    if Description<>'' then
+      PkgInfoMemo.Lines.Add(lisPckOptsDescriptionAbstract + ': ' + Description);
+    if License<>'' then
+      PkgInfoMemo.Lines.Add(lisPckOptsLicense + ': ' + License);
 
-    if License<>'' then             // License has its own memo.
-      PkgInfoMemoLicense.Lines.Add(lisPckOptsLicense + ': ' + License);
+    PkgInfoMemo.Lines.Add(Format(lisOIPFilename, [Info.LPKFilename]));
 
     InfoStr:=lisCurrentState;
     if Info.Installed<>pitNope then
@@ -846,8 +839,6 @@ begin
       AddState(lisPckExplBase);
     AddState(LazPackageTypeIdents[Info.PkgType]);
     PkgInfoMemo.Lines.Add(InfoStr);
-    PkgInfoMemo.SelStart := 1;
-    PkgInfoMemoLicense.SelStart := 1;
   finally
     LPKInfoCache.LeaveCritSection;
   end;

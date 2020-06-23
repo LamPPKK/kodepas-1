@@ -1,5 +1,5 @@
 {%MainUnit ../lclintf.pas}
-{ $Id$
+{ $Id: lclintf.inc 58530 2018-07-15 10:23:43Z martin $
 ******************************************************************************
   All interface communication related stuff goes here.
   This file is used by LCLIntf.pas
@@ -186,6 +186,11 @@ end;
 function TextUTF8Out(DC: HDC; X, Y: Integer;  Str: PChar; Count: Longint): Boolean;
 begin
   Result := WidgetSet.TextUTF8Out(DC,X,Y,Str,Count);
+end;
+
+function FontCanUTF8(Font: HFont): boolean;
+begin
+  Result := WidgetSet.FontCanUTF8(Font){%H-};
 end;
 
 function FontIsMonoSpace(Font: HFont): boolean;

@@ -3,7 +3,7 @@ program TestLazStorageMem;
 {$mode objfpc}{$H+}
 {$apptype console}
 uses
-  Interfaces, Forms, GuiTestRunner, TestLazStorageMemCase1, TestConfigMemStorage;
+  Interfaces, Forms, GuiTestRunner, TestLazStorageMemCase1;
 
 {$R *.res}
 

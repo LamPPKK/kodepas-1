@@ -1880,7 +1880,7 @@ begin
   if not FScaled then
     Result := AImageWidth
   else begin
-    Result := AImageWidth * APPI div 96;
+    Result := round(AImageWidth * APPI / 96);
     if not FData.Find(Result, idx) then begin
       if APPI <= 120 then
         Factor := 100 // 100-125% (96-120 DPI): no scaling
@@ -2133,7 +2133,7 @@ end;
 
 procedure TCustomImageList.WriteData(AStream: TStream);
 begin
-  GetResolution(FWidth).WriteData(AStream, True); // compress data. LFMs can be opened only with Lazarus 2.0 and later
+  GetResolution(FWidth).WriteData(AStream, False); // Change to ACompress=True after Lazarus 1.10 has been released to retain compatibility with 1.8 that doesn't support imagelist compression
 end;
 
 procedure TCustomImageList.WriteAdvData(AStream: TStream);
@@ -2269,8 +2269,7 @@ begin
       FI.Colors[X-SourceRect.Left, Y-SourceRect.Top] := C;
     end;
 
-    if (SourceRect.Right-SourceRect.Left=TargetWidth) and
-       (SourceRect.Bottom-SourceRect.Top=TargetHeight) then
+    if SourceRect.Right-SourceRect.Left=TargetWidth then
       ScFI := FI
     else
     begin
@@ -2798,9 +2797,9 @@ begin
       raise EResNotFound.CreateFmt(SResNotFound,[AResourceName]);
 
     E := TEntry.Create;
-    FImageIndexes.Add(E);
     E.GlyphName := AResourceName;
     E.ImageIndex := Result;
+    FImageIndexes.Add(E);
   end;
 end;
 

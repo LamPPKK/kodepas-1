@@ -75,8 +75,7 @@ type
     cwpoNoSelf,          // enclose in "with LookupRootname do begin"
     cwpoSetParentFirst,  // add "SetParentComponent" before setting properties, default: after
     cwpoSrcCodepageUTF8, // target unit uses $codepage utf-8, aka do not convert UTF-8 string literals
-    cwpoNoWithBlocks,    // do not use with-do
-    cwpoNoFinalLineBreak
+    cwpoNoWithBlocks     // do not use with-do
     );
   TCWPOptions = set of TCWPOption;
 
@@ -120,48 +119,47 @@ type
     FSignatureBegin: String;
     FSignatureEnd: String;
     FStream: TStream;
-  protected
-    procedure AddToAncestorList(Component: TComponent); virtual;
-    procedure DetermineAncestor(Component: TComponent); virtual;
-    procedure SetNeededUnits(const AValue: TStrings); virtual;
-    procedure SetRoot(const AValue: TComponent); virtual;
-    procedure WriteComponentData(Instance: TComponent); virtual;
-    procedure WriteChildren(Component: TComponent; Step: TCWPChildrenStep); virtual;
-    procedure WriteProperty(Instance: TPersistent; PropInfo: PPropInfo); virtual;
-    procedure WriteProperties(Instance: TPersistent); virtual;
-    procedure WriteDefineProperties(Instance: TPersistent); virtual;
-    procedure WriteCollection(PropName: string; Collection: TCollection); virtual;
-    function ShortenFloat(s: string): string; virtual;
+    procedure AddToAncestorList(Component: TComponent);
+    procedure DetermineAncestor(Component: TComponent);
+    procedure SetNeededUnits(const AValue: TStrings);
+    procedure SetRoot(const AValue: TComponent);
+    procedure WriteComponentData(Instance: TComponent);
+    procedure WriteChildren(Component: TComponent; Step: TCWPChildrenStep);
+    procedure WriteProperty(Instance: TPersistent; PropInfo: PPropInfo);
+    procedure WriteProperties(Instance: TPersistent);
+    procedure WriteDefineProperties(Instance: TPersistent);
+    procedure WriteCollection(PropName: string; Collection: TCollection);
+    function ShortenFloat(s: string): string;
   public
-    constructor Create(AStream: TStream); virtual;
+    constructor Create(AStream: TStream);
     destructor Destroy; override;
     // stream a component:
-    procedure WriteDescendant(ARoot: TComponent; AnAncestor: TComponent = nil); virtual;
+    procedure WriteDescendant(ARoot: TComponent; AAncestor: TComponent = nil);
     // utility functions:
-    procedure WriteComponentCreate(Component: TComponent); virtual;
-    procedure WriteComponent(Component: TComponent); virtual;
-    procedure WriteIndent; virtual;
-    procedure Write(const s: string); virtual;
-    procedure WriteLn; virtual;
-    procedure WriteStatement(const s: string); virtual;
-    procedure WriteAssign(const LHS, RHS: string); virtual;
-    procedure WriteWithDo(const Expr: string); virtual;
-    procedure WriteWithEnd; virtual;
-    function GetComponentPath(Component: TComponent): string; virtual;
-    function GetBoolLiteral(b: boolean): string; virtual;
-    function GetCharLiteral(c: integer): string; virtual;
-    function GetWideCharLiteral(c: integer): string; virtual;
-    function GetStringLiteral(const s: string): string; virtual;
-    function GetWStringLiteral(p: PWideChar; Count: integer): string; virtual;
-    function GetFloatLiteral(const e: Extended): string; virtual;
-    function GetCurrencyLiteral(const c: currency): string; virtual;
+    procedure WriteComponentCreate(Component: TComponent);
+    procedure WriteComponent(Component: TComponent);
+    procedure WriteIndent;
+    procedure Write(const s: string);
+    procedure WriteLn;
+    procedure WriteStatement(const s: string);
+    procedure WriteAssign(const LHS, RHS: string);
+    procedure WriteWithDo(const Expr: string);
+    procedure WriteWithEnd;
+    function GetComponentPath(Component: TComponent): string;
+    function GetBoolLiteral(b: boolean): string;
+    function GetCharLiteral(c: integer): string;
+    function GetWideCharLiteral(c: integer): string;
+    function GetStringLiteral(const s: string): string;
+    function GetWStringLiteral(p: PWideChar; Count: integer): string;
+    function GetFloatLiteral(const e: Extended): string;
+    function GetCurrencyLiteral(const c: currency): string;
     function GetEnumExpr(TypeInfo: PTypeInfo; Value: integer;
-      AllowOutOfRange: boolean): string; virtual;
-    function GetVersionStatement: string; virtual;
-    function CreatedByAncestor(Component: TComponent): boolean; virtual;
-    procedure AddNeededUnit(const AnUnitName: string); virtual;
-    procedure Indent; virtual;
-    procedure Unindent; virtual;
+      AllowOutOfRange: boolean): string;
+    function GetVersionStatement: string;
+    function CreatedByAncestor(Component: TComponent): boolean;
+    procedure AddNeededUnit(const AnUnitName: string);
+    procedure Indent;
+    procedure Unindent;
     property Stream: TStream read FStream;
     property Root: TComponent read FRoot write SetRoot;
     property LookupRoot: TComponent read FLookupRoot;
@@ -1514,11 +1512,11 @@ begin
   end;
 end;
 
-procedure TCompWriterPas.WriteDescendant(ARoot: TComponent; AnAncestor: TComponent);
+procedure TCompWriterPas.WriteDescendant(ARoot: TComponent; AAncestor: TComponent);
 begin
   FRoot := ARoot;
-  FAncestor := AnAncestor;
-  FRootAncestor := AnAncestor;
+  FAncestor := AAncestor;
+  FRootAncestor := AAncestor;
   FLookupRoot := ARoot;
   FNeedAccessClass := false;
   if not (cwpoNoSignature in Options) then
@@ -1529,15 +1527,8 @@ begin
   WriteComponent(ARoot);
   if cwpoNoSelf in Options then
     WriteWithEnd;
-  if not (cwpoNoSignature in Options) then begin
-    if cwpoNoFinalLineBreak in Options then
-      begin
-      WriteIndent;
-      Write(SignatureEnd);
-      end
-    else
-      WriteStatement(SignatureEnd);
-  end;
+  if not (cwpoNoSignature in Options) then
+    WriteStatement(SignatureEnd);
 end;
 
 procedure TCompWriterPas.WriteIndent;

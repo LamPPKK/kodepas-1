@@ -225,7 +225,7 @@ var
   i: Integer;
 begin
   Pos := CaretObj.LineBytePos;
-  i := Cells.IndexOf(Pos.x, Pos.y, True, CurrentCell);
+  i := Cells.IndexOf(Pos.x, Pos.y, True);
   if i < 0 then begin
     i := Cells.Count - 1;
     while (i >= 0) and

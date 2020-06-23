@@ -1670,7 +1670,7 @@ end;
 procedure TSynPluginMultiCaretBase.UpdateCaretsPos;
 var
   i, x, y, o, w: Integer;
-  y1, y2, TopLine, BottomLine: Integer;
+  y1, y2: Integer;
   vis: Boolean;
 begin
   if plfDeferUpdateCaretsPos in FPaintLockFlags then exit;
@@ -1678,9 +1678,6 @@ begin
     include(FPaintLockFlags, plfUpdateCaretsPos);
     exit;
   end;
-  if CaretsCount = 0 then
-    exit;
-
   if (eoNoCaret in Editor.Options) then begin
     for i := 0 to CaretsCount - 1 do
       Carets.Visual[i] := nil;
@@ -1690,18 +1687,11 @@ begin
   vis := (eoPersistentCaret in Editor.Options) or Editor.Focused;
 
   w := Editor.LinesInWindow + 1;
-  TopLine := Editor.TopLine;
-  BottomLine := Editor.ScreenRowToRow(w);
   for i := 0 to CaretsCount - 1 do begin
     if cfNoneVisual in Carets.Flags[i] then continue;
 
-    y := Carets.CaretY[i];
-    if (y < TopLine) or (y > BottomLine) then begin
-      Carets.Visual[i] := nil;
-      continue;
-    end;
-
     x := Carets.CaretX[i];
+    y := Carets.CaretY[i];
     o := Carets.CaretOffs[i];
     y1 := Editor.RowToScreenRow(y);
     if (y1 < 0) or (y1 > w) then begin
@@ -2629,11 +2619,7 @@ begin
 
   Action := ccaDefaultAction;
   case Command of
-    ecCopy, ecCut,
-    ecCopyCurrentLine, ecCutCurrentLine, ecDuplicateSelection:
-      Action := ccaNoneRepeatCommand;
-    ecMoveSelectUp, ecMoveSelectDown, ecMoveSelectLeft, ecMoveSelectRight:
-      Action := ccaClearCarets;
+    ecCopy, ecCut:                  Action := ccaNoneRepeatCommand;
     ecGotoMarker0..ecGotoMarker9:   Action := ccaClearCarets;
     ecSelectAll:                    Action := ccaClearCarets;
     ecDeleteChar:                   if smcoDeleteSkipLineBreak in Options then

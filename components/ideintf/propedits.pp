@@ -31,10 +31,10 @@ uses
   // LazControls
   {$IFnDEF UseOINormalCheckBox} CheckBoxThemed, {$ENDIF}
   // LazUtils
-  FileUtil, StringHashList, LazMethodList, LazLoggerBase, LazUtilities, LazStringUtils,
-  UITypes, FPCAdds, // for StrToQWord in older fpc versions
+  FileUtil, StringHashList, LazMethodList, LazLoggerBase, LazUtilities, UITypes,
+  FPCAdds, // for StrToQWord in older fpc versions
   // IdeIntf
-  ObjInspStrConsts, PropEditUtils,
+  ObjInspStrConsts, PropEditUtils, PackageDependencyIntf,
   // Forms with .lfm files
   FrmSelectProps, StringsPropEditDlg, KeyValPropEditDlg, CollectionPropEditForm,
   FileFilterPropEditor, PagesPropEditDlg, IDEWindowIntf;
@@ -1134,21 +1134,6 @@ type
       OwnerPersistent: TPersistent; const PropName: String): TCustomForm; virtual;
   end;
 
-  { TDisabledCollectionPropertyEditor }
-
-  TDisabledCollectionPropertyEditor = class(TCollectionPropertyEditor)
-  public
-    function GetAttributes: TPropertyAttributes; override;
-  end;
-
-  { TNoAddDeleteCollectionPropertyEditor }
-
-  TNoAddDeleteCollectionPropertyEditor = class(TCollectionPropertyEditor)
-  public
-    class function ShowCollectionEditor(ACollection: TCollection;
-      OwnerPersistent: TPersistent; const PropName: String): TCustomForm; override;
-  end;
-
 //==============================================================================
 // Delphi Compatible Property Editor Classnames
 
@@ -1766,8 +1751,7 @@ function ControlAcceptsStreamableChildComponent(aControl: TWinControl;
 
 procedure LazSetMethodProp(Instance : TObject;PropInfo : PPropInfo; Value : TMethod);
 procedure WritePublishedProperties(Instance: TPersistent);
-procedure EditCollection(AComponent: TComponent; ACollection: TCollection; APropName: String);
-procedure EditCollectionNoAddDel(AComponent: TComponent; ACollection: TCollection; APropName: String);
+procedure EditCollection(AComponent: TComponent; ACollection: TCollection; APropertyName: String);
 
 // Returns true if given property should be displayed on the property list
 // filtered by AFilter and APropNameFilter.
@@ -4497,15 +4481,8 @@ begin
   if CollectionForm = nil then
     CollectionForm := TCollectionPropertyEditorForm.Create(Application);
   CollectionForm.SetCollection(ACollection, OwnerPersistent, PropName);
-  CollectionForm.actAdd.Visible := true;
-  CollectionForm.actDel.Visible := true;
-  CollectionForm.AddButton.Left := 0;
-  CollectionForm.DeleteButton.Left := 1;
-  CollectionForm.DividerToolButton.Show;
-  CollectionForm.DividerToolButton.Left := CollectionForm.DeleteButton.Left + 1;
   SetPopupModeParentForPropertyEditor(CollectionForm);
   CollectionForm.EnsureVisible;
-  CollectionForm.UpdateButtons;
   Result:=CollectionForm;
 end;
 
@@ -4518,33 +4495,6 @@ begin
     raise Exception.Create('Collection=nil');
   ShowCollectionEditor(TheCollection, GetComponent(0), GetName);
 end;
-
-{ TDisabledCollectionPropertyEditor }
-
-function TDisabledCollectionPropertyEditor.GetAttributes: TPropertyAttributes;
-begin
-  Result := [paDialog, paReadOnly, paDisableSubProperties];
-end;
-
-
-{ TNoAddDeleteCollectionPropertyEditor }
-
-class function TNoAddDeleteCollectionPropertyEditor.ShowCollectionEditor(
-  ACollection: TCollection; OwnerPersistent: TPersistent;
-  const PropName: String): TCustomForm;
-begin
-  if CollectionForm = nil then
-    CollectionForm := TCollectionPropertyEditorForm.Create(Application);
-  CollectionForm.SetCollection(ACollection, OwnerPersistent, PropName);
-  CollectionForm.actAdd.Visible := false;
-  CollectionForm.actDel.Visible := false;
-  CollectionForm.DividerToolButton.Hide;
-  SetPopupModeParentForPropertyEditor(CollectionForm);
-  CollectionForm.EnsureVisible;
-  CollectionForm.UpdateButtons;
-  Result := CollectionForm;
-end;
-
 
 { TClassPropertyEditor }
 
@@ -6061,13 +6011,12 @@ procedure TURLPropertyEditor.SetFilename(const Filename: string);
     i: Integer;
   begin
     Result:=Filename;
-    {$push}
     {$warnings off}
     if PathDelim<>'/' then
       for i:=1 to length(Result) do
         if Result[i]=PathDelim then
           Result[i]:='/';
-    {$pop}
+    {$warnings on}
     if Result<>'' then
       Result:='file://'+Result;
   end;
@@ -6187,7 +6136,6 @@ begin
     end;
   end;
 end;
-
 
 //==============================================================================
 
@@ -7517,14 +7465,9 @@ begin
   Result := Pos(AUpperSubText, UpperCase(AText)) > 0;
 end;
 
-procedure EditCollection(AComponent: TComponent; ACollection: TCollection; APropName: String);
+procedure EditCollection(AComponent: TComponent; ACollection: TCollection; APropertyName: String);
 begin
-  TCollectionPropertyEditor.ShowCollectionEditor(ACollection, AComponent, APropName);
-end;
-
-procedure EditCollectionNoAddDel(AComponent: TComponent; ACollection: TCollection; APropName: String);
-begin
-  TNoAddDeleteCollectionPropertyEditor.ShowCollectionEditor(ACollection, AComponent, APropName);
+  TCollectionPropertyEditor.ShowCollectionEditor(ACollection, AComponent, APropertyName);
 end;
 
 function IsInteresting(AEditor: TPropertyEditor; const AFilter: TTypeKinds;
@@ -8072,18 +8015,11 @@ begin
   RegisterPropertyEditor(TypeInfo(TComponent), nil, 'ActiveControl', TComponentOneFormPropertyEditor);
   RegisterPropertyEditor(TypeInfo(TControl), TCoolBand, 'Control', TCoolBarControlPropertyEditor);
   RegisterPropertyEditor(TypeInfo(TCollection), nil, '', TCollectionPropertyEditor);
-  RegisterPropertyEditor(TypeInfo(TFlowPanelControlList), TFlowPanel, 'ControlList', TNoAddDeleteCollectionPropertyEditor);
-  RegisterPropertyEditor(TypeInfo(TControl), TFlowPanelControl, 'Control', THiddenPropertyEditor);
   RegisterPropertyEditor(TypeInfo(AnsiString), TFileDialog, 'Filter', TFileDlgFilterProperty);
   RegisterPropertyEditor(TypeInfo(AnsiString), TFilterComboBox, 'Filter', TFileDlgFilterProperty);
   RegisterPropertyEditor(TypeInfo(AnsiString), TFileNameEdit, 'Filter', TFileDlgFilterProperty);
   RegisterPropertyEditor(TypeInfo(AnsiString), TCustomPropertyStorage, 'Filename', TFileNamePropertyEditor);
   RegisterPropertyEditor(TypeInfo(TStrings), TValueListEditor, 'Strings', TValueListPropertyEditor);
-  RegisterPropertyEditor(TypeInfo(TCustomPage), TCustomTabControl, 'ActivePage', TNoteBookActiveControlPropertyEditor);
-  RegisterPropertyEditor(TypeInfo(TSizeConstraints), TControl, 'Constraints', TConstraintsPropertyEditor);
-  RegisterPropertyEditor(TypeInfo(TStrings), TNoteBook, 'Pages', TPagesPropertyEditor);
-
-  // Property is hidden and editing disabled by HiddenPropertyEditor :
   RegisterPropertyEditor(TypeInfo(TAnchorSide), TControl, 'AnchorSideLeft', THiddenPropertyEditor);
   RegisterPropertyEditor(TypeInfo(TAnchorSide), TControl, 'AnchorSideTop', THiddenPropertyEditor);
   RegisterPropertyEditor(TypeInfo(TAnchorSide), TControl, 'AnchorSideRight', THiddenPropertyEditor);
@@ -8092,6 +8028,9 @@ begin
   RegisterPropertyEditor(TypeInfo(LongInt), TControl, 'ClientHeight', THiddenPropertyEditor);
   RegisterPropertyEditor(TypeInfo(AnsiString), TCustomForm, 'LCLVersion', THiddenPropertyEditor);
   RegisterPropertyEditor(TypeInfo(AnsiString), TCustomFrame, 'LCLVersion', THiddenPropertyEditor);
+  RegisterPropertyEditor(TypeInfo(TCustomPage), TCustomTabControl, 'ActivePage', TNoteBookActiveControlPropertyEditor);
+  RegisterPropertyEditor(TypeInfo(TSizeConstraints), TControl, 'Constraints', TConstraintsPropertyEditor);
+  RegisterPropertyEditor(TypeInfo(TStrings), TNoteBook, 'Pages', TPagesPropertyEditor);
 
   // since fpc 2.6.0 WordBool, LongBool and QWordBool only allow 0 and 1
   RegisterPropertyEditor(TypeInfo(WordBool), nil, '', TBoolPropertyEditor);
@@ -8099,6 +8038,7 @@ begin
   RegisterPropertyEditor(TypeInfo(QWordBool), nil, '', TBoolPropertyEditor);
 
   RegisterPropertyEditor(TypeInfo(IInterface), nil, '', TInterfacePropertyEditor);
+
   RegisterPropertyEditor(TypeInfo(Variant), nil, '', TVariantPropertyEditor);
 end;
 

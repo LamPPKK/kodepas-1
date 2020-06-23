@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: win32wsdialogs.pp 61634 2019-07-27 15:35:44Z martin $}
 {
  *****************************************************************************
  *                             Win32WSDialogs.pp                             *
@@ -1248,26 +1248,8 @@ begin
   begin
     with TFontDialog(ACommonDialog).Font do
     begin
-      if not Win32WidgetSet.MetricsFailed and IsFontNameDefault(Name) then
-      begin
-        if Sysutils.strlcomp(
-          @Win32WidgetSet.Metrics.lfMessageFont.lfFaceName,
-          @LF.lfFaceName,
-          Length(LF.lfFaceName)) = 0 then
-        begin
-          Sysutils.StrLCopy(
-            @LF.lfFaceName,
-            PAnsiChar(Name), // Dialog.Font.Name
-            Length(LF.lfFaceName));
-        end;
-        if LF.lfHeight = Win32WidgetSet.Metrics.lfMessageFont.lfHeight then
-          LF.lfHeight := 0;
-        if (CharSet = DEFAULT_CHARSET) and (Win32WidgetSet.Metrics.lfMessageFont.lfCharSet = LF.lfCharSet) then
-          LF.lfCharSet := DEFAULT_CHARSET;
-      end;
       Assign(LF);
-      if (CF.rgbColors <> 0) or (Color <> clDefault) then
-        Color := CF.RGBColors;
+      Color := CF.RGBColors;
     end;
   end;
   {$ifdef DebugCommonDialogEvents}

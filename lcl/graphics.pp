@@ -86,7 +86,7 @@ type
     Orientation: Integer;
   end;
 
-var
+const
   // New TFont instances are initialized with the values in this structure.
   // About font default values: The default font is chosen by the interfaces
   // depending on the context. For example, there can be a different default
@@ -314,7 +314,7 @@ const
   clDontMask = clBlack;
 
   // !! deprecated colors !!
-  {$IFDEF DefineCLXColors}
+  {$warnings off}
   // CLX base, mapped, pseudo, rgb values
   clForeground = TColor(-1) deprecated;
   clButton = TColor(-2) deprecated;
@@ -391,7 +391,7 @@ type
   TColorRole = (crForeground, crButton, crLight, crMidlight, crDark, crMid,
     crText, crBrightText, crButtonText, crBase, crBackground, crShadow,
     crHighlight, crHighlightText, crNoRole);
-  {$ENDIF}
+  {$warnings on}
 
 const
   cmBlackness = BLACKNESS;
@@ -480,6 +480,8 @@ type
 
   TFont = class(TFPCustomFont)
   private
+    FCanUTF8: boolean;
+    FCanUTF8Valid: boolean;
     FIsMonoSpace: boolean;
     FIsMonoSpaceValid: boolean;
     FOrientation: Integer;
@@ -495,6 +497,7 @@ type
     FHeight: integer; // FHeight = -(FSize * FPixelsPerInch) div 72
     FReference: TWSFontReference;
     procedure FreeReference;
+    function GetCanUTF8: boolean;
     function GetHandle: HFONT;
     function GetData: TFontData;
     function GetIsMonoSpace: boolean;
@@ -544,6 +547,7 @@ type
     function IsEqual(AFont: TFont): boolean; virtual;
     property IsMonoSpace: boolean read GetIsMonoSpace;
     procedure SetDefault;
+    property CanUTF8: boolean read GetCanUTF8; deprecated;
     property PixelsPerInch: Integer read FPixelsPerInch write SetPixelsPerInch;
     property Reference: TWSFontReference read GetReference;
   published
@@ -1101,10 +1105,10 @@ type
                   StartX,StartY,EndX,EndY: Integer); virtual;
     procedure PolyBezier(Points: PPoint; NumPts: Integer;
                          Filled: boolean = False;
-                         Continuous: boolean = True); virtual; {$IFDEF HasFPCanvas1}reintroduce;{$ENDIF}
+                         Continuous: boolean = False); virtual; {$IFDEF HasFPCanvas1}reintroduce;{$ENDIF}
     procedure PolyBezier(const Points: array of TPoint;
                          Filled: boolean = False;
-                         Continuous: boolean = True); {$IFDEF HasFPCanvas1}reintroduce;{$ENDIF}
+                         Continuous: boolean = False); {$IFDEF HasFPCanvas1}reintroduce;{$ENDIF}
     procedure Polygon(const Points: array of TPoint;
                       Winding: Boolean;
                       StartIndex: Integer = 0;
@@ -1756,16 +1760,9 @@ type
   TJPEGImage = class(TFPImageBitmap)
   private
     FGrayScale: Boolean;
-    FMinHeight: Integer;
-    FMinWidth: Integer;
     FPerformance: TJPEGPerformance;
     FProgressiveEncoding: boolean;
     FQuality: TJPEGQualityRange;
-    FScale: TJPEGScale;
-    FSmoothing: Boolean;
-    procedure SetCompressionQuality(AValue: TJPEGQualityRange);
-    procedure SetGrayScale(AValue: Boolean);
-    procedure SetProgressiveEncoding(AValue: Boolean);
   protected
     procedure InitializeReader(AImage: TLazIntfImage; AReader: TFPCustomImageReader); override;
     procedure InitializeWriter(AImage: TLazIntfImage; AWriter: TFPCustomImageWriter); override;
@@ -1775,18 +1772,13 @@ type
     class function GetSharedImageClass: TSharedRasterImageClass; override;
   public
     constructor Create; override;
-    procedure Compress;
     class function IsStreamFormatSupported(Stream: TStream): Boolean; override;
     class function GetFileExtensions: string; override;
   public
-    property CompressionQuality: TJPEGQualityRange read FQuality write SetCompressionQuality;
-    property GrayScale: Boolean read FGrayScale {$IF FPC_FullVersion >= 30400} write SetGrayScale{$IFEND};
-    property MinHeight: Integer read FMinHeight write FMinHeight;
-    property MinWidth: Integer read FMinWidth write FMinWidth;
-    property ProgressiveEncoding: boolean read FProgressiveEncoding write SetProgressiveEncoding;
+    property CompressionQuality: TJPEGQualityRange read FQuality write FQuality;
+    property GrayScale: Boolean read FGrayScale;
+    property ProgressiveEncoding: boolean read FProgressiveEncoding;
     property Performance: TJPEGPerformance read FPerformance write FPerformance;
-    property Scale: TJPEGScale read FScale write FScale;
-    property Smoothing: Boolean read FSmoothing write FSmoothing;
   end;
   {$ENDIF}
 
@@ -2342,11 +2334,7 @@ type
 const
   FirstDeprecatedColorIndex = 53;
   LastDeprecatedColorIndex = 106;
-  {$IFDEF DefineCLXColors}
   Colors: array[0..106] of TIdentMapEntry = (
-  {$ELSE}
-  Colors: array[0..52] of TIdentMapEntry = (
-  {$ENDIF}
     // standard colors
     (Value: clBlack; Name: 'clBlack'),
     (Value: clMaroon; Name: 'clMaroon'),
@@ -2409,11 +2397,11 @@ const
     (Value: clGradientInactiveCaption; Name: 'clGradientInactiveCaption'),
 
     // one our special color
-    (Value: clForm; Name: 'clForm')
+    (Value: clForm; Name: 'clForm'),
 
-    {$IFDEF DefineCLXColors}
+    {$warnings off}
     // CLX base, mapped, pseudo, rgb values
-   ,(Value: clForeground; Name: 'clForeground'),
+    (Value: clForeground; Name: 'clForeground'),
     (Value: clButton; Name: 'clButton'),
     (Value: clLight; Name: 'clLight'),
     (Value: clMidlight; Name: 'clMidlight'),
@@ -2475,7 +2463,7 @@ const
     (Value: clActiveShadow; Name: 'clActiveShadow'),
     (Value: clActiveHighlight; Name: 'clActiveHighlight'),
     (Value: clActiveHighlightedText; Name: 'clActiveHighlightedText')
-    {$ENDIF}
+    {$warnings on}
     );
 
 function IdentEntry(Entry: Longint; out MapEntry: TIdentMapEntry): boolean;
@@ -2515,8 +2503,8 @@ end;
 function SysColorToSysColorIndex(Color: TColor): integer;
 begin
   if (Cardinal(Color) and Cardinal(SYS_COLOR_BASE)) <> 0 then begin
-    {$IFDEF DefineCLXColors}
     case Color of
+    {$warnings off}
     clHighlightedText..clForeground:   // Deprecated values!
       Result:=clForeground+COLOR_clForeground-Color;
     clNormalHighlightedText..clNormalForeground:
@@ -2525,12 +2513,10 @@ begin
       Result:=clDisabledForeground+COLOR_clDisabledForeground-Color;
     clActiveHighlightedText..clActiveForeground:
       Result:=clActiveForeground+COLOR_clActiveForeground-Color;
+    {$warnings on}
     else
-    {$ENDIF}
       Result:=Color and $FF;
-    {$IFDEF DefineCLXColors}
     end;
-    {$ENDIF}
   end else begin
     Result:=-1;
   end;

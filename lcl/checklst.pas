@@ -68,8 +68,7 @@ type
     procedure MeasureItem(Index: Integer; var TheHeight: Integer); override;
     procedure Toggle(AIndex: Integer);
     procedure CheckAll(AState: TCheckBoxState; aAllowGrayed: Boolean = True; aAllowDisabled: Boolean = True);
-    procedure Exchange(AIndex1, AIndex2: Integer);
-
+    
     property AllowGrayed: Boolean read FAllowGrayed write FAllowGrayed default False;
     property Checked[AIndex: Integer]: Boolean read GetChecked write SetChecked;
     property Header[AIndex: Integer]: Boolean read GetHeader write SetHeader;
@@ -126,9 +125,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnResize;
     property OnSelectionChange;
     property OnShowHint;
@@ -242,16 +238,6 @@ begin
     if (aAllowGrayed or (State[i] <> cbGrayed)) and (aAllowDisabled or ItemEnabled[i]) then
       State[i] := AState;
   end;
-end;
-
-procedure TCustomCheckListBox.Exchange(AIndex1, AIndex2: Integer);
-var
-  Value: TCheckBoxState;
-begin
-  Value := State[AIndex1];
-  State[AIndex1] := State[AIndex2];
-  State[AIndex2] := Value;
-  Items.Exchange(AIndex1, AIndex2);
 end;
 
 procedure TCustomCheckListBox.DoChange(var Msg: TLMessage);

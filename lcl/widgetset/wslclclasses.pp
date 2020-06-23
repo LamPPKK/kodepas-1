@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: wslclclasses.pp 61642 2019-07-29 12:40:38Z dmitry $}
 {
  *****************************************************************************
  *                              wslclclasses.pp                              *
@@ -115,6 +115,14 @@ type
     Child: PClassNode;
     Sibling: PClassNode;
   end;
+
+const
+  // To my knowledge there is no way to tell the size of the
+  // VMT of a given class.
+  // Assume we have no more than 100 virtual entries
+  // 12.10.2013 - changed to 128, since we cannot add more methods in ws classes.zeljko.
+  VIRTUAL_VMT_COUNT = 128;
+  VIRTUAL_VMT_SIZE = vmtMethodStart + VIRTUAL_VMT_COUNT * SizeOf(Pointer);
 
 const
   // vmtAutoTable is something Delphi 2 and not used, we 'borrow' the vmt entry
@@ -270,9 +278,7 @@ procedure RegisterWSComponent(const AComponent: TComponentClass;
     SearchAddr: Pointer;
     n, idx: Integer;
     WSPrivate, OrgPrivate: TClass;
-    Processed: array of Boolean;
-    VvmtCount,
-    VvmtSize : Integer;
+    Processed: array[0..VIRTUAL_VMT_COUNT-1] of Boolean;
     {$IFDEF VerboseWSRegistration}
     Indent: String;
     {$ENDIF}
@@ -281,16 +287,9 @@ procedure RegisterWSComponent(const AComponent: TComponentClass;
     then WSPrivate := TWSPrivate
     else WSPrivate := AWSPrivate;
 
-    // Determine VMT count and size => http://wiki.freepascal.org/Compiler-generated_data_and_data_structures
-    VvmtCount := 0;
-    Vvmt := Pointer(ANode^.WSClass) + vmtMethodStart; // AWSComponent is equal to ANode^.WSClass;
-    while (Vvmt^[VvmtCount] <> nil) do
-      Inc(VvmtCount);
-    VvmtSize := vmtMethodStart + VvmtCount * SizeOf(Pointer);
-
     if ANode^.VClass = nil
     then begin
-      ANode^.VClass := GetMem(VvmtSize)
+      ANode^.VClass := GetMem(VIRTUAL_VMT_SIZE)
     end
     else begin
       // keep original WSPrivate (only when different than default class)
@@ -306,7 +305,8 @@ procedure RegisterWSComponent(const AComponent: TComponentClass;
     end;
 
     // Initially copy the WSClass
-    Move(Pointer(ANode^.WSClass)^, ANode^.VClass^, VvmtSize);
+    // Tricky part, the source may get beyond read mem limit
+    Move(Pointer(ANode^.WSClass)^, ANode^.VClass^, VIRTUAL_VMT_SIZE);
 
     // Set WSPrivate class
     ParentWSNode := FindParentWSClassNode(ANode);
@@ -344,7 +344,6 @@ procedure RegisterWSComponent(const AComponent: TComponentClass;
 
     Vvmt := ANode^.VClass + vmtMethodStart;
     Pvmt := ParentWSNode^.VClass + vmtMethodStart;
-    SetLength(Processed, VvmtCount);
     FillChar(Processed[0], SizeOf(Processed), 0);
 
     while CommonClass <> nil do
@@ -358,7 +357,7 @@ procedure RegisterWSComponent(const AComponent: TComponentClass;
         {$ENDIF}
 
         Cvmt := Pointer(CommonClass) + vmtMethodStart;
-        Assert(Cmnt^.Count < VvmtCount, 'MethodTable count is larger than determined VvmtCount');
+        Assert(Cmnt^.Count < VIRTUAL_VMT_COUNT, 'MethodTable count is larger than assumed VIRTUAL_VMT_COUNT');
 
         // Loop through the VMT to see what is overridden
         for n := 0 to Cmnt^.Count - 1 do
@@ -368,7 +367,7 @@ procedure RegisterWSComponent(const AComponent: TComponentClass;
           DebugLn('%sSearch: %s (%p)', [Indent, Cmnt^.Entries[n].Name^, SearchAddr]);
           {$ENDIF}
 
-          for idx := 0 to VvmtCount - 1 do
+          for idx := 0 to VIRTUAL_VMT_COUNT - 1 do
           begin
             if Cvmt^[idx] = SearchAddr
             then begin
@@ -396,7 +395,7 @@ procedure RegisterWSComponent(const AComponent: TComponentClass;
 
               Break;
             end;
-            if idx = VvmtCount - 1
+            if idx = VIRTUAL_VMT_COUNT - 1
             then begin
               DebugLn('[WARNING] VMT entry "', Cmnt^.Entries[n].Name^, '" not found in "', CommonClass.ClassName, '"');
               Break;

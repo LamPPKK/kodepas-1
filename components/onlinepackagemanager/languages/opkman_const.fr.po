@@ -3,14 +3,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Project-Id-Version: \n"
 "POT-Creation-Date: 2017-02-06 11:11+0100\n"
-"PO-Revision-Date: 2019-02-07 12:10+0100\n"
+"PO-Revision-Date: 2018-10-08 11:29+0200\n"
 "Last-Translator: Vasseur Gilles <gillesvasseur58@gmail.com>\n"
 "Language-Team: http://lazarus.developpez.com/\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: fr\n"
-"X-Generator: Poedit 2.2.1\n"
+"X-Generator: Poedit 2.1.1\n"
 
 #: opkman_const.rsaddrepositorypackagefrm_bcancel_caption
 msgctxt "opkman_const.rsaddrepositorypackagefrm_bcancel_caption"
@@ -52,28 +52,12 @@ msgctxt "opkman_const.rscategoriesfrm_byes_caption"
 msgid "OK"
 msgstr "OK"
 
-#: opkman_const.rscategoriesfrm_caption1
-#, fuzzy
-msgctxt "opkman_const.rscategoriesfrm_caption1"
+#: opkman_const.rscategoriesfrm_caption
 msgid "List with categories"
 msgstr "Lister avec les catégories"
 
-#: opkman_const.rscategoriesfrm_caption2
-msgid "List with Lazarus versions"
-msgstr ""
-
-#: opkman_const.rscategoriesfrm_caption3
-msgid "List with FPC versions"
-msgstr ""
-
-#: opkman_const.rscategoriesfrm_caption4
-msgid "List with supported widgetsets"
-msgstr ""
-
 #: opkman_const.rscategoriesfrm_lbmessage_caption
-#, fuzzy
-#| msgid "Please select (check) one or more categories"
-msgid "Please select (check) one or more items"
+msgid "Please select (check) one or more categories"
 msgstr "Veuillez cocher une ou plusieurs catégories"
 
 #: opkman_const.rscolors_caption
@@ -206,68 +190,60 @@ msgid "Create/Edit private repository"
 msgstr "Créer/Éditer un dépôt privé"
 
 #: opkman_const.rscreaterepositoryfrm_conf1
-#, object-pascal-format
 msgid "Are you sure you wish to delete package: \"%s\"?"
 msgstr "Êtes-vous sûr de vouloir supprimer le paquet \"%s\" ?"
 
 #: opkman_const.rscreaterepositoryfrm_conf2
-#, object-pascal-format
 msgid "The following file: \"%s\" already exists in the current repository. Overwrite?"
 msgstr "Le fichier \"%s\" existe déjà dans le dépôt en cours. Voulez-vous le remplacer ?"
 
 #: opkman_const.rscreaterepositoryfrm_error1
-#, object-pascal-format
 msgid ""
 "Cannot open private repository: \"%s\". Error message: \n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 "Impossible d'ouvrir le dépôt privé \"%s\". Message d'erreur :\n"
-"\"%s\""
+"\"%s\"\n"
 
 #: opkman_const.rscreaterepositoryfrm_error3
-#, object-pascal-format
 msgid ""
 "Cannot save private repository: \"%s\". Error message: \n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 "Impossible de sauvegarder le dépôt privé \"%s\". Message d'erreur :\n"
-"\"%s\""
+"\"%s\"\n"
 
 #: opkman_const.rscreaterepositoryfrm_error4
 msgid "Cannot add package to repository!"
 msgstr "Impossible d'ajouter le paquet au dépôt !"
 
 #: opkman_const.rscreaterepositoryfrm_error5
-#, object-pascal-format
 msgid "Cannot delete package: \"%s\"!"
 msgstr "Impossible de supprimer le paquet \"%s\" !"
 
 #: opkman_const.rscreaterepositoryfrm_info1
-#, object-pascal-format
 msgid ""
 "The following directory: \"%s\" is not empty.\n"
-"It's recommended to save the repository to an empty directory. Continue?"
+"It's recommended to save the repository to an empty directory. Continue?\n"
 msgstr ""
 "Le répertoire \"%s\" n'est pas vide.\n"
-"Il est recommandé de sauvegarder le dépôt dans un répertoire vide. Voulez-vous continuer ?"
+"Il est recommandé de sauvegarder le dépôt dans un répertoire vide. Voulez-vous continuer ?\n"
 
 #: opkman_const.rscreaterepositoryfrm_info3
-#, object-pascal-format
 msgid ""
 "The following package: \"%s\" is already in the current repository.\n"
-"Each repository and Lazarus package must be unique!"
+"Each repository and Lazarus package must be unique!\n"
 msgstr ""
 "Le paquet \"%s\" est déjà dans le dépôt en cours.\n"
-"Les dépôts et les paquets Lazarus doivent être uniques !"
+"Les dépôts et les paquets Lazarus doivent être uniques !\n"
 
 #: opkman_const.rscreaterepositoryfrm_info5
-#, object-pascal-format
 msgid ""
 "The following Lazarus package: \"%s\" is already in the current repository.\n"
-"Each repository and Lazarus package must be unique!"
+"Each repository and Lazarus package must be unique!\n"
 msgstr ""
 "Le paquet Lazarus \"%s\" est déjà dans le dépôt en cours.\n"
-"Les dépôts et les paquets Lazarus doivent être uniques !"
+"Les dépôts et les paquets Lazarus doivent être uniques !\n"
 
 #: opkman_const.rscreaterepositoryfrm_info7
 msgid "Package successfully added to repository."
@@ -473,7 +449,6 @@ msgid "Cannot create JSON file:"
 msgstr "Impossible de créer le fichier JSON :"
 
 #: opkman_const.rscreaterepositorypackagefrm_error3
-#, object-pascal-format
 msgid "Cannot send file: \"%s\""
 msgstr "Impossible d'envoyer le fichier \"%s\""
 
@@ -553,17 +528,16 @@ msgid "Repository package successfully created."
 msgstr "Paquet de dépôt créé avec succès."
 
 #: opkman_const.rscreaterepositorypackagefrm_message8
-#, object-pascal-format
 msgid "Sending files (\"%s\"). Please wait..."
 msgstr "Envoi de fichiers (\"%s\"). Veuillez patienter..."
 
 #: opkman_const.rscreaterepositorypackagefrm_message9
 msgid ""
 "Files successfully sent. Thank you for submitting packages!\n"
-"Your request will be processed in 24 hours."
+"Your request will be processed in 24 hours.\n"
 msgstr ""
 "Fichiers envoyés avec succès. Merci d'avoir proposé ces paquets !\n"
-"Votre requête sera traitée dans les 24 heures."
+"Votre requête sera traitée dans les 24 heures.\n"
 
 #: opkman_const.rscreaterepositorypackagefrm_nopackage
 msgid "No packages found!"
@@ -598,10 +572,6 @@ msgstr "Choisir le répertoire des paquets"
 #: opkman_const.rslazaruspackagemanager
 msgid "Online Package Manager"
 msgstr "Gestionnaire de paquets en ligne"
-
-#: opkman_const.rsmainfrm_breturn_caption
-msgid "Return"
-msgstr "Retour"
 
 #: opkman_const.rsmainfrm_cball_caption
 msgid "All/None"
@@ -658,12 +628,12 @@ msgid "Descendent"
 msgstr "Descendant"
 
 #: opkman_const.rsmainfrm_mifromexternalsource
-msgid "From third party repository"
-msgstr "Depuis un dépôt tiers"
+msgid "From external source"
+msgstr "Depuis une source externe"
 
 #: opkman_const.rsmainfrm_mifromrepository
-msgid "From official repository"
-msgstr "Depuis le dépôt officiel"
+msgid "From repository"
+msgstr "Depuis le dépôt"
 
 #: opkman_const.rsmainfrm_mijsonhide
 msgid "Hide JSON"
@@ -710,10 +680,6 @@ msgstr "Les paquets de dépôt suivants existent déjà dans le dossier cible. V
 msgid "The following packages are already installed. Continue anyway?"
 msgstr "Les paquets suivants sont déjà installés. Voulez-vous continuer malgré tout ?"
 
-#: opkman_const.rsmainfrm_packageincompatible
-msgid "The following packages are not tested and the install might fail. Continue anyway?"
-msgstr ""
-
 #: opkman_const.rsmainfrm_packagenamealreadyexists
 msgid "A package with the same name already exists!"
 msgstr "Un paquet portant le même nom existe déjà !"
@@ -729,23 +695,20 @@ msgstr "Aucun des paquets de dépôt cochés n'est disponible en externe."
 #: opkman_const.rsmainfrm_packageupdatewarning
 msgid ""
 "Installing packages from external link is not without a risk!\n"
-"Only install if you trust the package maintainer. Continue?"
+"Only install if you trust the package maintainer. Continue?\n"
 msgstr ""
 "La mise à jour depuis un lien externe n'est pas sans risques !\n"
-"Ne procédez à l'installation que si vous faites confiance au mainteneur. Voulez-vous continuer ?"
+"Ne procédez à l'installation que si vous faites confiance au mainteneur. Voulez-vous continuer ?\n"
 
 #: opkman_const.rsmainfrm_resmessagechecksloaded
-#, object-pascal-format
 msgid "%s packages successfully loaded from file!"
 msgstr "%s paquets ont été chargés avec succès depuis le fichier !"
 
 #: opkman_const.rsmainfrm_resmessagecheckssaved
-#, object-pascal-format
 msgid "%s packages successfully saved to file!"
 msgstr "%s paquets ont été enregistrés avec succès dans le fichier !"
 
 #: opkman_const.rsmainfrm_rsdestdirerror
-#, object-pascal-format
 msgid "Cannot create directory \"%s\". Operation aborted."
 msgstr "Impossible de créer le répertoire \"%s\". L'opération a échoué."
 
@@ -776,10 +739,10 @@ msgstr "Pas de paquets à montrer."
 #: opkman_const.rsmainfrm_rsmessagenorepository0
 msgid ""
 "Remote package repository not configured.\n"
-"Do you wish to configure it now?"
+"Do you wish to configure it now?\n"
 msgstr ""
 "Le dépôt des paquets n'est pas configuré.\n"
-"Voulez-vous le configurer maintenant ?"
+"Voulez-vous le configurer maintenant ?\n"
 
 #: opkman_const.rsmainfrm_rsmessagenothingchacked
 msgid "Please check at least one package!"
@@ -798,7 +761,6 @@ msgid "Please check one or more packages!"
 msgstr "Veuillez cocher un ou plusieurs paquets !"
 
 #: opkman_const.rsmainfrm_rspackagedependency0
-#, object-pascal-format
 msgid "Package \"%s\" depends on package \"%s\". Resolve dependency?"
 msgstr "Le paquet \"%s\" dépend du paquet \"%s\". Faut-il résoudre cette dépendance ?"
 
@@ -807,12 +769,10 @@ msgid "Not resolving dependencies might lead to install failure! Continue?"
 msgstr "La non résolution des dépendances peut conduire à un échec de l'installation ! Voulez-vous continuer ?"
 
 #: opkman_const.rsmainfrm_rspackageinformation
-#, object-pascal-format
 msgid "Quick package information for \"%s\""
 msgstr "Information rapide de paquet pour \"%s\""
 
 #: opkman_const.rsmainfrm_rspackagerating
-#, object-pascal-format
 msgid "Your vote for package \"%s\" is: %s. Thank you for voting!"
 msgstr "Votre note pour le paquet \"%s\" est : %s. Merci de votre évaluation !"
 
@@ -821,21 +781,18 @@ msgid "This will delete all non-installed packages from local repository. Contin
 msgstr "Tous les paquets non installésdu dépôt local  vont être détruits. Voulez-vous continuer ?"
 
 #: opkman_const.rsmainfrm_rsrepositorycleanup1
-#, object-pascal-format
 msgid "%s packages deleted!"
 msgstr "%s paquets supprimés !"
 
 #: opkman_const.rsmainfrm_rsuninstall
-#, object-pascal-format
 msgid ""
 "%sAre you sure you wish to uninstall the checked packages?\n"
-"Please note: in order for the changes to take effect you must rebuid the IDE."
+"Please note: in order for the changes to take effect you must rebuid the IDE.\n"
 msgstr ""
 "%sÊtes-vous sûr de vouloir désinstaller les paquets cochés ?\n"
-"Veuillez noter que vous devrez alors reconstruire l'EDI pour que les changements deviennent effectifs."
+"Veuillez noter que vous devrez alors reconstruire l'EDI pour que les changements deviennent effectifs.\n"
 
 #: opkman_const.rsmainfrm_rsuninstall_error
-#, object-pascal-format
 msgid "Cannot uninstall package \"%s\"!"
 msgstr "Impossible de désinstaller le paquet \"%s\" !"
 
@@ -962,26 +919,14 @@ msgid "Rating"
 msgstr "Évaluation"
 
 #: opkman_const.rsmainfrm_vstheadercolumn_repository
-#, fuzzy
-#| msgid "Repository"
 msgctxt "opkman_const.rsmainfrm_vstheadercolumn_repository"
-msgid "OPM repository"
+msgid "Repository"
 msgstr "Dépôt"
 
-#: opkman_const.rsmainfrm_vstheadercolumn_repository_hint
-msgid "Packages available in the OPM repository (https://packages.lazarus-ide.org/)"
-msgstr ""
-
 #: opkman_const.rsmainfrm_vstheadercolumn_update
-#, fuzzy
-#| msgid "External"
 msgctxt "opkman_const.rsmainfrm_vstheadercolumn_update"
-msgid "External repository"
+msgid "External"
 msgstr "Externe"
-
-#: opkman_const.rsmainfrm_vstheadercolumn_update_hint
-msgid "Packages available at the developer's webpage (see node \"External link (JSON)\" for more details)"
-msgstr ""
 
 #: opkman_const.rsmainfrm_vsttext_author
 msgctxt "opkman_const.rsmainfrm_vsttext_author"
@@ -1273,34 +1218,6 @@ msgctxt "opkman_const.rsmainfrm_vsttext_version"
 msgid "Version"
 msgstr "Version"
 
-#: opkman_const.rsopensslfrm_bp_cancelbutton_caption
-#, fuzzy
-msgctxt "opkman_const.rsopensslfrm_bp_cancelbutton_caption"
-msgid "No"
-msgstr "Non"
-
-#: opkman_const.rsopensslfrm_bp_okbutton_caption
-#, fuzzy
-msgctxt "opkman_const.rsopensslfrm_bp_okbutton_caption"
-msgid "Yes"
-msgstr "Oui"
-
-#: opkman_const.rsopensslfrm_caption
-msgid "Download OpenSSL libraries"
-msgstr ""
-
-#: opkman_const.rsopensslfrm_chpermanent_caption
-msgid "Do not ask this question again"
-msgstr ""
-
-#: opkman_const.rsopensslfrm_lbmessage1_caption
-msgid "In order to work properly, OPM needs the OpenSSL libraries: \"libeay32.dll\" and \"ssleay32.dll\""
-msgstr ""
-
-#: opkman_const.rsopensslfrm_lbmessage2_caption
-msgid "Download these files from \"https://packages.lazarus-ide.org/\"?"
-msgstr ""
-
 #: opkman_const.rsopminterfacerebuildconf
 msgid "In order for the changes to take effect you must rebuild the IDE. Rebuild now?"
 msgstr "Afin que les modifications soient effectives, vous devez reconstruire l'EDI. Voulez-vous le faire maintenant ?"
@@ -1439,12 +1356,10 @@ msgid "Add new exclusion"
 msgstr "Ajouter une nouvelle exclusion"
 
 #: opkman_const.rsoptions_inputbox_conf0
-#, object-pascal-format
 msgid "Delete selected extension (\"%s\")?"
 msgstr "Voulez-vous supprimer l'extension sélectionnée (\"%s\") ?"
 
 #: opkman_const.rsoptions_inputbox_conf1
-#, object-pascal-format
 msgid "Delete selected folder (\"%s\")?"
 msgstr "Voulez-vous supprimer le dossier sélectionné (\"%s\") ?"
 
@@ -1571,18 +1486,6 @@ msgstr "C'est déclenché par la touche MAJ ; se déplace avec la souris"
 msgid "Off"
 msgstr "Désactivé"
 
-#: opkman_const.rsoptions_rbopenssl_item0
-msgid "Automatically download files from \"https://packages.lazarus-ide.org/\""
-msgstr ""
-
-#: opkman_const.rsoptions_rbopenssl_item1
-msgid "Show confirmation dialog before download"
-msgstr ""
-
-#: opkman_const.rsoptions_rbopenssl_item2
-msgid "Never download files"
-msgstr ""
-
 #: opkman_const.rsoptions_remoterepository_information
 msgid "Please enter the remote repository address!"
 msgstr "Veuillez entrer l'adresse du dépôt distant !"
@@ -1606,22 +1509,6 @@ msgstr "Profils"
 #: opkman_const.rsoptions_tsproxy_caption
 msgid "Proxy"
 msgstr "Proxy"
-
-#: opkman_const.rsoption_cbcbalreadyinstalledpackages_caption
-msgid "Warn me about already installed packages"
-msgstr ""
-
-#: opkman_const.rsoption_cbcbalreadyinstalledpackages_hint
-msgid "If a package is already installed, OPM will show a warning message"
-msgstr ""
-
-#: opkman_const.rsoption_cbincompatiblepackage_caption
-msgid "Warn me about incompatible/untested packages"
-msgstr ""
-
-#: opkman_const.rsoption_cbincompatiblepackage_hint
-msgid "If a package is not compatible with the current widgetset or Lazarus/FPC version, OPM will show a warning message"
-msgstr ""
 
 #: opkman_const.rspackagelistfrm_bno_caption
 msgctxt "opkman_const.rspackagelistfrm_bno_caption"
@@ -1650,44 +1537,7 @@ msgstr "Liste des paquets téléchargés"
 msgid "Update package list"
 msgstr "Mettre à jour la liste des paquets"
 
-#: opkman_const.rspackagelistfrm_caption3
-msgid "Incompatible package list"
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_curfpcver
-msgid "Current FPC version: "
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_curlazver
-msgid "Current Lazarus version: "
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_curws
-msgid "Current widgetset: "
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_incompatible
-msgid "Not tested"
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_lbhint_caption
-msgid "Hint: for more details move the mouse over the problematic column."
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_supfpcvers
-msgid "Supported FPC versions: "
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_suplazvers
-msgid "Supported Lazarus versions: "
-msgstr ""
-
-#: opkman_const.rspackagelistfrm_supwss
-msgid "Supported widgetsets: "
-msgstr ""
-
 #: opkman_const.rspackagesfound
-#, object-pascal-format
 msgid "(%s repository packages found, containing %s lpk files, total size %s)"
 msgstr "(%s paquets de dépôt trouvés, contenant %s fichiers lpk - taille totale : %s))"
 
@@ -1744,7 +1594,6 @@ msgid "Cannot install package:"
 msgstr "Impossible d'installer le paquet :"
 
 #: opkman_const.rsprogressfrm_error4
-#, object-pascal-format
 msgctxt "opkman_const.rsprogressfrm_error4"
 msgid "Dependency \"%s\" not found!"
 msgstr "La dépendance \"%s\" est introuvable !"
@@ -1781,7 +1630,6 @@ msgid "Success."
 msgstr "Succès."
 
 #: opkman_const.rsprogressfrm_info2
-#, object-pascal-format
 msgid "Contacting download site for \"%s\" (%s)"
 msgstr "Contact du site de téléchargement pour \"%s\" (%s)"
 
@@ -1868,12 +1716,10 @@ msgid "Repositories"
 msgstr "Dépôts"
 
 #: opkman_const.rsrepositories_confirmation0
-#, object-pascal-format
 msgid "Delete selected repository \"%s\"?"
 msgstr "Voulez-vous supprimer le dépôt \"%s\" sélectionné ?"
 
 #: opkman_const.rsrepositories_info1
-#, object-pascal-format
 msgid "The following repository: \"%s\" is already in the list."
 msgstr "Le dépôt \"%s\" est déjà dans la liste."
 

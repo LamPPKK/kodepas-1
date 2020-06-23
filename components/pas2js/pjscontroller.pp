@@ -58,8 +58,6 @@ Type
     FOnRefresh: TNotifyEvent;
     FServerInstances: TServerInstanceList;
     function GetPas2JSPath(const s: string; const {%H-}Data: PtrInt; var Abort: boolean): string;
-    function GetPas2JSWebServerPath(const s: string; const {%H-}Data: PtrInt; var Abort: boolean): string;
-    function GetPas2JSWebServerPort(const s: string; const {%H-}Data: PtrInt; var Abort: boolean): string;
     function GetPas2JSBrowser(const s: string; const {%H-}Data: PtrInt; var Abort: boolean): string;
     function GetPas2JSNodeJS(const s: string; const {%H-}Data: PtrInt; var Abort: boolean): string;
     function GetPas2jsProjectURL(const s: string; const {%H-}Data: PtrInt; var Abort: boolean): string;
@@ -90,7 +88,7 @@ Const
 
 implementation
 
-uses FileUtil, LazFileUtils, PJSDsgnOptions, strpas2jsdesign;
+uses FileUtil, LazFileUtils, PJSDsgnOptions;
 
 Var
   ctrl : TPJSController;
@@ -156,7 +154,6 @@ begin
   FProcess.Parameters.Add('-q');
   FProcess.Parameters.Add('-p');
   FProcess.Parameters.Add(IntToStr(Port));
-  FProcess.Parameters.AddStrings(PJSOptions.HTTPServerOpts);
   {$IFDEF WINDOWS}
   FProcess.Options:=[poNoConsole];
   {$ENDIF}
@@ -203,32 +200,10 @@ function TPJSController.GetPas2JSPath(const s: string; const Data: PtrInt;
 begin
   Abort:=False;
   if (s<>'') and (ConsoleVerbosity>=0) then
-    debugln(['Hint: (kode) [TPJSController.GetPas2JSPath] ignoring macro Pas2JS parameter "',s,'"']);
+    debugln(['Hint: (lazarus) [TPJSController.GetPas2JSPath] ignoring macro Pas2JS parameter "',s,'"']);
   Result:=PJSOptions.GetParsedCompilerFilename;
   if Result='' then
     Result:='pas2js'; // always return something to get nicer error messages
-end;
-
-function TPJSController.GetPas2JSWebServerPath(const s: string;
-  const Data: PtrInt; var Abort: boolean): string;
-begin
-  Abort:=False;
-  if (s<>'') and (ConsoleVerbosity>=0) then
-    debugln(['Hint: (kode) [TPJSController.GetPas2JSWebServerPath] ignoring macro Pas2JSWebServer parameter "',s,'"']);
-  Result:=PJSOptions.GetParsedWebServerFilename;
-  if Result='' then
-    Result:=PJSDefaultWebServerName; // always return something to get nicer error messages
-end;
-
-function TPJSController.GetPas2JSWebServerPort(const s: string;
-  const Data: PtrInt; var Abort: boolean): string;
-begin
-  Abort:=False;
-  if (s<>'') and (ConsoleVerbosity>=0) then
-    debugln(['Hint: (kode) [TPJSController.GetPas2JSWebServerPort] ignoring macro Pas2JSWebServerPort parameter "',s,'"']);
-  Result:=PJSOptions.GetParsedWebServerFilename;
-  if Result='' then
-    Result:=PJSDefaultWebServerName; // always return something to get nicer error messages
 end;
 
 function TPJSController.GetPas2JSBrowser(const s: string; const Data: PtrInt; var Abort: boolean): string;
@@ -236,7 +211,7 @@ function TPJSController.GetPas2JSBrowser(const s: string; const Data: PtrInt; va
 begin
   Abort:=False;
   if (s<>'') and (ConsoleVerbosity>=0) then
-    debugln(['Hint: (kode) [TPJSController.GetPas2JSBrowser] ignoring macro Pas2JSBrowser parameter "',s,'"']);
+    debugln(['Hint: (lazarus) [TPJSController.GetPas2JSBrowser] ignoring macro Pas2JSBrowser parameter "',s,'"']);
   Result:=PJSOptions.GetParsedBrowserFilename;
   if Result='' then
     Result:='firefox'; // always return something to get nicer error messages
@@ -247,7 +222,7 @@ function TPJSController.GetPas2JSNodeJS(const s: string; const Data: PtrInt; var
 begin
   Abort:=False;
   if (s<>'') and (ConsoleVerbosity>=0) then
-    debugln(['Hint: (kode) [TPJSController.GetPas2JSNodeJS] ignoring macro Pas2JSNodeJS parameter "',s,'"']);
+    debugln(['Hint: (lazarus) [TPJSController.GetPas2JSNodeJS] ignoring macro Pas2JSNodeJS parameter "',s,'"']);
   Result:=PJSOptions.GetParsedNodeJSFilename;
   if Result='' then
     Result:='nodejs'+GetExeExt; // always return something to get nicer error messages
@@ -260,7 +235,7 @@ Var
 
 begin
   if (s<>'') and (ConsoleVerbosity>=0) then
-    debugln(['Hint: (kode) [TPJSController.GetPas2jsProjectURL] ignoring macro Pas2JSProjectURL parameter "',s,'"']);
+    debugln(['Hint: (lazarus) [TPJSController.GetPas2jsProjectURL] ignoring macro Pas2JSProjectURL parameter "',s,'"']);
 
   if ConsoleVerbosity>0 then
     DebugLN(['LazarusIDE.ActiveProject.CustomData[PJSProjectWebBrowser]: ',LazarusIDE.ActiveProject.CustomData[PJSProjectWebBrowser]]);
@@ -334,7 +309,7 @@ begin
   else
     begin
 //    Writeln('No instance running on port ',ServerPort, 'allocating it');
-    aInstance:=ServerInstances.AddInstance(ServerPort,BaseDir,PJSOptions.GetParsedWebServerFilename);
+    aInstance:=ServerInstances.AddInstance(ServerPort,BaseDir,PJSOptions.GetParsedHTTPServerFilename);
     end;
   aInstance.LastProject:=LazarusIDE.ActiveProject.ProjectInfoFile;
   aInstance.StartServer;
@@ -356,18 +331,10 @@ end;
 
 procedure TPJSController.Hook;
 begin
-  IDEMacros.Add(TTransferMacro.Create('Pas2JS', '', pjsdPas2JSExecutable, @
-    GetPas2JSPath, []));
-  IDEMacros.Add(TTransferMacro.Create('Pas2JSWebServer', '', pjsdPas2JSWebServerExe, @
-    GetPas2JSWebServerPath, []));
-  IDEMacros.Add(TTransferMacro.Create('Pas2JSWebServerPort', '', pjsdPas2JSWebServerPort, @
-    GetPas2JSWebServerPort, []));
-  IDEMacros.Add(TTransferMacro.Create('Pas2JSBrowser', '',
-    pjsdPas2JSSelectedBrowserExecutable, @GetPas2JSBrowser, []));
-  IDEMacros.Add(TTransferMacro.Create('Pas2JSNodeJS', '',
-    pjsdPas2JSSelectedNodeJSExcutable, @GetPas2JSNodeJS, []));
-  IDEMacros.Add(TTransferMacro.Create('Pas2JSProjectURL', '',
-    pjsdPas2JSCurrentProjectURL, @GetPas2jsProjectURL, []));
+  IDEMacros.Add(TTransferMacro.Create('Pas2JS','','Pas2JS executable',@GetPas2JSPath,[]));
+  IDEMacros.Add(TTransferMacro.Create('Pas2JSBrowser','','Pas2JS selected Browser executable',@GetPas2JSBrowser,[]));
+  IDEMacros.Add(TTransferMacro.Create('Pas2JSNodeJS','','Pas2JS selected NodeJS excutable',@GetPas2JSNodeJS,[]));
+  IDEMacros.Add(TTransferMacro.Create('Pas2JSProjectURL','','Pas2JS current project URL',@GetPas2jsProjectURL,[]));
   LazarusIDE.AddHandlerOnRunWithoutDebugInit(@MaybeStartServer);
 end;
 

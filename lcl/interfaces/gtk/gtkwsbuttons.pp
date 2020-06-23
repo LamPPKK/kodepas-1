@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: gtkwsbuttons.pp 41387 2013-05-24 18:30:06Z juha $}
 {
  *****************************************************************************
  *                              GtkWSButtons.pp                              * 
@@ -28,7 +28,7 @@ uses
   GLib, Gtk, gdk, gdkPixbuf, Gtk1WSPrivate,
   {$ENDIF}
   // LCL
-  Classes, LCLType, Controls, Graphics, GraphType, Buttons, ImgList,
+  Classes, LCLType, Controls, Graphics, GraphType, Buttons,
   // widgetset
   WSButtons, WSProc,
   // interface
@@ -287,10 +287,8 @@ var
   Pixbuf: PGdkPixbuf;
   Mask: PGdkBitmap;
   AGlyph: TBitmap;
-  AIndex, aPPI: Integer;
+  AIndex: Integer;
   AEffect: TGraphicsDrawEffect;
-  aCanvasScaleFactor: Double;
-  ImgResolution: TScaledImageListResolution;
 begin
   WidgetInfo := GetWidgetInfo(Pointer(ABitBtn.Handle));
   BitBtnInfo := WidgetInfo^.UserData;
@@ -298,8 +296,7 @@ begin
   if ABitBtn.CanShowGlyph then
   begin
     AGlyph := TBitmap.Create;
-    AValue.GetImageIndexAndEffect(AButtonState, aPPI, aCanvasScaleFactor,
-      ImgResolution, AIndex, AEffect);
+    AValue.GetImageIndexAndEffect(AButtonState, AIndex, AEffect);
     if (AIndex <> -1) and (AValue.Images <> nil) then
       AValue.Images.GetBitmap(AIndex, AGlyph, AEffect);
   end

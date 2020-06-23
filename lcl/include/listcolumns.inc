@@ -1,6 +1,6 @@
 {%MainUnit ../comctrls.pp}
 
-{ $Id$
+{ $Id: listcolumns.inc 56910 2018-01-01 20:58:03Z ondrej $
 
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

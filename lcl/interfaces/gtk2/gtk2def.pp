@@ -1,10 +1,10 @@
-{ $Id$ 
+{ $Id: gtk2def.pp 59201 2018-09-30 22:45:40Z maxim $ 
                          -------------------------------
                          gtk2def.pp  -  Type definitions
                          ------------------------------- 
  
  @created(Tue Nov 20st WET 2007)
- @lastmod($Date$)
+ @lastmod($Date: 2018-10-01 00:45:40 +0200 (Mo, 01 Okt 2018) $)
  @author(Marc Weustink <marc@@dommelstein.net>)                       
 
  This unit contains type definitions needed in the GTK2 <-> LCL interface

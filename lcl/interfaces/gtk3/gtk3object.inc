@@ -588,18 +588,43 @@ begin
     Result := HCURSOR({%H-}PtrUInt(gdk_cursor_new(CursorValue)));
 end;
 
-function TGtk3WidgetSet.DCGetPixel(CanvasHandle: HDC; X, Y: integer): TGraphicsColor;
+function TGtk3WidgetSet.DCGetPixel(CanvasHandle: HDC; X, Y: integer
+  ): TGraphicsColor;
+var
+  ANewPix: PGdkPixbuf;
 begin
+  {$IFDEF GTK3DEBUGNOTIMPLEMENTED}
+  DebugLn('WARNING: TGtk3WidgetSet.DCGetPixel not implemented ...');
+  {$ENDIF}
+  Result := 0;
   if IsValidDC(CanvasHandle) then
-    Result := TGtk3DeviceContext(CanvasHandle).getPixel(X, Y)
-  else
-    Result := 0;
+  begin
+    if (TGtk3DeviceContext(CanvasHandle).ParentPixmap <> nil) then
+    begin
+      ANewPix := gdk_pixbuf_new_subpixbuf(TGtk3DeviceContext(CanvasHandle).ParentPixmap, X, Y, 1, 1);
+      // cairo_get_c
+      // gdk_pixbuf_get_pixels(ANewPix);
+      ANewPix^.unref;
+    end;
+  end;
 end;
 
-procedure TGtk3WidgetSet.DCSetPixel(CanvasHandle: HDC; X, Y: Integer; AColor: TGraphicsColor);
+procedure TGtk3WidgetSet.DCSetPixel(CanvasHandle: HDC; X, Y: integer;
+  AColor: TGraphicsColor);
+var
+  ASavedPenColor: TColor;
+  cr: PCairo_t;
 begin
   if IsValidDC(CanvasHandle) then
-    TGtk3DeviceContext(CanvasHandle).drawPixel(X, Y, AColor);
+  begin
+    cr := TGtk3DeviceContext(CanvasHandle).Widget;
+    ASavedPenColor := TGtk3DeviceContext(CanvasHandle).CurrentPen.Color;
+    TGtk3DeviceContext(CanvasHandle).CurrentPen.Color := AColor;
+    cairo_move_to(cr, X, Y);
+    cairo_line_to(cr, X, Y);
+    cairo_stroke(cr);
+    TGtk3DeviceContext(CanvasHandle).CurrentPen.Color := ASavedPenColor;
+  end;
 end;
 
 procedure TGtk3WidgetSet.DCRedraw(CanvasHandle: HDC);

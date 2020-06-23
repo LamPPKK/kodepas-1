@@ -1,11 +1,11 @@
-{ $Id$ }
+{ $Id: gtk2wsprivate.pp 60382 2019-02-09 08:46:44Z mattias $ }
 {
                  ------------------------------------------
                  gtk2wsprivate.pp  -  Gtk2 internal classes
                  ------------------------------------------
 
  @created(Thu Feb 1st WET 2007)
- @lastmod($Date$)
+ @lastmod($Date: 2019-02-09 09:46:44 +0100 (Sa, 09 Feb 2019) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)
 
  This unit contains the private classhierarchy for the gtk implemetations
@@ -405,7 +405,7 @@ begin
   gdk_window_get_user_data(AWindow, @Data);
   if (Data <> nil) and GTK_IS_WIDGET(Data) then
   begin
-    Info := GetWidgetInfo(PGtkWidget(Data));
+    Info := GetWidgetInfo(PGtkWidget(Data), False);
   end;
   if not Assigned(gdk_window_get_cursor) and (Info = nil)
   then Exit;
@@ -429,7 +429,12 @@ begin
       g_object_set_data(PGObject(AWindow), 'havesavedcursor', gpointer(1));
       g_object_set_data(PGObject(AWindow), 'savedcursor', gpointer(OldCursor));
     end;
-    gdk_window_set_cursor(AWindow, Cursor);
+    gdk_pointer_grab(AWindow, False, 0, AWindow, Cursor, 1);
+    try
+      gdk_window_set_cursor(AWindow, Cursor);
+    finally
+      gdk_pointer_ungrab(0);
+    end;
   end else
   begin
     if g_object_steal_data(PGObject(AWindow), 'havesavedcursor') <> nil then
@@ -506,7 +511,7 @@ var
     gdk_window_get_user_data(AWindow, @Data);
     if (Data <> nil) and GTK_IS_WIDGET(Data) then
     begin
-      Info := GetWidgetInfo(PGtkWidget(Data));
+      Info := GetWidgetInfo(PGtkWidget(Data), False);
       if Info = AInfo then
         SetWindowCursor(AWindow, Cursor, ASetDefault);
     end;

@@ -6,10 +6,10 @@ object Form1: TForm1
   Caption = 'Form1'
   ClientHeight = 310
   ClientWidth = 398
-  LCLVersion = '2.1.0.0'
+  LCLVersion = '1.7'
   object Chart1: TChart
     Left = 0
-    Height = 274
+    Height = 272
     Top = 0
     Width = 398
     AxisList = <    
@@ -17,19 +17,14 @@ object Form1: TForm1
         Marks.Distance = 10
         Marks.LabelFont.Height = -13
         Marks.Frame.Style = psSolid
-        Marks.LabelBrush.Style = bsClear
         Minors = <>
         Title.LabelFont.Orientation = 900
-        Title.LabelBrush.Style = bsClear
       end    
       item
         Alignment = calBottom
         Marks.LabelFont.Height = -13
-        Marks.LabelBrush.Style = bsClear
         Minors = <>
-        Title.LabelBrush.Style = bsClear
       end>
-    BackColor = clWhite
     Foot.Brush.Color = clBtnFace
     Foot.Font.Color = clBlue
     Title.Brush.Color = clBtnFace
@@ -38,60 +33,42 @@ object Form1: TForm1
       'TAChart'
     )
     Align = alClient
-    Color = clWhite
     object Chart1LineSeries1: TLineSeries
       Source = RandomChartSource1
     end
   end
   object Panel1: TPanel
     Left = 0
-    Height = 36
-    Top = 274
+    Height = 38
+    Top = 272
     Width = 398
     Align = alBottom
-    AutoSize = True
-    ClientHeight = 36
+    ClientHeight = 38
     ClientWidth = 398
     TabOrder = 1
     object Print: TButton
-      AnchorSideLeft.Control = Panel1
-      AnchorSideTop.Control = Panel1
-      AnchorSideTop.Side = asrCenter
-      Left = 5
+      Left = 8
       Height = 25
       Top = 6
-      Width = 51
-      AutoSize = True
-      BorderSpacing.Around = 4
+      Width = 75
       Caption = 'Print'
       OnClick = PrintClick
       TabOrder = 0
     end
     object PrintCanvas: TButton
-      AnchorSideLeft.Control = PrintScaledPen
-      AnchorSideLeft.Side = asrBottom
-      AnchorSideTop.Control = Panel1
-      AnchorSideTop.Side = asrCenter
-      Left = 221
+      Left = 256
       Height = 25
       Top = 6
-      Width = 110
-      AutoSize = True
-      BorderSpacing.Left = 4
+      Width = 115
       Caption = 'Print via Canvas'
       OnClick = PrintClick
       TabOrder = 1
     end
     object PrintScaledPen: TButton
-      AnchorSideLeft.Control = Print
-      AnchorSideLeft.Side = asrBottom
-      AnchorSideTop.Control = Panel1
-      AnchorSideTop.Side = asrCenter
-      Left = 60
+      Left = 88
       Height = 25
       Top = 6
-      Width = 157
-      AutoSize = True
+      Width = 163
       Caption = 'Print w/ scaled penwidth'
       OnClick = PrintClick
       TabOrder = 2

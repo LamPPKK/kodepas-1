@@ -266,9 +266,7 @@ type
     class procedure ApplyChanges(const ATrackBar: TCustomTrackBar); override;
     class function  GetPosition(const ATrackBar: TCustomTrackBar): integer; override;
     class procedure SetPosition(const ATrackBar: TCustomTrackBar; const NewPosition: integer); override;
-    class procedure GetPreferredSize(const {%H-}AWinControl: TWinControl;
-                        var {%H-}PreferredWidth, PreferredHeight: integer;
-                        {%H-}WithThemeSpace: Boolean); override;
+    class procedure SetOrientation(const ATrackBar: TCustomTrackBar; const {%H-}AOrientation: TTrackBarOrientation); override;
   end;
 
   { TGtk2WSCustomTreeView }
@@ -430,33 +428,22 @@ begin
   Dec(WidgetInfo^.ChangeLock);
 end;
 
-
-class procedure TGtk2WSTrackBar.GetPreferredSize(
-  const AWinControl: TWinControl; var PreferredWidth, PreferredHeight: integer;
-  WithThemeSpace: Boolean);
+class procedure TGtk2WSTrackBar.SetOrientation(
+  const ATrackBar: TCustomTrackBar; const AOrientation: TTrackBarOrientation);
 var
-  TrackBarWidget: PGtkWidget;
-  Requisition: TGtkRequisition;
+  B: Boolean;
 begin
-  TrackBarWidget := {%H-}PGtkWidget(AWinControl.Handle);
-  // if vertical, measure width without ticks
-  if TCustomTrackBar(AWinControl).Orientation = trVertical then
-    gtk_scale_set_draw_value(PGtkScale(TrackBarWidget), False);
-  // set size to default
-  gtk_widget_set_size_request(TrackBarWidget, -1, -1);
-  // ask default size
-  gtk_widget_size_request(TrackBarWidget, @Requisition);
-  if TCustomTrackBar(AWinControl).Orientation = trHorizontal then
-    PreferredHeight := Requisition.Height
-  else
-    begin
-      // gtk_widget_size_request() always returns size of a HScale,
-      // so we use the height for the width
-      PreferredWidth := Requisition.Height;
-      // restore TickStyle
-      gtk_scale_set_draw_value(PGtkScale(TrackBarWidget),
-                               TCustomTrackBar(AWinControl).TickStyle <> tsNone);
-    end;
+  if not WSCheckHandleAllocated(ATrackBar, 'SetOrientation') then
+    Exit;
+  B := ATrackBar.Visible;
+  if B then
+    ATrackBar.Hide;
+  try
+    RecreateWnd(ATrackBar);
+  finally
+    if B then
+      ATrackBar.Show;
+  end;
 end;
 
 { TGtk2WSProgressBar }

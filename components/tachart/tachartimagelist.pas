@@ -170,14 +170,9 @@ begin
 end;
 
 procedure TChartImageList.ReadData(AStream: TStream);
-var
-  ch: TChart;
 begin
-  ch := Chart;
-  Chart := nil;
+  Unused(AStream);
   Clear;
-  inherited ReadData(AStream);
-  Chart := ch;
 end;
 
 // Notification procedure of the listener. Responds to chart broadcasts
@@ -207,18 +202,10 @@ begin
 end;
 
 procedure TChartImageList.WriteData(AStream: TStream);
-var
-  ch: TChart;
 begin
-  ch := Chart;
-  Chart := nil;
-  inherited WriteData(AStream);
-  Chart := ch;{
-
   // Don't write the series images to stream.
   // They will be recreated automatically when the chart is assigned on loading.
   Unused(AStream);
-  }
 end;
 
 end.

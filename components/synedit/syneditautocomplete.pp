@@ -29,7 +29,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id$
+$Id: syneditautocomplete.pp 55311 2017-06-10 16:30:27Z juha $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -147,9 +147,6 @@ procedure TCustomSynAutoComplete.AddCompletion(AToken, AValue, AComment: string;
   TheAttributes: TStrings);
 begin
   if AToken <> '' then begin
-    if not fParsed then
-      ParseCompletionList;
-
     fCompletions.Add(AToken);
     fCompletionComments.Add(AComment);
     fCompletionValues.Add(AValue);

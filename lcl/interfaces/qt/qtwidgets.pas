@@ -205,7 +205,7 @@ type
     function SlotMouseMove(Sender: QObjectH; Event: QEventH): Boolean; cdecl;
     function SlotMouseWheel(Sender: QObjectH; Event: QEventH): Boolean; cdecl;
     procedure SlotMove(Event: QEventH); cdecl;
-    procedure SlotPaintBg(Sender: QObjectH; Event: QEventH); cdecl; virtual;
+    procedure SlotPaintBg(Sender: QObjectH; Event: QEventH); cdecl;
     procedure SlotPaint(Sender: QObjectH; Event: QEventH); cdecl;
     procedure SlotResize(Event: QEventH); cdecl;
     function SlotContextMenu(Sender: QObjectH; Event: QEventH): Boolean; cdecl;
@@ -408,7 +408,6 @@ type
     function CreateWidget(const AParams: TCreateParams):QWidgetH; override;
   public
     function CanPaintBackground: Boolean; override;
-    procedure SlotPaintBg(Sender: QObjectH; Event: QEventH); cdecl; override;
     procedure setFocusPolicy(const APolicy: QtFocusPolicy); override;
     procedure setFrameStyle(p1: Integer);
     procedure setFrameShape(p1: QFrameShape);
@@ -3044,8 +3043,8 @@ var
     // Enter, Return and Backspace should be sent to LCL in UTF8KeyPress,
     // so skip them here
 
-    Result := (AQtKey = QtKey_Backtab) or // issue #35448
-      // ((AQtKey >= QtKey_Escape) and (AQtKey <= QtKey_Backtab)) or
+    Result :=
+      ((AQtKey >= QtKey_Escape) and (AQtKey <= QtKey_Backtab)) or
       ((AQtKey >= QtKey_Insert) and (AQtKey <= QtKey_Clear)) or
       ((AQtKey >= QtKey_Home) and (AQtKey <= QtKey_PageDown)) or
       ((AQtKey >= QtKey_F1) and (AQtKey <= QtKey_Direction_L)) or
@@ -7597,7 +7596,7 @@ begin
               R.Top := R.Top - FFrameMargins.Top;
               if (R.Left <> QWidget_x(Widget)) or (R.Top <> QWidget_y(Widget)) then
               begin
-                DebugLn('WARNING: QEventActivationChange(TRUE) ',GetWindowManager,' wm strange position: ',Format('X11 x %d y %d Qt x %d y %d',[R.Left, R.Top, QWidget_x(Widget), QWidget_y(Widget)]));
+                DebugLn('WARNING: QEventActivationChange(*TRUE*) ',GetWindowManager,' wm strange position: ',Format('X11 x %d y %d Qt x %d y %d',[R.Left, R.Top, QWidget_x(Widget), QWidget_y(Widget)]));
                 FFormHasInvalidPosition := True;
               end;
             end;
@@ -8838,34 +8837,11 @@ end;
 function TQtFrame.CanPaintBackground: Boolean;
 begin
   Result := CanSendLCLMessage and getEnabled and
-    (LCLObject.Color <> clBackground) and (LCLObject.Color <> clDefault);
-end;
-
-procedure TQtFrame.SlotPaintBg(Sender: QObjectH; Event: QEventH); cdecl;
-var
-  Painter: QPainterH;
-  Brush: QBrushH;
-  Color: TQColor;
-  R: TRect;
-begin
-  if CanSendLCLMessage and (LCLObject is TWinControl) then
+    (LCLObject.Color <> clBackground);
+  if Result and (LCLObject is TCustomPanel) then
   begin
-    if LCLObject.Color = clDefault then
-      Color := Palette.DefaultColor
-    else
-      ColorRefToTQColor(ColorToRGB(LCLObject.Color), Color);
-    Painter := QPainter_create(QWidget_to_QPaintDevice(QWidgetH(Sender)));
-    Brush := QBrush_create(@Color, QtSolidPattern);
-    try
-      QPaintEvent_rect(QPaintEventH(Event), @R);
-      QPainter_fillRect(Painter, @R, Brush);
-      if (LCLObject is TCustomPanel) and (TCustomPanel(LCLObject).BorderStyle <> bsNone) then
-        q_DrawShadePanel(Painter, PRect(@R), Palette.Handle, True, 2);
-      QPainter_end(Painter);
-    finally
-      QBrush_destroy(Brush);
-      QPainter_destroy(Painter);
-    end;
+    Result := (TCustomPanel(LCLObject).BevelInner = bvNone) and
+     (TCustomPanel(LCLObject).BevelOuter = bvNone);
   end;
 end;
 

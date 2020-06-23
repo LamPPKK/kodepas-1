@@ -31,82 +31,32 @@ unit GDBMIServerDebugger;
 interface
 
 uses
-  Classes, sysutils, UTF8Process, Process, LazFileUtils, MacroIntf,
-  // DebuggerIntf
-  DbgIntfDebuggerBase,
-  // LazDebuggerGdbmi
-  GDBMIDebugger, GDBMIMiscClasses, GdbmiStringConstants;
+  Classes, sysutils, GDBMIDebugger, GDBMIMiscClasses, DbgIntfDebuggerBase;
   
 type
 
   { TGDBMIServerDebugger }
 
-  TGDBMIServerDebugger = class(TGDBMIDebuggerBase)
+  TGDBMIServerDebugger = class(TGDBMIDebugger)
   private
   protected
     function CreateCommandInit: TGDBMIDebuggerCommandInitDebugger; override;
     function CreateCommandStartDebugging(AContinueCommand: TGDBMIDebuggerCommand): TGDBMIDebuggerCommandStartDebugging; override;
     procedure InterruptTarget; override;
-    procedure ProcessLineWhileRunning(const ALine: String; AnInLogWarning: boolean;
-      var AHandled, AForceStop: Boolean; var AStoppedParams: String;
-      var AResult: TGDBMIExecResult); override;
-    procedure StopInitProc;
   public
-    InitProc: TProcessUTF8;
-    destructor Destroy; override;
     function NeedReset: Boolean; override;
     class function CreateProperties: TDebuggerProperties; override;  // Creates debuggerproperties
     class function Caption: String; override;
     class function RequiresLocalExecutable: Boolean; override;
-    procedure Done; override;         // Kills external debugger
-  end;
-
-  TInitExecMode = (
-    ieRun,            // run and forget
-    ieRunCloseOnStop  // run, and keep the process until the debugger is stopped
-                      // when the debugger is stopped, terminate the process, if it's still running
-    // todo: to be implemented!
-    //ieRunWaitToExit   // run and wait until the process finishes, before letting the debugger run "target remote"
-  );
-
-  TDebugger_Target_Mode = (
-    dtTargetRemote,
-    dtTargetExtendedRemote
-  );
-
-  { TGDBMIServerGdbEventProperties }
-
-  TGDBMIServerGdbEventProperties = class(TGDBMIDebuggerGdbEventPropertiesBase)
-  private
-    FAfterConnect: TXmlConfStringList;
-    procedure SetAfterConnect(AValue: TXmlConfStringList);
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
-  published
-    property AfterConnect: TXmlConfStringList read FAfterConnect write SetAfterConnect;
-    property AfterInit;
   end;
 
   { TGDBMIServerDebuggerProperties }
 
   TGDBMIServerDebuggerProperties = class(TGDBMIDebuggerPropertiesBase)
   private
-    FArchitecture: string;
     FDebugger_Remote_Hostname: string;
     FDebugger_Remote_Port: string;
     FDebugger_Remote_DownloadExe: boolean;
-    FRemoteTimeout: integer;
-    FSkipSettingLocalExeName: Boolean;
-
-    FInitExec_RemoteTarget: string;
-    FInitExec_Mode: TInitExecMode;
-    FDebugger_Target_Mode : TDebugger_Target_Mode;
-    function GetEventProperties: TGDBMIServerGdbEventProperties;
-    procedure SetEventProperties(AValue: TGDBMIServerGdbEventProperties);
-  protected
-    procedure CreateEventProperties; override;
   public
     constructor Create; override;
     procedure Assign(Source: TPersistent); override;
@@ -114,12 +64,6 @@ type
     property Debugger_Remote_Hostname: String read FDebugger_Remote_Hostname write FDebugger_Remote_Hostname;
     property Debugger_Remote_Port: String read FDebugger_Remote_Port write FDebugger_Remote_Port;
     property Debugger_Remote_DownloadExe: boolean read FDebugger_Remote_DownloadExe write FDebugger_Remote_DownloadExe;
-    property Debugger_Target_Mode: TDebugger_Target_Mode read FDebugger_Target_Mode write FDebugger_Target_Mode default dtTargetRemote;
-    property RemoteTimeout: integer read FRemoteTimeout write FRemoteTimeout default -1;
-    property Architecture: string read FArchitecture write FArchitecture;
-    property SkipSettingLocalExeName: Boolean read FSkipSettingLocalExeName write FSkipSettingLocalExeName default False;
-    property InitExec_RemoteTarget: string read FInitExec_RemoteTarget write FInitExec_RemoteTarget;
-    property InitExec_Mode: TInitExecMode read FInitExec_Mode write FInitExec_Mode default ieRun;
   published
     property Debugger_Startup_Options;
     {$IFDEF UNIX}
@@ -136,7 +80,6 @@ type
     property InternalStartBreak;
     property UseNoneMiRunCommands;
     property DisableLoadSymbolsForLibraries;
-    property DisableForcedBreakpoint;
     //property WarnOnSetBreakpointError;
     property CaseSensitivity;
     property GdbValueMemLimit;
@@ -144,15 +87,14 @@ type
     property AssemblerStyle;
     property DisableStartupShell;
     property FixStackFrameForFpcAssert;
-    property FixIncorrectStepOver;
-    property InternalExceptionBreakPoints;
-    property InternalExceptionBrkSetMethod;
-    property EventProperties: TGDBMIServerGdbEventProperties read GetEventProperties write SetEventProperties;
   end;
 
 procedure Register;
 
 implementation
+
+resourcestring
+  GDBMiSNoAsyncMode = 'GDB does not support async mode';
 
 type
 
@@ -167,49 +109,16 @@ type
 
   TGDBMIServerDebuggerCommandStartDebugging = class(TGDBMIDebuggerCommandStartDebugging)
   protected
-    function GdbRunCommand: TGDBMIExecCommandType; override;
+    function GdbRunCommand: String; override;
     procedure DetectTargetPid(InAttach: Boolean = False); override;
     function  DoTargetDownload: boolean; override;
-    function DoChangeFilename: Boolean; override;
   end;
-
-{ TGDBMIServerGdbEventProperties }
-
-procedure TGDBMIServerGdbEventProperties.SetAfterConnect(
-  AValue: TXmlConfStringList);
-begin
-  FAfterConnect.Assign(AValue);
-end;
-
-procedure TGDBMIServerGdbEventProperties.Assign(Source: TPersistent);
-var
-  aSource: TGDBMIServerGdbEventProperties;
-begin
-  inherited Assign(Source);
-  if Source is TGDBMIServerGdbEventProperties then
-  begin
-    aSource := TGDBMIServerGdbEventProperties(Source);
-    FAfterConnect.Assign(aSource.FAfterConnect);
-  end;
-end;
-
-constructor TGDBMIServerGdbEventProperties.Create;
-begin
-  FAfterConnect := TXmlConfStringList.Create;
-  inherited Create;
-end;
-
-destructor TGDBMIServerGdbEventProperties.Destroy;
-begin
-  FAfterConnect.Free;
-  inherited Destroy;
-end;
 
 { TGDBMIServerDebuggerCommandStartDebugging }
 
-function TGDBMIServerDebuggerCommandStartDebugging.GdbRunCommand: TGDBMIExecCommandType;
+function TGDBMIServerDebuggerCommandStartDebugging.GdbRunCommand: String;
 begin
-  Result := ectContinue;
+  Result := '-exec-continue';
 end;
 
 procedure TGDBMIServerDebuggerCommandStartDebugging.DetectTargetPid(InAttach: Boolean);
@@ -229,126 +138,31 @@ begin
   end;
 end;
 
-function TGDBMIServerDebuggerCommandStartDebugging.DoChangeFilename: Boolean;
-begin
-  Result := True;
-  if not TGDBMIServerDebuggerProperties(DebuggerProperties).SkipSettingLocalExeName then
-    Result := inherited DoChangeFilename;
-end;
-
 { TGDBMIServerDebuggerCommandInitDebugger }
 
 function TGDBMIServerDebuggerCommandInitDebugger.DoExecute: Boolean;
 var
   R: TGDBMIExecResult;
-  t: Integer;
-  s: String;
-  ip     : TProcessUTF8;
-  ipsucc : Boolean;
-  ipkeep : Boolean;
-  iperr  : string;
-  srv    : TGDBMIServerDebugger;
 begin
   Result := inherited DoExecute;
   if (not FSuccess) then exit;
 
-  if not TGDBMIDebuggerBase(FTheDebugger).AsyncModeEnabled then begin
+  if not TGDBMIDebugger(FTheDebugger).AsyncModeEnabled then begin
     SetDebuggerErrorState(GDBMiSNoAsyncMode);
     FSuccess := False;
     exit;
   end;
 
-  s := Trim(TGDBMIServerDebuggerProperties(DebuggerProperties).InitExec_RemoteTarget);
-  IDEMacros.SubstituteMacros(s);
-
-  if s <> '' then begin
-    iperr := '';
-    ip := TProcessUTF8.Create(nil);
-
-    SplitCmdLineParams(s, ip.Parameters);
-    ip.Executable := ip.Parameters[0];
-    ip.Parameters.Delete(0);
-
-    ip.Options := [poNewConsole,poNewProcessGroup];
-    try
-      ip.Execute;
-      {if TGDBMIServerDebuggerProperties(DebuggerProperties).InitExec_Mode = ieRunWaitToExit then
-      begin
-        ip.WaitOnExit;
-        iperr := Format(GDBMiSFailedInitProcWaitOnExit, [ip.ExitStatus, ip.ExitCode]);
-        ipkeep := false;
-      end else}
-        ipkeep := TGDBMIServerDebuggerProperties(DebuggerProperties).InitExec_Mode = ieRunCloseOnStop;
-      ipsucc := true;
-    except
-      on e: exception do begin
-        iperr := e.Message;
-        ipkeep := false;
-        ipsucc := false;
-      end;
-    end;
-
-    if not ipsucc then begin
-      ip.Free;
-      SetDebuggerErrorState(GDBMiSFailedInitProc, iperr);
-      FSuccess := False;
-      exit;
-    end;
-
-    if ipkeep then begin
-      srv := TGDBMIServerDebugger(FTheDebugger);
-      srv.StopInitProc;
-      srv.InitProc := ip
-    end else
-      ip.Free;
-
-  end;
-
-  s := TGDBMIServerDebuggerProperties(DebuggerProperties).Architecture;
-  if s <> '' then
-    ExecuteCommand(Format('set architecture %s', [s]), R);
-
-  t := TGDBMIServerDebuggerProperties(DebuggerProperties).RemoteTimeout;
-  if t >= 0 then
-    ExecuteCommand(Format('set remotetimeout %d', [t]), R);
-
   // TODO: Maybe should be done in CommandStart, But Filename, and Environment will be done before Start
-  if TGDBMIServerDebuggerProperties(DebuggerProperties).Debugger_Target_Mode = dtTargetExtendedRemote then
-    FSuccess := ExecuteCommand(Format('target extended-remote %s',
-                               [TGDBMIServerDebuggerProperties(DebuggerProperties).FDebugger_Remote_Hostname
-                                ]),
-                               R)
-  else
-    FSuccess := ExecuteCommand(Format('target remote %s:%s',
-                               [TGDBMIServerDebuggerProperties(DebuggerProperties).FDebugger_Remote_Hostname,
-                                TGDBMIServerDebuggerProperties(DebuggerProperties).Debugger_Remote_Port ]),
-                               R);
-
+  FSuccess := ExecuteCommand(Format('target remote %s:%s',
+                             [TGDBMIServerDebuggerProperties(DebuggerProperties).FDebugger_Remote_Hostname,
+                              TGDBMIServerDebuggerProperties(DebuggerProperties).Debugger_Remote_Port ]),
+                             R);
   FSuccess := FSuccess and (r.State <> dsError);
-
-  if (FSuccess = true) then
-    ExecuteUserCommands(TGDBMIServerDebuggerProperties(DebuggerProperties).EventProperties.AfterConnect);
-
 end;
 
 
 { TGDBMIServerDebuggerProperties }
-
-function TGDBMIServerDebuggerProperties.GetEventProperties: TGDBMIServerGdbEventProperties;
-begin
-  Result := TGDBMIServerGdbEventProperties(InternalEventProperties);
-end;
-
-procedure TGDBMIServerDebuggerProperties.SetEventProperties(
-  AValue: TGDBMIServerGdbEventProperties);
-begin
-  InternalEventProperties.Assign(AValue);
-end;
-
-procedure TGDBMIServerDebuggerProperties.CreateEventProperties;
-begin
-  InternalEventProperties := TGDBMIServerGdbEventProperties.Create;
-end;
 
 constructor TGDBMIServerDebuggerProperties.Create;
 begin
@@ -356,10 +170,6 @@ begin
   FDebugger_Remote_Hostname:= '';
   FDebugger_Remote_Port:= '2345';
   FDebugger_Remote_DownloadExe := False;
-  FDebugger_Target_Mode := dtTargetRemote;
-  FRemoteTimeout := -1;
-  FArchitecture := '';
-  FSkipSettingLocalExeName := False;
   UseAsyncCommandMode := True;
 end;
 
@@ -370,13 +180,7 @@ begin
     FDebugger_Remote_Hostname := TGDBMIServerDebuggerProperties(Source).FDebugger_Remote_Hostname;
     FDebugger_Remote_Port := TGDBMIServerDebuggerProperties(Source).FDebugger_Remote_Port;
     FDebugger_Remote_DownloadExe := TGDBMIServerDebuggerProperties(Source).FDebugger_Remote_DownloadExe;
-    FDebugger_Target_Mode := TGDBMIServerDebuggerProperties(Source).FDebugger_Target_Mode;
-    FRemoteTimeout := TGDBMIServerDebuggerProperties(Source).FRemoteTimeout;
-    FArchitecture := TGDBMIServerDebuggerProperties(Source).FArchitecture;
-    FSkipSettingLocalExeName := TGDBMIServerDebuggerProperties(Source).FSkipSettingLocalExeName;
     UseAsyncCommandMode := True;
-    FInitExec_RemoteTarget := TGDBMIServerDebuggerProperties(Source).FInitExec_RemoteTarget;
-    FInitExec_Mode := TGDBMIServerDebuggerProperties(Source).FInitExec_Mode;
   end;
 end;
 
@@ -408,43 +212,6 @@ begin
   inherited InterruptTarget;
 end;
 
-procedure TGDBMIServerDebugger.ProcessLineWhileRunning(const ALine: String;
-  AnInLogWarning: boolean; var AHandled, AForceStop: Boolean;
-  var AStoppedParams: String; var AResult: TGDBMIExecResult);
-const
-  LogDisconnect = 'remote connection closed';
-var
-  i: Integer;
-begin
-  inherited ProcessLineWhileRunning(ALine, AnInLogWarning, AHandled, AForceStop,
-    AStoppedParams, AResult);
-
-  // If remote connection terminated then this debugging session is over
-  i := 1;
-  if (ALine[1] = '&') and  (ALine[2] = '"') then
-    i := 3;
-  if (not AnInLogWarning) and (LowerCase(Copy(ALine, i, Length(LogDisconnect))) = LogDisconnect) then begin
-    AHandled := True;
-    AForceStop := True;
-    AStoppedParams := '';
-    SetState(dsStop);
-  end;
-end;
-
-procedure TGDBMIServerDebugger.StopInitProc;
-begin
-  if not Assigned(InitProc) then Exit;
-  if InitProc.Active then InitProc.Terminate(0);
-  InitProc.Free;
-  InitProc:=nil;
-end;
-
-destructor TGDBMIServerDebugger.Destroy;
-begin
-  StopInitProc;
-  inherited Destroy;
-end;
-
 function TGDBMIServerDebugger.NeedReset: Boolean;
 begin
   Result := True;
@@ -460,11 +227,6 @@ begin
   Result := False;
 end;
 
-procedure TGDBMIServerDebugger.Done;
-begin
-  inherited Done;
-  StopInitProc;
-end;
 
 procedure Register;
 begin

@@ -50,7 +50,7 @@ begin
     FImages.FreeNotification(Self);
     FImages.RegisterChanges(FImageChangeLink);
   end;
-  FItems.UpdateImages(true);
+  FItems.UpdateImages;
 end;
 
 procedure TMenu.SetImagesWidth(const aImagesWidth: Integer);

@@ -18,6 +18,9 @@ function TGtk3WidgetSet.CreateRubberBand(const ARect: TRect; const ABrush: HBrus
 var
   Widget: PGtkWidget absolute Result;
   dx, dy: integer;
+  Pixmap: PGdkPixbuf;
+  gc: PCairo_t;
+  AColor: TGdkColor;
 begin
   dx := ARect.Right - ARect.Left;
   dy := ARect.Bottom - ARect.Top;
@@ -46,8 +49,8 @@ end;
 
 procedure TGtk3WidgetSet.DrawDefaultDockImage(AOldRect, ANewRect: TRect;
   AOperation: TDockImageOperation);
-//const
-//  LineWidth = 2;
+const
+  LineWidth = 2;
 var
   dx, dy: integer;
   (*
@@ -156,6 +159,16 @@ begin
 end;
 
 {------------------------------------------------------------------------------
+  function TGtk3WidgetSet.FontCanUTF8(Font: HFont): boolean;
+  
+  True if font recognizes Unicode UTF8 encoding.
+ ------------------------------------------------------------------------------}
+function TGtk3WidgetSet.FontCanUTF8(Font: HFont): boolean;
+begin
+  Result := True; // IsValidGDIObject(Font);
+end;
+
+{------------------------------------------------------------------------------
   function TGtk3WidgetSet.FontIsMonoSpace(Font: HFont): boolean;
 
   True if font characters have all the same width.
@@ -214,11 +227,13 @@ begin
     1: ImageFormat := CAIRO_FORMAT_A1;
     2: ImageFormat := CAIRO_FORMAT_A8;
     else
-       ImageFormat := CAIRO_FORMAT_ARGB32;
+      if Desc.AlphaPrec=0 then
+         ImageFormat := CAIRO_FORMAT_RGB24
+      else
+         ImageFormat := CAIRO_FORMAT_ARGB32;
   end;
   ARowStride := GetBytesPerLine(Desc.Width, Desc.BitsPerPixel, rileDWordBoundary);
-  ABitmap := HBitmap(TGtk3Image.Create(NewData, Desc.Width, Desc.Height, ARowStride, ImageFormat,
-                     not ASkipMask));  // Using ASkipMask for DataOwner param prevents a crash later.
+  ABitmap := HBitmap(TGtk3Image.Create(NewData, Desc.Width, Desc.Height, ARowStride, ImageFormat, True));
   Result := ABitmap <> 0;
 
   if ASkipMask then Exit;
@@ -276,7 +291,7 @@ begin
   ADesc.LineOrder := riloTopToBottom;
   ADesc.LineEnd := rileDWordBoundary;
 
-  ADesc.Depth := CairoImageFormatToDepth[Image.Format];
+  ADesc.Depth := CairoImageFormatToDepth[Image.getFormat];
   ADesc.BitsPerPixel := ADesc.Depth;
   if ADesc.BitsPerPixel = 24 then
     ADesc.BitsPerPixel := 32;
@@ -668,8 +683,8 @@ var
   WorkImage, WorkMask: TGtk3Image;
   R: TRect;
   Width, Height: Integer;
-  //InvertPixels: Boolean;
-  //Px: Cardinal;
+  InvertPixels: Boolean;
+  Px: Cardinal;
 begin
   Result := false;
 
@@ -833,13 +848,17 @@ function TGtk3WidgetSet.RawImage_FromDevice(out ARawImage: TRawImage; ADC: HDC;
   const ARect: TRect): Boolean;
 var
   Desc: TRawImageDescription absolute ARawImage.Description;
+
+  //SrcWidth, SrcHeight: Integer;
+  WinID: Cardinal;
   DCSize: TSize;
   Pixmap: PGdkPixbuf;
+  Image: PGdkPixbuf;
   Context: TGtk3DeviceContext;
-  //DCOrigin: TPoint;
-  //R: TRect;
-  //Drawable: Pcairo_t;
-  //AWindow: PGdkWindow;
+  DCOrigin: TPoint;
+  R: TRect;
+  Drawable: Pcairo_t;
+  AWindow: PGdkWindow;
 
   procedure RawImage_FromImage(AImage: PGdkPixbuf);
   var
@@ -851,6 +870,7 @@ var
     Move(pixels^, ARawImage.Data^, ARawImage.DataSize);
     ARawImage.Mask := nil;
   end;
+
 
 begin
   Result := True;
@@ -1095,7 +1115,7 @@ var
   X: Integer;
   MainList,ChildList: PGList;
   Title: String;
-  //ActiveWindow: HWND;
+  ActiveWindow: HWND;
   BtnResult: LongInt;
   n: Integer;
 
@@ -1103,11 +1123,11 @@ var
       const AImageHint: Integer = -1);
   var
     NewButton: PGtkWidget;
-    //BitmapHandle, MaskHandle: HBitmap;
+    BitmapHandle, MaskHandle: HBitmap;
     // GDIObject: PGDIObject;
-    //Pixbuf: PGdkPixbuf;
+    Pixbuf: PGdkPixbuf;
     // Mask: PGdkBitmap;
-    //Img: PGtkWidget;
+    Img: PGtkWidget;
   begin
 
     NewButton := gtk_dialog_add_button(Dialog,
@@ -1299,6 +1319,8 @@ var
   X: Integer;
   MainList,ChildList: PGList;
   Title: String;
+  ActiveWindow: HWND;
+  QuotedMessage: Pgchar;
   n: Integer;
 
   procedure CreateButton(const ALabel : String; const AResponse: Integer);
@@ -1487,9 +1509,9 @@ end;
 
 function TGtk3WidgetSet.AddEventHandler(AHandle: THandle; AFlags: dword;
   AEventHandler: TWaitHandleEvent; AData: PtrInt): PEventHandler;
-//var
-  //giochannel: pgiochannel;
-  //lEventHandler: PWaitHandleEventHandler;
+var
+  giochannel: pgiochannel;
+  // lEventHandler: PWaitHandleEventHandler;
 begin
   Result := nil;
   (*

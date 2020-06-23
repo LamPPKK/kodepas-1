@@ -20,7 +20,7 @@ uses
   // LazUtils
   LazConfigStorage, LazMethodList, LazLoggerBase, UITypes,
   // IdeIntf
-  NewItemIntf, ProjPackIntf, PackageDependencyIntf, IDEOptionsIntf;
+  NewItemIntf, ProjPackIntf, PackageDependencyIntf;
   
 const
   PkgDescGroupName = 'Package';
@@ -49,18 +49,14 @@ const
 
 type
   TIDEPackage = class;
-  TAbstractPackageFileIDEOptions = class;
-  TAbstractPackageFileIDEOptionsClass = class of TAbstractPackageFileIDEOptions;
 
   { TLazPackageFile }
 
   TLazPackageFile = class(TIDEOwnedFile)
   private
-    FIDEOptionsList: TFPObjectList;
     FDisableI18NForLFM: boolean;
     FFileType: TPkgFileType;
     FRemoved: boolean;
-    FCustomOptions: TConfigStorage;
   protected
     function GetInUses: boolean; virtual; abstract;
     procedure SetInUses(AValue: boolean); virtual; abstract;
@@ -69,15 +65,11 @@ type
     procedure SetDisableI18NForLFM(AValue: boolean); virtual;
     procedure SetFileType(const AValue: TPkgFileType); virtual;
   public
-    constructor Create;
-    destructor Destroy; override;
-    function GetOptionsInstanceOf(OptionsClass: TAbstractPackageFileIDEOptionsClass): TAbstractPackageFileIDEOptions;
     property LazPackage: TIDEPackage read GetIDEPackage;
     property Removed: boolean read FRemoved write SetRemoved;
     property DisableI18NForLFM: boolean read FDisableI18NForLFM write SetDisableI18NForLFM;
     property FileType: TPkgFileType read FFileType write SetFileType;
     property InUses: boolean read GetInUses write SetInUses; // added to uses section of package
-    property CustomOptions: TConfigStorage read FCustomOptions;
   end;
 
   { PkgDependency flags }
@@ -156,13 +148,6 @@ type
     pitDynamic
     );
 
-// FPMake/Lazarus build mode
-  TBuildMethod = (
-    bmLazarus,
-    bmFPMake,
-    bmBoth
-    );
-
   { TIDEPackage }
 
   TIDEPackage = class(TLazPackageID)
@@ -172,7 +157,6 @@ type
     FChangeStamp: integer;
     FCustomOptions: TConfigStorage;
     FPackageType: TLazPackageType;
-    FBuildMethod: TBuildMethod;
     function GetDirectoryExpanded: string; virtual; abstract;
     function GetFileCount: integer; virtual; abstract;
     function GetPkgFiles(Index: integer): TLazPackageFile; virtual; abstract;
@@ -204,7 +188,6 @@ type
     property Modified: boolean read GetModified write SetModified;
     property RemovedFilesCount: integer read GetRemovedCount;
     property RemovedFiles[Index: integer]: TLazPackageFile read GetRemovedPkgFiles;
-    property BuildMethod: TBuildMethod read FBuildMethod write FBuildMethod;
   end;
 
 type
@@ -413,28 +396,6 @@ type
     property ChangeStamp: Int64 read FChangeStamp;
   end;
 
-  TAbstractPackageIDEOptions = class(TAbstractIDEOptions)
-  protected
-    function GetPackage: TIDEPackage; virtual; abstract;
-  public
-    property Package: TIDEPackage read GetPackage;
-  end;
-
-  { TAbstractPackageFileIDEOptions }
-
-  TAbstractPackageFileIDEOptions = class(TAbstractIDEOptions)
-  protected
-    function GetPackageFile: TLazPackageFile; virtual; abstract;
-    function GetPackage: TIDEPackage; virtual; abstract;
-  public
-    constructor Create(APackage: TIDEPackage; APackageFile: TLazPackageFile); virtual; abstract;
-    class function GetInstance: TAbstractIDEOptions; overload; override;
-    class function GetInstance(APackage: TIDEPackage; AFile: TLazPackageFile): TAbstractIDEOptions; overload; virtual; abstract;
-    property PackageFile: TLazPackageFile read GetPackageFile;
-    property Package: TIDEPackage read GetPackage;
-  end;
-
-
 var
   PackageDescriptors: TPackageDescriptors; // will be set by the IDE
   PackageGraphInterface: TPackageGraphInterface; // must be set along with PackageSystem.PackageGraph
@@ -495,13 +456,6 @@ begin
     NewItemPkg.Descriptor:=PkgDesc;
     RegisterNewDialogItem(PkgDescGroupName,NewItemPkg);
   end;
-end;
-
-{ TAbstractPackageFileIDEOptions }
-
-class function TAbstractPackageFileIDEOptions.GetInstance: TAbstractIDEOptions;
-begin
-  Result := Nil;
 end;
 
 
@@ -841,37 +795,6 @@ end;
 procedure TLazPackageFile.SetRemoved(const AValue: boolean);
 begin
   FRemoved:=AValue;
-end;
-
-destructor TLazPackageFile.Destroy;
-begin
-  FIDEOptionsList.Free;
-  FreeAndNil(FCustomOptions);
-  inherited Destroy;
-end;
-
-function TLazPackageFile.GetOptionsInstanceOf(OptionsClass: TAbstractPackageFileIDEOptionsClass): TAbstractPackageFileIDEOptions;
-var
-  i: Integer;
-begin
-  if not Assigned(FIDEOptionsList) then
-  begin
-    FIDEOptionsList := TFPObjectList.Create(True);
-  end;
-  for i := 0 to FIDEOptionsList.Count -1 do
-    if OptionsClass=FIDEOptionsList.Items[i].ClassType then
-    begin
-      Result := TAbstractPackageFileIDEOptions(FIDEOptionsList.Items[i]);
-      Exit;
-    end;
-  Result := OptionsClass.Create(LazPackage, Self);
-  FIDEOptionsList.Add(Result);
-end;
-
-constructor TLazPackageFile.Create;
-begin
-  inherited Create;
-  FCustomOptions:=TConfigMemStorage.Create('',false);
 end;
 
 initialization

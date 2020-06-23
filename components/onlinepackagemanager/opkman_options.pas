@@ -59,8 +59,6 @@ type
     FActiveRepositoryIndex: Integer;
     FForceDownloadAndExtract: Boolean;
     FDeleteZipAfterInstall: Boolean;
-    FIncompatiblePackages: Boolean;
-    FAlreadyInstalledPackages: Boolean;
     FCheckForUpdates: Integer;
     FLastUpdate: TDateTime;
     FConTimeOut: Integer;
@@ -85,7 +83,6 @@ type
     FUserProfile: Integer;
     FExcludedFiles: String;
     FExcludedFolders: String;
-    FOpenSSLDownloadType: Integer;
     procedure CheckColors;
     function GetLocalRepositoryArchiveExpanded:string;
     function GetLocalRepositoryPackagesExpanded:string;
@@ -107,8 +104,6 @@ type
     property ActiveRepositoryIndex: Integer read FActiveRepositoryIndex write FActiveRepositoryIndex;
     property ForceDownloadAndExtract: Boolean read FForceDownloadAndExtract write FForceDownloadAndExtract;
     property DeleteZipAfterInstall: Boolean read FDeleteZipAfterInstall write FDeleteZipAfterInstall;
-    property IncompatiblePackages: Boolean read FIncompatiblePackages write FIncompatiblePackages;
-    property AlreadyInstalledPackages: Boolean read FAlreadyInstalledPackages write FAlreadyInstalledPackages;
     property CheckForUpdates: Integer read FCheckForUpdates write FCheckForUpdates;
     property LastUpdate: TDateTime read FLastUpdate write FLastUpdate;
     property ConTimeOut: Integer read FConTimeOut write FConTimeOut;
@@ -127,7 +122,6 @@ type
     property ProxyPort: Word read FProxySettings.FPort write FProxySettings.FPort;
     property ProxyUser: String read FProxySettings.FUser write FProxySettings.FUser;
     property ProxyPassword: String read FProxySettings.FPassword write FProxySettings.FPassword;
-    property OpenSSLDownloadType: Integer read FOpenSSLDownloadType write FOpenSSLDownloadType;
     property LocalRepositoryPackages: String read FLocalRepositoryPackages write FLocalRepositoryPackages;
     property LocalRepositoryArchive: String read FLocalRepositoryArchive write FLocalRepositoryArchive;
     property LocalRepositoryUpdate: String read FLocalRepositoryUpdate write FLocalRepositoryUpdate;
@@ -198,8 +192,6 @@ begin
   FActiveRepositoryIndex := FXML.GetValue('General/ActiveRepositoryIndex/Value', 0);
   FForceDownloadAndExtract := FXML.GetValue('General/ForceDownloadAndExtract/Value', True);
   FDeleteZipAfterInstall := FXML.GetValue('General/DeleteZipAfterInstall/Value', True);
-  FIncompatiblePackages := FXML.GetValue('General/IncompatiblePackages/Value', True);
-  FAlreadyInstalledPackages := FXML.GetValue('General/AlreadyInstalledPackages/Value', False);
   FLastDownloadDir := FXML.GetValue('General/LastDownloadDir/Value', '');
   FLastPackageDirSrc := FXML.GetValue('General/LastPackageDirSrc/Value', '');
   FLastPackageDirDst := FXML.GetValue('General/LastPackageDirDst/Value', '');
@@ -219,8 +211,6 @@ begin
   FProxySettings.FUser := FXML.GetValue('Proxy/User/Value', '');
   FProxySettings.FPassword := FXML.GetValue('Proxy/Password/Value', '');
 
-  FOpenSSLDownloadType := FXML.GetValue('OpenSSL/DownloadType/Value', 1);
-
   FLocalRepositoryPackages := FXML.GetValue('Folders/LocalRepositoryPackages/Value', '');
   FLocalRepositoryArchive := FXML.GetValue('Folders/LocalRepositoryArchive/Value', '');
   FLocalRepositoryUpdate := FXML.GetValue('Folders/LocalRepositoryUpdate/Value', '');
@@ -237,8 +227,6 @@ begin
   FXML.SetDeleteValue('General/ActiveRepositoryIndex/Value', FActiveRepositoryIndex, 0);
   FXML.SetDeleteValue('General/ForceDownloadAndExtract/Value', FForceDownloadAndExtract, True);
   FXML.SetDeleteValue('General/DeleteZipAfterInstall/Value', FDeleteZipAfterInstall, True);
-  FXML.SetDeleteValue('General/IncompatiblePackages/Value', FIncompatiblePackages, True);
-  FXML.SetDeleteValue('General/AlreadyInstalledPackages/Value', FAlreadyInstalledPackages, False);
   FXML.SetDeleteValue('General/LastDownloadDir/Value', FLastDownloadDir, '');
   FXML.SetDeleteValue('General/LastPackageDirSrc/Value', FLastPackageDirSrc, '');
   FXML.SetDeleteValue('General/LastPackageDirDst/Value', FLastPackageDirDst, '');
@@ -247,7 +235,6 @@ begin
   FXML.SetDeleteExtendedValue('General/LastUpdate/Value', FLastUpdate, 0.0);
   FXML.SetDeleteValue('General/ConTimeOut/Value', FConTimeOut, 10);
   FXML.SetDeleteValue('General/DaysToShowNewPackages/Value', FDaysToShowNewPackages, 31);
-
   FXML.SetDeleteValue('General/ShowRegularIcons/Value', FShowRegularIcons, True);
   FXML.SetDeleteValue('General/UseDefaultTheme/Value', FUseDefaultTheme, True);
   FXML.SetDeleteValue('General/HintFormOption/Value', FHintFormOption, 0);
@@ -258,8 +245,6 @@ begin
   FXML.SetDeleteValue('Proxy/Port/Value', FProxySettings.FPort, 0);
   FXML.SetDeleteValue('Proxy/User/Value', FProxySettings.FUser, '');
   FXML.SetDeleteValue('Proxy/Password/Value', FProxySettings.FPassword, '');
-
-  FXML.SetDeleteValue('OpenSSL/DownloadType/Value', FOpenSSLDownloadType, 1);
 
   FXML.SetDeleteValue('Folders/LocalRepositoryPackages/Value', FLocalRepositoryPackages, '');
   FXML.SetDeleteValue('Folders/LocalRepositoryArchive/Value', FLocalRepositoryArchive, '');
@@ -283,8 +268,6 @@ begin
   FActiveRepositoryIndex := 0;
   FForceDownloadAndExtract := True;
   FDeleteZipAfterInstall := True;
-  FIncompatiblePackages := True;
-  FAlreadyInstalledPackages := False;
   FCheckForUpdates := 5;
   FLastUpdate := 0.0;
   FConTimeOut := 10;
@@ -298,8 +281,6 @@ begin
   FProxySettings.FPort := 0;
   FProxySettings.FUser := '';
   FProxySettings.FPassword := '';
-
-  FOpenSSLDownloadType := 1;
 
   FLocalRepositoryPackages := FLocalPackagesDefault;
   FLocalRepositoryArchive := FLocalArchiveDefault;

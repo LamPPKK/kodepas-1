@@ -2774,7 +2774,11 @@ var
 
 
       if (Flags and DT_NOPREFIX) <> DT_NOPREFIX then
-        pIndex := DeleteAmpersands(AStr)
+      begin
+        pIndex := DeleteAmpersands(AStr);
+        if pIndex > Length(AStr) then
+          pIndex := -1; // String ended in '&', which was deleted
+      end
       else
         pIndex := -1;
 

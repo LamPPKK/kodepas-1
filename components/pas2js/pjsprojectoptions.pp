@@ -39,6 +39,7 @@ type
     procedure RBStartServerAtChange(Sender: TObject);
     procedure RBUseURLChange(Sender: TObject);
   private
+    FDialog: TAbstractOptionsEditorDialog;
     procedure CheckAllControls(aEnabled: Boolean);
     procedure CheckHTMLOptions(aEnabled: Boolean);
     procedure CheckServerOptions(aEnabled: Boolean);
@@ -60,7 +61,7 @@ Procedure SetDefaultNodeJSCompileOptions(CompOpts: TLazCompilerOptions);
 
 implementation
 
-uses pjsdsgnoptions, pjscontroller, strpas2jsdesign;
+uses pjsdsgnoptions, pjscontroller;
 
 Procedure ResetRunParams(RunParams : TAbstractRunParamsOptionsMode);
 
@@ -116,7 +117,7 @@ begin
 
   Compiler:='$(pas2js)';
   CompOpts.CompilerPath:=Compiler;
-  debugln(['Hint: (kode) [pjsprojectoptions.SetPasJSCompileOptions] Compiler=',CompOpts.CompilerPath,' TargetOS=',CompOpts.TargetOS,' Custom="',CompOpts.CustomOptions,'"']);
+  debugln(['Hint: (lazarus) [pjsprojectoptions.SetPasJSCompileOptions] Compiler=',CompOpts.CompilerPath,' TargetOS=',CompOpts.TargetOS,' Custom="',CompOpts.CustomOptions,'"']);
 end;
 
 Procedure SetDefaultWebCompileOptions(CompOpts: TLazCompilerOptions);
@@ -137,21 +138,13 @@ end;
 
 function TPas2JSProjectOptionsFrame.GetTitle: string;
 begin
-  Result:=pjsdWebProjectPas2js;
+  Result:='Web Project (pas2js)'
 end;
 
 procedure TPas2JSProjectOptionsFrame.Setup(ADialog: TAbstractOptionsEditorDialog);
 begin
-  CBWebProject.Caption:=pjsdProjectIsAWebBrowserPas2jsProject;
-  LCBProjectHTMLFile.Caption:=pjsdProjectHTMLPage;
-  CBMaintainHTMLFile.Caption:=pjsdMaintainHTMLPage;
-  CBUseBrowserConsole.Caption:=pjsdUseBrowserConsoleUnitToDisplayWritelnOutput;
-  CBRunOnReady.Caption:=pjsdRunRTLWhenAllPageResourcesAreFullyLoaded;
-  CBUseHTTPServer.Caption:=pjsdProjectNeedsAHTTPServer;
-  RBStartServerAt.Caption:=pjsdStartHTTPServerOnPort;
-  RBUseURL.Caption:=pjsdUseThisURLToStartApplication;
-  BResetRunCommand.Caption:=pjsdResetRunCommand;
-  BResetCompileCommand.Caption:=pjsdResetCompileCommand;
+  // Do nothing
+  FDialog:=ADialog;
 end;
 
 procedure TPas2JSProjectOptionsFrame.CBWebProjectChange(Sender: TObject);

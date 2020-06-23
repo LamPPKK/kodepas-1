@@ -19,12 +19,7 @@ unit frafpreportdata;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, ComCtrls, StdCtrls, fpreport,
-{$ifdef VER3_0}
-  fprepexprpars,
-{$ELSE}
-  fpexprpars,
-{$endif}
+  Classes, SysUtils, FileUtil, Forms, Controls, ComCtrls, StdCtrls, fpreport, fpexprpars,
   fpreportdesignobjectlist;
 
 type

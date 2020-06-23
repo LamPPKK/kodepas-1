@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: grids.pas 62867 2020-04-02 16:01:13Z mattias $}
 {
  /***************************************************************************
                                Grids.pas
@@ -75,6 +75,7 @@ const
   DEFCOLWIDTH         = 64;
   DEFBUTTONWIDTH      = 25;
   DEFIMAGEPADDING     = 2;
+  DEFAUTOADJPADDING   = 8;
 
 type
   EGridException = class(Exception);
@@ -367,12 +368,6 @@ type
               const CheckedState: TCheckboxState;
               var ABitmap: TBitmap) of object;
 
-  TUserCheckBoxImageEvent =
-    procedure(Sender: TObject; const aCol, aRow: Integer;
-              const CheckedState: TCheckBoxState;
-              var ImageList: TCustomImageList;
-              var ImageIndex: TImageIndex) of object;
-
   TValidateEntryEvent =
     procedure(sender: TObject; aCol, aRow: Integer;
               const OldValue: string; var NewValue: String) of object;
@@ -418,8 +413,6 @@ type
       procedure InsertColRow(IsColumn: Boolean; Index: Integer);
       procedure DisposeCell(var P: PCellProps); virtual;
       procedure DisposeColRow(var p: PColRowProps); virtual;
-      function  IsColumnIndexValid(AIndex: Integer): boolean; inline;
-      function  IsRowIndexValid(AIndex: Integer): boolean; inline;
     public
       constructor Create;
       destructor Destroy; override;
@@ -652,7 +645,6 @@ type
     constructor Create(AGrid: TCustomGrid; aItemClass: TCollectionItemClass);
     function Add: TGridColumn;
     procedure Clear;
-    function ColumnByTitle(const aTitle: string): TGridColumn;
     function RealIndex(Index: Integer): Integer;
     function IndexOf(Column: TGridColumn): Integer;
     function IsDefault: boolean;
@@ -711,8 +703,6 @@ type
       OldMaxTopLeft: TPoint;      // previous MaxTopleft (before col sizing)
     end;
 
-    TGridCursorState = (gcsDefault, gcsColWidthChanging, gcsRowHeightChanging, gcsDragging);
-
 type
 
   { TCustomGrid }
@@ -742,7 +732,6 @@ type
     FRangeSelectMode: TRangeSelectMode;
     FSelections: TGridRectArray;
     FOnUserCheckboxBitmap: TUserCheckboxBitmapEvent;
-    FOnUserCheckboxImage: TUserCheckBoxImageEvent;
     FSortOrder: TSortOrder;
     FSortColumn: Integer;
     FSortLCLImages: TLCLGlyphs;
@@ -767,7 +756,6 @@ type
     FOnValidateEntry: TValidateEntryEvent;
     FGridLineColor, FFixedGridLineColor: TColor;
     FFixedColor, FFixedHotColor, FFocusColor, FSelectedColor: TColor;
-    FDisabledFontColor: TColor;
     FFocusRectVisible: boolean;
     FCols,FRows: TIntegerList;
     FsaveOptions: TSaveOptions;
@@ -810,11 +798,7 @@ type
     FColumnClickSorts: boolean;
     FHeaderHotZones: TGridZoneSet;
     FHeaderPushZones: TGridZoneSet;
-    FCursorChangeLock: Integer;
-    FCursorState: TGridCursorState;
-    FColRowDragIndicatorColor: TColor;
     FSavedCursor: TCursor;
-    FSpecialCursors: array[gcsColWidthChanging..gcsDragging] of TCursor;
     FSizing: TSizingRec;
     FRowAutoInserted: Boolean;
     FMouseWheelOption: TMouseWheelOption;
@@ -879,7 +863,6 @@ type
     function  GetSelectedRange(AIndex: Integer): TGridRect;
     function  GetSelectedRangeCount: Integer;
     function  GetSelection: TGridRect;
-    function  GetSpecialCursor(ACursorState: TGridCursorState): TCursor;
     function  GetTopRow: Longint;
     function  GetVisibleColCount: Integer;
     function  GetVisibleGrid: TRect;
@@ -902,13 +885,12 @@ type
     procedure ReadRowHeights(Reader: TReader);
     procedure ResetHotCell;
     procedure ResetPushedCell(ResetColRow: boolean=True);
-    procedure RestoreCursor;
     procedure SaveColumns(cfg: TXMLConfig; Version: integer);
     function  ScrollToCell(const aCol,aRow: Integer; const ForceFullyVisible: Boolean = True): Boolean;
     function  ScrollGrid(Relative:Boolean; DCol,DRow: Integer): TPoint;
     procedure SetCol(AValue: Integer);
     procedure SetColWidths(Acol: Integer; Avalue: Integer);
-    procedure SetColRowDragIndicatorColor(const AValue: TColor);
+    procedure SetColCount(AValue: Integer);
     procedure SetDefColWidth(AValue: Integer);
     procedure SetDefRowHeight(AValue: Integer);
     procedure SetDefaultDrawing(const AValue: Boolean);
@@ -928,10 +910,9 @@ type
     procedure SetScrollBars(const AValue: TScrollStyle);
     procedure SetSelectActive(const AValue: Boolean);
     procedure SetSelection(const AValue: TGridRect);
-    procedure SetSpecialCursor(ACursorState: TGridCursorState; const AValue: TCursor);
     procedure SetTopRow(const AValue: Integer);
     function  StartColSizing(const X, Y: Integer): boolean;
-    procedure ChangeCursor(ACursor: TCursor; ASaveCurrentCursor: Boolean = true);
+    procedure ChangeCursor(ACursor: Integer = MAXINT);
     function TitleFontIsStored: Boolean;
     function  TrySmoothScrollBy(aColDelta, aRowDelta: Integer): Boolean;
     procedure TryScrollTo(aCol,aRow: Integer; ClearColOff, ClearRowOff: Boolean);
@@ -1020,7 +1001,6 @@ type
     procedure DoOPMoveColRow(IsColumn: Boolean; FromIndex, ToIndex: Integer);
     procedure DoPasteFromClipboard; virtual;
     procedure DoPrepareCanvas(aCol,aRow:Integer; aState: TGridDrawState); virtual;
-    procedure DoOnResize; override;
     procedure DoSetBounds(ALeft, ATop, AWidth, AHeight: integer); override;
     function  DoUTF8KeyPress(var UTF8Key: TUTF8Char): boolean; override;
     procedure DrawBorder;
@@ -1106,13 +1086,9 @@ type
     procedure InvalidateFromCol(ACol: Integer);
     procedure InvalidateGrid;
     procedure InvalidateFocused;
-    function  IsColumnIndexValid(AIndex: Integer): boolean;
-    function  IsRowIndexValid(AIndex: Integer): boolean;
-    function  IsColumnIndexVariable(AIndex: Integer): boolean;
-    function  IsRowIndexVariable(AIndex: Integer): boolean;
     function  GetIsCellTitle(aCol,aRow: Integer): boolean; virtual;
     function  GetIsCellSelected(aCol, aRow: Integer): boolean; virtual;
-    function  IsEmptyRow(ARow: Integer): Boolean;
+    function IsEmptyRow(ARow: Integer): Boolean;
     function  IsMouseOverCellButton(X,Y: Integer): boolean;
     procedure KeyDown(var Key : Word; Shift : TShiftState); override;
     procedure KeyUp(var Key : Word; Shift : TShiftState); override;
@@ -1157,10 +1133,8 @@ type
     procedure SelectEditor; virtual;
     function  SelectCell(ACol, ARow: Integer): Boolean; virtual;
     procedure SetCanvasFont(aFont: TFont);
-    procedure SetColCount(AValue: Integer); virtual;
     procedure SetColor(Value: TColor); override;
     procedure SetColRow(const ACol,ARow: Integer; withEvents: boolean = false);
-    procedure SetCursor(AValue: TCursor); override;
     procedure SetEditText(ACol, ARow: Longint; const Value: string); virtual;
     procedure SetBorderStyle(NewStyle: TBorderStyle); override;
     procedure SetFixedcolor(const AValue: TColor); virtual;
@@ -1200,9 +1174,6 @@ type
     property Col: Integer read FCol write SetCol;
     property ColCount: Integer read GetColCount write SetColCount default 5;
     property ColRow: TPoint read GetQuickColRow write SetQuickColRow;
-    property ColRowDraggingCursor: TCursor index gcsDragging read GetSpecialCursor write SetSpecialCursor default crMultiDrag;
-    property ColRowDragIndicatorColor: TColor read FColRowDragIndicatorColor write SetColRowDragIndicatorColor default clRed;
-    property ColSizingCursor: TCursor index gcsColWidthChanging read GetSpecialCursor write SetSpecialCursor default crHSplit;
     property ColumnClickSorts: boolean read FColumnClickSorts write SetColumnClickSorts default false;
     property Columns: TGridColumns read GetColumns write SetColumns stored IsColumnsStored;
     property ColWidths[aCol: Integer]: Integer read GetColWidths write SetColWidths;
@@ -1210,7 +1181,6 @@ type
     property DefaultRowHeight: Integer read GetDefRowHeight write SetDefRowHeight stored DefaultRowHeightIsStored;
     property DefaultDrawing: Boolean read FDefaultDrawing write SetDefaultDrawing default True;
     property DefaultTextStyle: TTextStyle read FDefaultTextStyle write FDefaultTextStyle;
-    property DisabledFontColor: TColor read FDisabledFontColor write FDisabledFontColor default clGrayText;
     property DragDx: Integer read FDragDx write FDragDx;
     property Editor: TWinControl read FEditor write SetEditor;
     property EditorBorderStyle: TBorderStyle read GetEditorBorderStyle write SetEditorBorderStyle;
@@ -1254,7 +1224,6 @@ type
     property RangeSelectMode: TRangeSelectMode read FRangeSelectMode write SetRangeSelectMode default rsmSingle;
     property Row: Integer read FRow write SetRow;
     property RowCount: Integer read GetRowCount write SetRowCount default 5;
-    property RowSizingCursor: TCursor index gcsRowHeightChanging read GetSpecialCursor write SetSpecialCursor default crVSplit;
     property RowHeights[aRow: Integer]: Integer read GetRowHeights write SetRowHeights;
     property SaveOptions: TSaveOptions read FsaveOptions write FSaveOptions;
     property SelectActive: Boolean read FSelectActive write SetSelectActive;
@@ -1285,7 +1254,6 @@ type
     property OnSelectEditor: TSelectEditorEvent read FOnSelectEditor write FOnSelectEditor;
     property OnTopLeftChanged: TNotifyEvent read FOnTopLeftChanged write FOnTopLeftChanged;
     property OnUserCheckboxBitmap: TUserCheckboxBitmapEvent read FOnUserCheckboxBitmap write FOnUserCheckboxBitmap;
-    property OnUserCheckboxImage: TUserCheckBoxImageEvent read FOnUserCheckboxImage write FOnUserCheckboxImage;
     property OnValidateEntry: TValidateEntryEvent read FOnValidateEntry write FOnValidateEntry;
     // Bidi functions
     function FlipRect(ARect: TRect): TRect;
@@ -1323,7 +1291,6 @@ type
     procedure EraseBackground(DC: HDC); override;
     function  Focused: Boolean; override;
     function  HasMultiSelection: Boolean;
-    procedure HideSortArrow;
     procedure InvalidateCell(aCol, aRow: Integer); overload;
     procedure InvalidateCol(ACol: Integer);
     procedure InvalidateRange(const aRange: TRect);
@@ -1341,7 +1308,6 @@ type
     procedure SaveToStream(AStream: TStream); virtual;
     procedure SetFocus; override;
 
-    property CursorState: TGridCursorState read FCursorState;
     property SelectedRange[AIndex: Integer]: TGridRect read GetSelectedRange;
     property SelectedRangeCount: Integer read GetSelectedRangeCount;
     property SortOrder: TSortOrder read FSortOrder write FSortOrder;
@@ -1434,7 +1400,6 @@ type
     property Col;
     property ColWidths;
     property ColRow;
-    property DisabledFontColor;
     property Editor;
     property EditorBorderStyle;
     property EditorMode;
@@ -1571,9 +1536,6 @@ type
 //    property CellHintPriority;
     property Color;
     property ColCount;
-    property ColRowDraggingCursor;
-    property ColRowDragIndicatorColor;
-    property ColSizingCursor;
     property ColumnClickSorts;
     property Columns;
     property Constraints;
@@ -1607,7 +1569,6 @@ type
     property PopupMenu;
     property RangeSelectMode;
     property RowCount;
-    property RowSizingCursor;
     property ScrollBars;
     property ShowHint;
     property TabAdvance;
@@ -1661,9 +1622,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnPickListSelect;
     property OnPrepareCanvas;
     property OnSelectEditor;
@@ -1675,7 +1633,6 @@ type
     property OnStartDrag;
     property OnTopleftChanged;
     property OnUserCheckboxBitmap;
-    property OnUserCheckboxImage;
     property OnUTF8KeyPress;
     property OnValidateEntry;
   end;
@@ -1772,7 +1729,7 @@ type
     procedure CopyToClipboard(AUseSelection: boolean = false);
     procedure InsertRowWithValues(Index: Integer; Values: array of String);
     procedure LoadFromCSVStream(AStream: TStream; ADelimiter: Char=',';
-      UseTitles: boolean=true; FromLine: Integer=0; SkipEmptyLines: Boolean=true); virtual;
+      UseTitles: boolean=true; FromLine: Integer=0; SkipEmptyLines: Boolean=true);
     procedure LoadFromCSVFile(AFilename: string; ADelimiter: Char=',';
       UseTitles: boolean=true; FromLine: Integer=0; SkipEmptyLines: Boolean=true);
     procedure SaveToCSVStream(AStream: TStream; ADelimiter: Char=',';
@@ -1813,9 +1770,6 @@ type
     property CellHintPriority;
     property Color;
     property ColCount;
-    property ColRowDraggingCursor;
-    property ColRowDragIndicatorColor;
-    property ColSizingCursor;
     property ColumnClickSorts;
     property Columns;
     property Constraints;
@@ -1849,7 +1803,6 @@ type
     property PopupMenu;
     property RangeSelectMode;
     property RowCount;
-    property RowSizingCursor;
     property ScrollBars;
     property ShowHint;
     property TabAdvance;
@@ -1904,9 +1857,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseWheelHorz;
-    property OnMouseWheelLeft;
-    property OnMouseWheelRight;
     property OnPickListSelect;
     property OnPrepareCanvas;
     property OnResize;
@@ -1920,7 +1870,6 @@ type
     property OnStartDrag;
     property OnTopLeftChanged;
     property OnUserCheckboxBitmap;
-    property OnUserCheckboxImage;
     property OnUTF8KeyPress;
     property OnValidateEntry;
   end;
@@ -2183,7 +2132,7 @@ end;
 
 function TCustomGrid.GetRowHeights(Arow: Integer): Integer;
 begin
-  if IsRowIndexValid(aRow) then
+  if (aRow<RowCount) and (aRow>=0) then
     Result:=FRows[aRow]
   else
     Result:=-1;
@@ -2590,33 +2539,13 @@ begin
   Result:=FRows.Count;
 end;
 
-function TCustomGrid.IsColumnIndexValid(AIndex: Integer): boolean;
-begin
-  Result := (AIndex>=0) and (AIndex<ColCount);
-end;
-
-function TCustomGrid.IsRowIndexValid(AIndex: Integer): boolean;
-begin
-  Result := (AIndex>=0) and (AIndex<RowCount);
-end;
-
-function TCustomGrid.IsColumnIndexVariable(AIndex: Integer): boolean;
-begin
-  Result := (AIndex>=FFixedCols) and (AIndex<ColCount);
-end;
-
-function TCustomGrid.IsRowIndexVariable(AIndex: Integer): boolean;
-begin
-  Result := (AIndex>=FFixedRows) and (AIndex<RowCount);
-end;
-
 function TCustomGrid.GetColWidths(Acol: Integer): Integer;
 var
   C: TGridColumn;
 begin
   if not Columns.Enabled or (aCol<FirstGridColumn) then
   begin
-    if IsColumnIndexValid(aCol) then
+    if (aCol<ColCount) and (aCol>=0) then
       Result:=FCols[aCol]
     else
       Result:=-1;
@@ -2794,7 +2723,7 @@ begin
     OrgIndex := FGCache.ClickCell.X;
     if OrgIndex<0 then begin
       // invalid starting cell
-      if not AllowOutBoundEvents and (FCursorState=gcsColWidthChanging) then
+      if not AllowOutBoundEvents and (Cursor=crHSplit) then
         // resizing still allowed if mouse is within "resizeable region"
         OrgIndex := Index
       else
@@ -2873,23 +2802,14 @@ begin
 
 end;
 
-procedure TCustomGrid.ChangeCursor(ACursor: TCursor;
-  ASaveCurrentCursor: Boolean = true);
+procedure TCustomGrid.ChangeCursor(ACursor: Integer = MAXINT);
 begin
-  if FCursorChangeLock = 0 then
-  begin
-    if ASaveCurrentCursor then
-      FSavedCursor := Cursor;
-    inc(FCursorChangeLock);
-    Cursor := ACursor;
-    dec(FCursorChangeLock);
+  if ACursor=MAXINT then
+    Cursor := FSavedCursor
+  else begin
+    FSavedCursor := Cursor;
+    Cursor := TCursor(ACursor);
   end;
-end;
-
-procedure TCustomGrid.RestoreCursor;
-begin
-  Cursor := FSavedCursor;
-  FCursorState := gcsDefault;
 end;
 
 procedure TCustomGrid.SetRowHeights(Arow: Integer; Avalue: Integer);
@@ -3277,12 +3197,6 @@ begin
   end;
 end;
 
-procedure TCustomGrid.HideSortArrow;
-begin
-  FSortColumn := -1;
-  InvalidateGrid;
-end;
-
 procedure TCustomGrid.doTopleftChange(DimChg: Boolean);
 begin
   TopLeftChanged;
@@ -3459,7 +3373,7 @@ var
 begin
   if HandleAllocated then begin
     {$Ifdef DbgScroll}
-    DebugLn('Scrollbar Page: Which=',SbToStr(Which), ' Avalue=',dbgs(aPage));
+    DebugLn('ScrollbarPage: Which=',SbToStr(Which), ' Avalue=',dbgs(aPage));
     {$endif}
     ScrollInfo.cbSize := SizeOf(ScrollInfo);
     ScrollInfo.fMask := SIF_PAGE;
@@ -3614,8 +3528,10 @@ begin
           [aCol,aRow,FGCache.FixedHeight,CHeight, FGCache.FixedWidth, CWidth]);
   {$Endif}
 
-  while IsColumnIndexValid(fTopLeft.x) and
-        IsRowIndexValid(fTopLeft.y) do
+  while (fTopLeft.x>=0) and
+        (fTopLeft.x<ColCount)and
+        (fTopLeft.y>=0) and
+        (fTopLeft.y<RowCount) do
   begin
     RNew:=CellRect(aCol,aRow);
     if UseRightToLeftAlignment then begin
@@ -3673,8 +3589,9 @@ begin
 
     if ((XInc=0)and(YInc=0)) or // the cell is already visible
        ((FTopLeft.X=aCol)and(FTopLeft.Y=aRow)) or // the cell is visible by definition
-       not IsColumnIndexValid(FTopLeft.X+XInc) or
-       not IsRowIndexValid(FTopLeft.Y+YInc)
+       ((FTopLeft.X+XInc<0)or(FTopLeft.Y+Yinc<0)) or // topleft can't be lower 0
+       ((FTopLeft.X+XInc>=ColCount)) or // leftmost column can't be equal/higher than colcount
+       ((FTopLeft.Y+Yinc>=RowCount)) // topmost column can't be equal/higher than rowcount
     then
       Break;
     Inc(FTopLeft.x, XInc);
@@ -3902,8 +3819,6 @@ begin
       Canvas.Brush.Color := GetNotSelectedColor;
       SetCanvasFont(GetColumnFont(aCol, ((gdFixed in aState) and (aRow < FFixedRows))));
     end;
-    if not Enabled and (FDisabledFontColor<>clNone) then
-      Canvas.Font.Color := FDisabledFontColor;
     CurrentTextStyle := DefaultTextStyle;
     CurrentTextStyle.Alignment := BidiFlipAlignment(GetColumnAlignment(aCol, gdFixed in AState), UseRightToLeftAlignment);
     CurrentTextStyle.Layout := GetColumnLayout(aCol, gdFixed in AState);
@@ -3960,7 +3875,7 @@ end;
 procedure TCustomGrid.ResetHotCell;
 begin
   with FGCache do begin
-    if HotCellPainted and IsColumnIndexValid(HotCell.x) and IsRowIndexValid(HotCell.y) then
+    if HotCellPainted and (HotCell.x < ColCount) and (HotCell.y < RowCount) then
       InvalidateCell(HotCell.X, HotCell.Y);
     HotCell := Point(-1,-1);
     HotCellPainted := False;
@@ -4027,12 +3942,16 @@ var
   end;
 
 begin
-  if not ShowHint then
+  if ([goCellHints, goTruncCellHints]*Options = []) then
     exit;
 
   cell := MouseToCell(APoint);
   if (cell.x = -1) or (cell.y = -1) then
+  begin
+    Hint := FSavedHint;
+    Application.Hint := GetLongHint(FSavedHint);
     exit;
+  end;
 
   txt1 := '';          // Hint returned by OnGetCellHint
   txt2 := '';          // Hint returned by GetTruncCellHintText
@@ -4040,7 +3959,7 @@ begin
   txt := '';           // Hint to be displayed as popup
   PrepareCellHints(cell.x, cell.y); // in DBGrid, set the active record to cell.y
   try
-    if (goCellHints in Options) and (FCellHintPriority <> chpTruncOnly) then
+    if (goCellHints in Options) then
       txt1 := GetCellHintText(cell.x, cell.y);
     if (goTruncCellHints in Options) then begin
       txt2 := GetTruncCellHintText(cell.x, cell.y);
@@ -4057,24 +3976,31 @@ begin
   case FCellHintPriority of
     chpAll:
       begin
-        AddToHint(txt, GetShortHint(FSavedHint));
-        AddToHint(txt, GetShortHint(txt1));
+        AddToHint(txt, txt1);
         AddToHint(txt, txt2);
-        AddToHint(AppHint, GetLongHint(FSavedHint));
-        AddToHint(AppHint, GetLongHint(txt1));
+        if (txt <> '') then begin
+          if FSavedHint = '' then
+            AppHint := txt
+          else begin
+            txt := GetShortHint(FSavedHint) + LineEnding + txt;
+            AppHint := GetLongHint(FSavedHint) + LineEnding + txt;
+          end;
+        end else
+        begin
+          txt := GetShortHint(FSavedHint);
+          AppHint := GetLongHint(FSavedHint);
+        end;
       end;
     chpAllNoDefault:
       begin
-        AddToHint(txt, GetShortHint(txt1));
+        AddToHint(txt, txt1);
         AddToHint(txt, txt2);
-        AddToHint(AppHint, GetLongHint(txt1));
+        AppHint := txt;
       end;
     chpTruncOnly:
       begin
         AddToHint(txt, txt2);
         AppHint := txt;
-        if Pos('|', AppHint) = 0 then
-          AppHint := AppHint + '|';
       end;
   end;
 
@@ -4084,7 +4010,7 @@ begin
   if (AppHint = '') then AppHint := FSavedhint;
     *)
 
-  if not EditorMode and not (csDesigning in ComponentState) then begin
+  if (txt <> '') and not EditorMode and not (csDesigning in ComponentState) then begin
     Hint := txt;
     //set Application.Hint as well (issue #0026957)
     Application.Hint := GetLongHint(AppHint);
@@ -4112,7 +4038,8 @@ end;
 
 function TCustomGrid.SelectCell(ACol, ARow: Integer): Boolean;
 begin
-  Result := (ColWidths[aCol] > 0) and (RowHeights[aRow] > 0);
+  Result:=true;
+  //Result:=MoveExtend(False, aCol, aRow);
 end;
 
 procedure TCustomGrid.SetCanvasFont(aFont: TFont);
@@ -4144,22 +4071,12 @@ begin
   end;
 end;
 
-procedure TCustomGrid.SetCursor(AValue: TCursor);
-begin
-  inherited;
-  ChangeCursor(AValue);
-end;
-
 procedure TCustomGrid.DrawBorder;
 var
   R: TRect;
 begin
   if InternalNeedBorder then begin
     R := Rect(0,0,ClientWidth-1, Clientheight-1);
-    // The following line is a simple workaround for a more complex problem
-    // caused by Canvas.SaveHandleState and Canvas.RestoreHandleState in DoDrawCell
-    // see the notes in the related bug report #34890
-    Canvas.Pen.Color := fBorderColor + 1;
     Canvas.Pen.Color := fBorderColor;
     Canvas.Pen.Width := 1;
     Canvas.MoveTo(0,0);
@@ -4192,7 +4109,7 @@ begin
     Canvas.Polygon([Point(x,y+dy),point(x,y-dy),point(x-dx,y), point(x,y+dy)]);
     {$else}
     Canvas.Pen.Width:=3;
-    Canvas.Pen.Color:=FColRowDragIndicatorColor;
+    Canvas.Pen.Color:=clRed;
     Canvas.MoveTo(fMoveLast.y, 0);
     Canvas.Lineto(fMovelast.y, FGCache.MaxClientXY.Y);
     Canvas.Pen.Width:=1;
@@ -4213,7 +4130,7 @@ begin
     Canvas.Polygon([Point(x-dx,y),point(x+dx,y),point(x,y-dy), point(x-dx,y)]);
     {$else}
     Canvas.Pen.Width:=3;
-    Canvas.Pen.Color:=FColRowDragIndicatorColor;
+    Canvas.Pen.Color:=clRed;
     if UseRightToLeftAlignment then begin
       Canvas.MoveTo(FGCache.ClientRect.Right, FMoveLast.X);
       Canvas.LineTo(FlipX(FGCache.MaxClientXY.X), FMoveLast.X);
@@ -4531,9 +4448,7 @@ end;
 procedure TCustomGrid.DrawCellGrid(aCol,aRow: Integer; aRect: TRect; aState: TGridDrawState);
 var
   dv,dh: Boolean;
-  OldCosmeticUsed, OldCosmetic: Boolean;
 begin
-  OldCosmeticUsed := false;
 
   with Canvas do begin
 
@@ -4589,9 +4504,6 @@ begin
     end else begin
       Dv := goVertLine in Options;
       Dh := goHorzLine in Options;
-      OldCosmeticUsed := true;
-      OldCosmetic := Pen.Cosmetic;
-      Pen.Cosmetic := false;
       Pen.Style := fGridLineStyle;
       Pen.Color := fGridLineColor;
       Pen.Width := fGridLineWidth;
@@ -4614,8 +4526,6 @@ begin
       end;
     end;
 
-    if OldCosmeticUsed then
-      Pen.Cosmetic := OldCosmetic;
   end; // with canvas,rect
 end;
 
@@ -4678,21 +4588,15 @@ var
   PaintRect: TRect;
   CSize: TSize;
   bmpAlign: TAlignment;
-  bmpLayout: TTextLayout;
   ChkIL: TCustomImageList;
   ChkII: TImageIndex;
   ChkILRes: TScaledImageListResolution;
 begin
 
   if Columns.Enabled then
-  begin
-    bmpAlign := GetColumnAlignment(aCol, false);
-    bmpLayout := GetColumnLayout(aCol, false);
-  end else
-  begin
+    bmpAlign := GetColumnAlignment(aCol, false)
+  else
     bmpAlign := taCenter;
-    bmpLayout := Canvas.TextStyle.Layout;
-  end;
 
   Details.State := -1;
   ChkIL := nil;
@@ -4716,16 +4620,11 @@ begin
   end;
 
   case bmpAlign of
-    taCenter: PaintRect.Left := (aRect.Left + aRect.Right - CSize.cx) div 2;
+    taCenter: PaintRect.Left := Trunc((aRect.Left + aRect.Right - CSize.cx)/2);
     taLeftJustify: PaintRect.Left := ARect.Left + varCellPadding;
     taRightJustify: PaintRect.Left := ARect.Right - CSize.Cx - varCellPadding - 1;
   end;
-
-  case bmpLayout of
-    tlTop    : PaintRect.Top := aRect.Top + varCellPadding;
-    tlCenter : PaintRect.Top := (aRect.Top + aRect.Bottom - CSize.cy) div 2;
-    tlBottom : PaintRect.Top := aRect.Bottom - varCellPadding - CSize.cy - 1;
-  end;
+  PaintRect.Top  := Trunc((aRect.Top + aRect.Bottom - CSize.cy)/2);
   PaintRect := Bounds(PaintRect.Left, PaintRect.Top, CSize.cx, CSize.cy);
 
   if Details.State>=0 then
@@ -5232,7 +5131,7 @@ begin
   begin
     if not GetSmoothScroll(SB_Horz) then
     begin
-      if IsColumnIndexValid(FGCache.MaxTopLeft.x) then
+      if (FGCache.MaxTopLeft.x>=0) and (FGCache.MaxTopLeft.x<=ColCount-1) then
         HsbRange := FGCache.AccumWidth[FGCache.MaxTopLeft.x]+ClientWidth-FGCache.FixedWidth
     end else
     begin
@@ -5244,7 +5143,7 @@ begin
           Dec(HsbRange, ColWidths[ColCount-1]);
       end;
     end;
-    if IsColumnIndexValid(FTopLeft.x) then
+    if (FTopLeft.x>=0) and (FTopLeft.x<=ColCount-1) then
       HsbPos := FGCache.AccumWidth[FTopLeft.x]+FGCache.TLColOff-FGCache.FixedWidth;
   end;
 
@@ -5254,7 +5153,7 @@ begin
   begin
     if not GetSmoothScroll(SB_Vert) then
     begin
-      if IsRowIndexValid(FGCache.MaxTopLeft.y)  then
+      if (FGCache.MaxTopLeft.y>=0) and (FGCache.MaxTopLeft.y<=RowCount-1)  then
         VsbRange := FGCache.AccumHeight[FGCache.MaxTopLeft.y]+ClientHeight-FGCache.FixedHeight
     end else
     begin
@@ -5266,7 +5165,7 @@ begin
           Dec(VsbRange, RowHeights[RowCount-1]);
       end;
     end;
-    if IsRowIndexValid(FTopLeft.y) then
+    if (FTopLeft.y>=0) and (FTopLeft.y<=RowCount-1) then
       VsbPos := FGCache.AccumHeight[FTopLeft.y]+FGCache.TLRowOff-FGCache.FixedHeight;
   end;
 
@@ -5391,8 +5290,8 @@ end;
 
 procedure TCustomGrid.CheckIndex(IsColumn: Boolean; Index: Integer);
 begin
-  if (IsColumn and not IsColumnIndexValid(Index)) or
-     (not IsColumn and not IsRowIndexValid(Index)) then
+  if (IsColumn and ((Index<0) or (Index>ColCount-1))) or
+     (not IsColumn and ((Index<0) or (Index>RowCount-1))) then
     raise EGridException.Create(rsGridIndexOutOfRange);
 end;
 
@@ -5628,8 +5527,6 @@ procedure TCustomGrid.GetImageForCheckBox(const aCol, aRow: Integer;
 begin
   if Assigned(OnUserCheckboxBitmap) then
     OnUserCheckboxBitmap(Self, aCol, aRow, CheckBoxView, Bitmap);
-  if (Bitmap = nil) and Assigned(OnUserCheckBoxImage) then
-    OnUserCheckboxImage(Self, aCol, aRow, CheckBoxView, ImageList, ImageIndex);
 end;
 
 procedure TCustomGrid.AdjustInnerCellRect(var ARect: TRect);
@@ -5866,22 +5763,9 @@ begin
   Result:=FRange;
 end;
 
-function TCustomGrid.GetSpecialCursor(ACursorState: TGridCursorState): TCursor;
-begin
-  Result := FSpecialCursors[ACursorState];
-end;
-
 function TCustomGrid.GetSmoothScroll(Which: Integer): Boolean;
 begin
   Result := goSmoothScroll in Options;
-end;
-
-procedure TCustomGrid.SetColRowDragIndicatorColor(const AValue: TColor);
-begin
-  if FColRowDragIndicatorColor = AValue then exit;
-  FColRowDragIndicatorColor := AValue;
-  if FGridState = gsColMoving then
-    DrawColRowMoving;
 end;
 
 procedure TCustomGrid.SetDefaultDrawing(const AValue: Boolean);
@@ -5933,16 +5817,6 @@ begin
       Invalidate;
     end;
   end;
-end;
-
-procedure TCustomGrid.SetSpecialCursor(ACursorState: TGridCursorState;
-  const AValue: TCursor);
-begin
-  if AValue = GetSpecialCursor(ACursorState) then
-    exit;
-  FSpecialCursors[ACursorState] := AValue;
-  if FCursorState <> gcsDefault then
-    ChangeCursor(AValue, false);
 end;
 
 function TCustomGrid.doColSizing(X, Y: Integer): Boolean;
@@ -6026,11 +5900,10 @@ begin
         Offset := FFixedCols;
       if Index>=Offset then begin
         // start resizing
-        if FCursorState<>gcsColWidthChanging then begin
+        if Cursor<>crHSplit then begin
           PrevLine := false;
           PrevOffset := -1;
-          ChangeCursor(ColSizingCursor);
-          FCursorState := gcsColWidthChanging;
+          ChangeCursor(crHSplit);
         end;
         exit(true);
       end;
@@ -6038,8 +5911,8 @@ begin
 
   end;
 
-  if (FCursorState=gcsColWidthChanging) then
-    RestoreCursor;
+  if (cursor=crHSplit) then
+    ChangeCursor;
 end;
 
 function TCustomGrid.doRowSizing(X, Y: Integer): Boolean;
@@ -6063,7 +5936,7 @@ begin
     end else
       ResizeRow(Index, y-OffIni);
     HeaderSizing(false, Index, y-OffIni);
-    exit(true);
+    Result:=True;
   end else
   if (fGridState=gsNormal) and (RowCount>FixedRows) and
      ((FlipX(X)<FGCache.FixedWidth) or
@@ -6094,9 +5967,8 @@ begin
     // selected boundary
     if (Index>=FFixedRows)and(Abs(Offset-Y)<=varColRowBorderTolerance) then begin
       // start resizing
-      if FCursorState<>gcsRowHeightChanging then begin
-        ChangeCursor(RowSizingCursor);
-        FCursorState := gcsRowHeightChanging;
+      if Cursor<>crVSplit then begin
+        ChangeCursor(crVSplit);
         PrevLine := False;
         PrevOffset := -1;
       end;
@@ -6105,8 +5977,8 @@ begin
 
   end;
 
-  if (FCursorState=gcsRowHeightChanging) then
-    RestoreCursor;
+  if (cursor=crVSplit) then
+    ChangeCursor;
 end;
 
 procedure TCustomGrid.doColMoving(X, Y: Integer);
@@ -6118,13 +5990,12 @@ begin
 
   with FGCache do begin
 
-    if (Abs(ClickMouse.X-X)>FDragDX) and (FCursorState<>gcsDragging) then begin
-      ChangeCursor(ColRowDraggingCursor);
-      FCursorState := gcsDragging;
+    if (Abs(ClickMouse.X-X)>FDragDX) and (Cursor<>crMultiDrag) then begin
+      ChangeCursor(crMultiDrag);
       ResetLastMove;
     end;
 
-    if (FCursorState=gcsDragging) and
+    if (Cursor=crMultiDrag) and
        (CurCell.X>=FFixedCols) and
        ((CurCell.X<=ClickCell.X) or (CurCell.X>ClickCell.X)) and
        (CurCell.X<>FMoveLast.X) then begin
@@ -6154,13 +6025,12 @@ begin
 
   with FGCache do begin
 
-    if (FCursorState<>gcsDragging) and (Abs(ClickMouse.Y-Y)>FDragDX) then begin
-      ChangeCursor(ColRowDraggingCursor);
-      FCursorState := gcsDragging;
+    if (Cursor<>crMultiDrag) and (Abs(ClickMouse.Y-Y)>FDragDX) then begin
+      ChangeCursor(crMultiDrag);
       ResetLastMove;
     end;
 
-    if (FCursorState=gcsDragging)and
+    if (Cursor=crMultiDrag)and
        (CurCell.Y>=FFixedRows) and
        ((CurCell.Y<=ClickCell.Y) or (CurCell.Y>ClickCell.Y))and
        (CurCell.Y<>FMoveLast.Y) then begin
@@ -6193,12 +6063,12 @@ begin
       // begin to count Cols from 0 but ...
       if Fisical and (Offset>FixedWidth-1) then begin
         Index := FTopLeft.X;  // In scrolled view, then begin from FTopLeft col
-        if IsColumnIndexValid(Index) then begin
+        if (Index>=0) and (Index<ColCount) then begin
           Offset:=Offset-FixedWidth+AccumWidth[Index];
           if GetSmoothScroll(SB_Horz) then
             Offset:=Offset+TLColOff;
         end;
-        if not IsColumnIndexValid(Index) or (Offset>GridWidth-1) then begin
+        if (Index<0) or (Index>=ColCount) or (Offset>GridWidth-1) then begin
           if AllowOutboundEvents then
             Index := ColCount-1
           else
@@ -6209,7 +6079,7 @@ begin
 
       while Offset > AccumWidth[Index]+GetColWidths(Index)-1 do begin
         Inc(Index);
-        if not IsColumnIndexValid(Index) then begin
+        if Index>=ColCount then begin
           if AllowOutBoundEvents then
             Index := ColCount-1
           else
@@ -6227,9 +6097,9 @@ begin
       //DebugLn('TCustomGrid.OffsetToColRow ',DbgSName(Self),' Fisical=',dbgs(Fisical),' Offset=',dbgs(Offset),' FixedHeight=',dbgs(FixedHeight),' FTopLeft=',dbgs(FTopLeft),' RowCount=',dbgs(RowCount),' TLRowOff=',dbgs(TLRowOff));
       if Fisical and (Offset>FixedHeight-1) then begin
         Index:=FTopLeft.Y;
-        if IsRowIndexValid(Index) then
+        if (Index>=0) and (Index<RowCount) then
           Offset:=Offset-FixedHeight+AccumHeight[Index]+TLRowOff;
-        if not IsRowIndexValid(Index) or (Offset>GridHeight-1) then begin
+        if (Index<0) or (Index>=RowCount) or (Offset>GridHeight-1) then begin
           if AllowOutboundEvents then
             Index := RowCount-1
           else
@@ -6263,12 +6133,12 @@ begin
   Result:=false;
   with FGCache do begin
     if IsCol then begin
-      if not IsColumnIndexValid(Index) then
+      if (index<0) or (index>ColCount-1) then
         exit;
       StartPos:=AccumWidth[index];
       Dim:=GetColWidths(index);
     end else begin
-      if not IsRowIndexValid(Index) then
+      if (index<0) or (index>RowCount-1) then
         exit;
       StartPos:=AccumHeight[index];
       Dim:= GetRowHeights(index);
@@ -6279,13 +6149,13 @@ begin
       Exit;
     end;
     if IsCol then begin
-      if IsColumnIndexVariable(Index) then begin
+      if index>=FFixedCols then begin
         StartPos:=StartPos-AccumWidth[FTopLeft.X] + FixedWidth;
         if GetSmoothScroll(SB_Horz) then
           StartPos := StartPos - TLColOff;
       end;
     end else begin
-      if IsRowIndexVariable(Index) then begin
+      if index>=FFixedRows then begin
         StartPos:=StartPos-AccumHeight[FTopLeft.Y] + FixedHeight;
         if GetSmoothScroll(SB_Vert) then
           StartPos := StartPos - TLRowOff;
@@ -6706,7 +6576,7 @@ begin
     gzFixedCells:
       begin
         if (goColSizing in Options) and (goFixedColSizing in Options) and
-           (FCursorState=gcsColWidthChanging) then
+           (Cursor=crHSplit) then
           fGridState:= gsColSizing
         else begin
           FGridState := gsHeaderClicking;
@@ -6718,9 +6588,11 @@ begin
 
     gzFixedCols:
       begin
-        if (goColSizing in Options) and (FCursorState=gcsColWidthChanging) then begin
+        if (goColSizing in Options) and (Cursor=crHSplit) then begin
+
           fGridState:= gsColSizing;
           FGCache.OldMaxTopLeft := FGCache.MaxTopLeft;
+
         end
         else begin
           // ColMoving or Clicking
@@ -6736,8 +6608,10 @@ begin
       end;
 
     gzFixedRows:
-      if (goRowSizing in Options) and (FCursorState=gcsRowHeightChanging) then
+      if (goRowSizing in Options)and(Cursor=crVSplit) then
+
         fGridState:= gsRowSizing
+
       else begin
         // RowMoving or Clicking
         fGridState:=gsRowMoving;
@@ -6757,7 +6631,7 @@ begin
           Exit;
         end else
         if FExtendedColSizing and
-          (FCursorState=gcsColWidthChanging) and
+          (Cursor=crHSplit) and
           (goColSizing in Options) then begin
           // extended column sizing
           fGridState:= gsColSizing;
@@ -6866,19 +6740,13 @@ begin
           AllowOutboundEvents := obe;
         end;
 
-        // if we are not over a cell
-        if p.X < 0 then
-          begin
-            // empty hints
-            Application.Hint := '';
-            Hint := '';
-            // if FCellHintPriority = chpAll, restore default hint
-            if ShowHint and (FCellHintPriority = chpAll) then
-              begin
-                Hint := FSavedHint;
-                Application.Hint := GetLongHint(FSavedHint);
-              end;
-          end;
+        //if we are not over a cell, and we use cellhint, we need to empty Application.Hint
+        if (p.X < 0) and ([goCellHints, goTruncCellHints]*Options <> []) and
+          (FCellHintPriority <> chpAll)
+        then begin
+          Application.Hint := '';
+          Hint := '';
+        end;
 
         with FGCache do
           if (MouseCell.X <> p.X) or (MouseCell.Y <> p.Y) then begin
@@ -6946,7 +6814,7 @@ begin
     gsColMoving:
       begin
         //DebugLn('Move Col From ',Fsplitter.x,' to ', FMoveLast.x);
-        RestoreCursor;
+        ChangeCursor;
 
         if FMoveLast.X>=0 then
           DoOPMoveColRow(True, FGCache.ClickCell.X, FMoveLast.X)
@@ -6958,7 +6826,7 @@ begin
     gsRowMoving:
       begin
         //DebugLn('Move Row From ',Fsplitter.Y,' to ', FMoveLast.Y);
-        RestoreCursor;
+        ChangeCursor;
 
         if FMoveLast.Y>=0 then
           DoOPMoveColRow(False, FGCache.ClickCell.Y, FMoveLast.Y)
@@ -7014,7 +6882,7 @@ begin
     Invalidate;
     {$endif}
     if not (fGridState in [gsColMoving,gsRowMoving]) then
-      RestoreCursor;
+      ChangeCursor;
   end;
 
   FGCache.ClickCell := point(-1, -1);
@@ -7030,12 +6898,12 @@ begin
   {$IfDef dbgGrid}DebugLn('DoubleClick INIT');{$Endif}
   SelectActive:=False;
   fGridState:=gsNormal;
-  if (goColSizing in Options) and (FCursorState=gcsColWidthChanging) then begin
+  if (goColSizing in Options) and (Cursor=crHSplit) then begin
     if (goDblClickAutoSize in Options) then begin
       OldWidth := ColWidths[FSizing.Index];
       AutoAdjustColumn( FSizing.Index );
       if OldWidth<>ColWidths[FSizing.Index] then begin
-        RestoreCursor;
+        ChangeCursor;
         HeaderSized(True, FSizing.Index);
       end;
     end {else
@@ -7043,7 +6911,7 @@ begin
   end else
   if  (goDblClickAutoSize in Options) and
       (goRowSizing in Options) and
-      (FCursorState=gcsRowHeightChanging) then begin
+      (Cursor=crVSplit) then begin
       {
         DebugLn('Got DoubleClick on Row Resizing: AutoAdjust?');
       }
@@ -7219,6 +7087,7 @@ end;
 procedure TCustomGrid.DoEditorShow;
 var
   ParentChanged: Boolean;
+  Column: TGridColumn;
 begin
   {$ifdef dbgGrid}DebugLnEnter('grid.DoEditorShow [',Editor.ClassName,'] INIT');{$endif}
   ScrollToCell(FCol,FRow, True);
@@ -7235,8 +7104,9 @@ begin
     Editor.Parent:=Self;
   if (FEditor = FStringEditor) or (FEditor = FButtonStringEditor) then
   begin
-    if FCol-FFixedCols<Columns.Count then
-      FStringEditor.Alignment:=Columns[FCol-FFixedCols].Alignment
+    Column:=ColumnFromGridColumn(FCol);
+    if Column<>nil then
+      FStringEditor.Alignment:=Column.Alignment
     else
       FStringEditor.Alignment:=taLeftJustify;
   end;
@@ -7299,13 +7169,6 @@ procedure TCustomGrid.DoPrepareCanvas(aCol,aRow:Integer; aState: TGridDrawState)
 begin
   if Assigned(OnPrepareCanvas) then
     OnPrepareCanvas(Self, aCol, aRow, aState);
-end;
-
-procedure TCustomGrid.DoOnResize;
-begin
-  inherited DoOnResize;
-  if FUpdateCount=0 then
-    TWSCustomGridClass(WidgetSetClass).Invalidate(Self);
 end;
 
 procedure TCustomGrid.DoSetBounds(ALeft, ATop, AWidth, AHeight: integer);
@@ -7850,10 +7713,13 @@ begin
     MoveNextSelectable(true, aCol, aRow);
 end;
 
-function TCustomGrid.MoveNextSelectable(Relative: Boolean; DCol, DRow: Integer): Boolean;
+function TCustomGrid.MoveNextSelectable(Relative: Boolean; DCol, DRow: Integer
+  ): Boolean;
 var
   CInc,RInc: Integer;
   NCol,NRow: Integer;
+  SelOk: Boolean;
+
 begin
   // Reference
   if not Relative then begin
@@ -7893,14 +7759,14 @@ begin
   else           RInc:= 0;
 
   // Calculate
+  SelOk:=SelectCell(NCol,NRow);
   Result:=False;
-  while ((ColWidths[NCol]=0)  and (CInc<>0))
-     or ((RowHeights[NRow]=0) and (RInc<>0)) do
-  begin
-    if not (IsRowIndexVariable(NRow+RInc) and IsColumnIndexVariable(NCol+CInc)) then
-      Exit;
+  while not SelOk do begin
+    if  (NRow+RInc>RowCount-1)or(NRow+RInc<FFixedRows) or
+        (NCol+CInc>ColCount-1)or(NCol+CInc<FFixedCols) then Exit;
     Inc(NCol, CInc);
     Inc(NRow, RInc);
+    SelOk:=SelectCell(NCol, NRow);
   end;
   Result:=MoveExtend(False, NCol, NRow, True);
 
@@ -8015,8 +7881,8 @@ end;
 
 procedure TCustomGrid.BeginAutoDrag;
 begin
-  if ((goColSizing in Options) and (FCursorState=gcsColWidthChanging)) or
-     ((goRowSizing in Options) and (FCursorState=gcsRowHeightChanging))
+  if ((goColSizing in Options) and (Cursor=crHSplit)) or
+     ((goRowSizing in Options) and (Cursor=crVSplit))
   then
     // TODO: Resizing in progress, add an option to forbid resizing
     //       when DragMode=dmAutomatic
@@ -8170,7 +8036,7 @@ end;
 // shouldn't raise an error whereas setting the Row or Col property it should.
 procedure TCustomGrid.CheckLimitsWithError(const aCol, aRow: Integer);
 begin
-  if not IsColumnIndexValid(aCol) or not IsRowIndexValid(aRow) then
+  if (aCol < 0) or (aRow < 0) or (aCol >= ColCount) or (aRow >= RowCount) then
     raise EGridException.Create(rsGridIndexOutOfRange);
 end;
 
@@ -8192,14 +8058,12 @@ procedure TCustomGrid.CMMouseEnter(var Message: TLMessage);
 begin
   inherited;
   FSavedHint := Hint;
-  // Note: disable hint when entering grid's border, we'll manage our own hints
-  Application.Hint := '';
-  Application.CancelHint;
 end;
 
 procedure TCustomGrid.CMMouseLeave(var Message: TLMessage);
 begin
-  Hint := FSavedHint;
+  if [goCellHints, goTruncCellHints] * Options <> [] then
+    Hint := FSavedHint;
   ResetHotCell;
   inherited CMMouseLeave(Message);
 end;
@@ -8434,7 +8298,7 @@ function TCustomGrid.EditingAllowed(ACol: Integer = -1): Boolean;
 var
   C: TGridColumn;
 begin
-  Result:=(goEditing in options) and IsColumnIndexValid(ACol) and (RowCount>FixedRows);
+  Result:=(goEditing in options) and (ACol>=0) and (ACol<ColCount) and (RowCount>FixedRows);
   if Result and Columns.Enabled then begin
     C:=ColumnFromGridColumn(ACol);
     Result:=(C<>nil) and (not C.ReadOnly);
@@ -8690,8 +8554,6 @@ end;
 function TCustomGrid.GetTruncCellHintText(ACol, ARow: Integer): string;
 begin
   Result := GetCells(ACol, ARow);
-  if Assigned(FOnGetCellHint) and (FCellHintPriority = chpTruncOnly) then
-    FOnGetCellHint(self, ACol, ARow, result);
 end;
 
 function TCustomGrid.GetCells(ACol, ARow: Integer): string;
@@ -9623,7 +9485,7 @@ begin
         for i:=1 to k do begin
           tmpPath := Path+'column'+IntToStr(i);
           j:=cfg.getValue(tmpPath+'/index',-1);
-          if IsColumnIndexValid(j) then begin
+          if (j>=0)and(j<=ColCount-1) then begin
             ColWidths[j]:=cfg.getValue(tmpPath+'/width',-1);
             doLoadColumn(self, nil, j, Cfg, Version, tmpPath);
           end;
@@ -9634,7 +9496,7 @@ begin
       k:=cfg.getValue(Path+'rowcount',0);
       for i:=1 to k do begin
         j:=cfg.getValue(Path+'row'+IntToStr(i)+'/index',-1);
-        if IsRowIndexValid(j) then begin
+        if (j>=0)and(j<=RowCount-1) then begin
           RowHeights[j]:=cfg.getValue(Path+'row'+IntToStr(i)+'/height',-1);
         end;
       end;
@@ -9651,8 +9513,8 @@ begin
       end;
       i:=Cfg.GetValue('grid/position/col',-1);
       j:=Cfg.GetValue('grid/position/row',-1);
-      if IsColumnIndexVariable(i) and
-         IsRowIndexVariable(j) then begin
+      if (i>=FFixedCols)and(i<=ColCount-1) and
+         (j>=FFixedRows)and(j<=RowCount-1) then begin
         MoveExtend(false, i,j, True);
       end;
       if goRangeSelect in Options then begin
@@ -9766,7 +9628,6 @@ begin
   FFixedColor:=clBtnFace;
   FFixedHotColor:=cl3DLight;
   FSelectedColor:= clHighlight;
-  FDisabledFontColor:=clGrayText;
   FRange:=Rect(-1,-1,-1,-1);
   FDragDx:=3;
   SetBounds(0,0,200,100);
@@ -9831,15 +9692,9 @@ begin
 
   FValidateOnSetSelection := false;
 
-  FColRowDragIndicatorColor := clRed;
-
-  FSpecialCursors[gcsColWidthChanging] := crHSplit;
-  FSpecialCursors[gcsRowHeightChanging] := crVSplit;
-  FSpecialCursors[gcsDragging] := crMultiDrag;
-
-  varRubberSpace := Scale96ToScreen(constRubberSpace);
-  varCellPadding := Scale96ToScreen(constCellPadding);
-  varColRowBorderTolerance := Scale96ToScreen(constColRowBorderTolerance);
+  varRubberSpace := MulDiv(constRubberSpace, Screen.PixelsPerInch, 96);
+  varCellPadding := MulDiv(constCellPadding, Screen.PixelsPerInch, 96);
+  varColRowBorderTolerance := MulDiv(constColRowBorderTolerance, Screen.PixelsPerInch, 96);
 end;
 
 destructor TCustomGrid.Destroy;
@@ -10073,7 +9928,7 @@ procedure TCustomGrid.AutoAdjustColumns;
 var
   i: Integer;
 begin
-  For i:=0 to ColCount-1 do
+  For i:=0 to ColCount do
     AutoAdjustColumn(i);
 end;
 
@@ -10083,7 +9938,7 @@ function TVirtualGrid.GetCells(Col, Row: Integer): PCellProps;
 begin
   // todo: Check range
   Result:=nil;
-  if not IsColumnIndexValid(Col) or not IsRowIndexValid(Row) then
+  if (Col<0) or (Row<0) or (Col>=ColCount) or (Row>=RowCount) then
     raise EGridException.CreateFmt(rsIndexOutOfRange, [Col, Row]);
   Result:=FCellArr[Col,Row];
 end;
@@ -10189,16 +10044,6 @@ begin
     Dispose(P);
     P:=nil;
   end;
-end;
-
-function TVirtualGrid.IsColumnIndexValid(AIndex: Integer): boolean;
-begin
-  Result := (AIndex>=0) and (AIndex<ColCount);
-end;
-
-function TVirtualGrid.IsRowIndexValid(AIndex: Integer): boolean;
-begin
-  Result := (AIndex>=0) and (AIndex<RowCount);
 end;
 
 function TVirtualGrid.GetDefaultCell: PcellProps;
@@ -10933,9 +10778,8 @@ end;
 
 function TCustomDrawGrid.SelectCell(aCol, aRow: Integer): boolean;
 begin
-  Result := inherited SelectCell(aCol, aRow);
-  if Assigned(OnSelectCell) then
-    OnSelectCell(Self, aCol, aRow, Result);
+  Result:= (ColWidths[aCol] > 0) and (RowHeights[aRow] > 0);
+  if Assigned(OnSelectCell) then OnSelectCell(Self, aCol, aRow, Result);
 end;
 
 procedure TCustomDrawGrid.SetColor(Value: TColor);
@@ -11333,7 +11177,7 @@ var
   aLayout: TButtonLayout;
   imgList: TCustomImageList;
 begin
-  if not IsColumnIndexValid(aCol) then
+  if (aCol<0) or (aCol>ColCount-1) then
     Exit;
 
   GetTitleImageInfo(aCol, i, aLayout);
@@ -11390,7 +11234,7 @@ begin
   if W=0 then
     W := DefaultColWidth
   else
-    W := W + 2*varCellpadding + 1;
+    W := W + DEFAUTOADJPADDING;
 
   ColWidths[aCol] := W;
 end;
@@ -11706,9 +11550,9 @@ begin
             bCellData := not bTagEnd;
             if bTagEnd then // table end cell tag </td>
             begin
-              if IsColumnIndexValid(bCol) and IsRowIndexValid(bRow) then
+              if (bCol < ColCount) and (bRow < RowCount) then
               begin
-                bCellStr := ReplaceEntities(bCellStr);
+                Cells[bCol, bRow] := ReplaceEntities(bCellStr);
                 DoCellProcess(bCol, bRow, cpPaste, bCellStr);
                 Cells[bCol, bRow] := bCellStr;
               end;
@@ -11771,7 +11615,7 @@ begin
       while k>0 do begin
         i:=cfg.GetValue('grid/content/cells/cell'+IntToStr(k)+'/column', -1);
         j:=cfg.GetValue('grid/content/cells/cell'+IntTostr(k)+'/row',-1);
-        if IsRowIndexValid(j) and IsColumnIndexValid(i) then
+        if (j>=0)and(j<=rowcount-1)and(i>=0)and(i<=Colcount-1) then
           Cells[i,j]:=UTF8Encode(cfg.GetValue('grid/content/cells/cell'+IntToStr(k)+'/text',''));
         Dec(k);
       end;
@@ -13090,18 +12934,6 @@ begin
   BeginUpdate;
   inherited Clear;
   EndUpdate
-end;
-
-function TGridColumns.ColumnByTitle(const aTitle: string): TGridColumn;
-var
-  i: Integer;
-begin
-  result := nil;
-  for i:=0 to Count-1 do
-    if SameText(Items[i].Title.Caption, aTitle) then begin
-      result := Items[i];
-      break;
-    end;
 end;
 
 function TGridColumns.RealIndex(Index: Integer): Integer;

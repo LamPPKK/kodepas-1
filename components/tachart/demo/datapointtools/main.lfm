@@ -15,7 +15,7 @@ object MainForm: TMainForm
     Width = 637
     MultiLine = True
     OnChange = TabControlChange
-    TabIndex = 5
+    TabIndex = 4
     Tabs.Strings = (
       'Line series'
       'Bar series'
@@ -131,7 +131,6 @@ object MainForm: TMainForm
         Pointer.Style = psHexagon
         Pointer.VertSize = 7
         Pointer.Visible = True
-        ToolTargets = [nptPoint, nptYList, nptCustom]
       end
       object OHLCSeries: TOpenHighLowCloseSeries
         Active = False

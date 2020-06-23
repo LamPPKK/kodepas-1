@@ -51,5 +51,5 @@
 
 {$ENDIF}
 
-// $Id$
+// $Id: synedit.inc 42184 2013-07-23 18:44:37Z martin $
 

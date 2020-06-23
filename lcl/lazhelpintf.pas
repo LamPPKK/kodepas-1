@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: lazhelpintf.pas 58244 2018-06-13 13:59:07Z juha $  }
 {
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)
@@ -643,13 +643,12 @@ var
   i: Integer;
 begin
   Result:=Filename;
-  {$push}
   {$warnings off}
   if PathDelim<>'/' then
     for i:=1 to length(Result) do
       if Result[i]=PathDelim then
         Result[i]:='/';
-  {$pop}
+  {$warnings on}
 end;
 
 function URLPathToFilename(const URLPath: string): string;
@@ -657,13 +656,12 @@ var
   i: Integer;
 begin
   Result:=URLPath;
-  {$push}
   {$warnings off}
   if PathDelim<>'/' then
     for i:=1 to length(Result) do
       if Result[i]='/' then
         Result[i]:=PathDelim;
-  {$pop}
+  {$warnings on}
 end;
 
 procedure SplitURL(const URL: string; out URLScheme, URLPath, URLParams: string);

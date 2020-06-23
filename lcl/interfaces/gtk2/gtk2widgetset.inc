@@ -178,7 +178,7 @@ var
   aTreeIter : TGtkTreeIter;
   value : pgValue;
 begin
-  aWidget := GetOrCreateWidgetInfo({%H-}Pointer(WinControl.Handle))^.CoreWidget;
+  aWidget := GetWidgetInfo({%H-}Pointer(WinControl.Handle), True)^.CoreWidget;
   aTreeModel := gtk_tree_view_get_model (GTK_TREE_VIEW(aWidget));
   if (gtk_tree_model_get_iter_from_string (aTreeModel, @aTreeIter, arg1)) then begin
     aTreeIter.stamp := GTK_LIST_STORE (aTreeModel)^.stamp; //strange hack
@@ -348,13 +348,11 @@ begin
   else
   begin
     // gObject
-    if AGTKObject = nil then
-      gObject := ObjectToGTKObject(ALCLObject)
-    else
-      gObject := AGTKObject;
+    if AGTKObject = nil then gObject := ObjectToGTKObject(ALCLObject)
+    else gObject := AGTKObject;
     if gObject = nil then Exit;
 
-    Info:=GetWidgetInfo(gObject);
+    Info:=GetWidgetInfo(gObject, True);
 
     // gFixed is the widget with the client area (e.g. TGroupBox, TCustomForm have this)
     gFixed := PGTKObject(GetFixedWidget(gObject));
@@ -760,7 +758,7 @@ begin
     if gFixed = nil then gFixed := gObject;
 
     // gCore is the main widget (e.g. TListView has this)
-    gCore:= PGtkObject(GetWidgetInfo(gObject)^.CoreWidget);
+    gCore:= PGtkObject(GetWidgetInfo(gObject, True)^.CoreWidget);
   end;
 
   case AMsg of
@@ -895,7 +893,7 @@ begin
       SelectionMode:= GTK_SELECTION_SINGLE;
       
     Selection := gtk_tree_view_get_selection(GTK_TREE_VIEW(
-       GetOrCreateWidgetInfo(Widget)^.CoreWidget));
+       GetWidgetInfo(Widget, True)^.CoreWidget));
     gtk_tree_selection_set_mode(Selection, SelectionMode);
   end;
 end;
@@ -4684,7 +4682,7 @@ var
   Info: PWinWidgetInfo;
 begin
   if Widget = nil then Exit;
-  Info := GetWidgetInfo(Widget);
+  Info := GetWidgetInfo(Widget, False);
   if Info <> nil then
     g_signal_handlers_disconnect_matched(Widget, G_SIGNAL_MATCH_DATA, 0, 0, nil, nil, Info);
 end;
@@ -4740,7 +4738,7 @@ var
   WidgetInfo: PWidgetInfo;
   Allocation: TGTKAllocation;
 begin
-  WidgetInfo := GetOrCreateWidgetInfo(Widget); // Widget info already created in CreateAPIWidget
+  WidgetInfo := GetWidgetInfo(Widget,true); // Widget info already created in CreateAPIWidget
   WidgetInfo^.LCLObject := AWinControl;
   WidgetInfo^.Style := AParams.Style;
   WidgetInfo^.ExStyle := AParams.ExStyle;
@@ -4776,8 +4774,9 @@ begin
   ClearAccelKey(Widget);
 
   // untransient
-  if GtkWidgetIsA(Widget,GTK_TYPE_WINDOW) then
+  if GtkWidgetIsA(Widget,GTK_TYPE_WINDOW) then begin
     UntransientWindow(PGtkWindow(Widget));
+  end;
 
   // callbacks
   RemoveCallbacks(Widget);
@@ -4861,35 +4860,38 @@ begin
     Result := rsBlank;
 end;
 
-function TGtk2WidgetSet.CreateAPIWidget(AWinControl: TWinControl): PGtkWidget;
+function TGtk2WidgetSet.CreateAPIWidget(
+  AWinControl: TWinControl): PGtkWidget;
 // currently only used for csFixed
 var
   Adjustment: PGTKAdjustment;
   WinWidgetInfo: PWinWidgetInfo;
 begin
   Result := GTKAPIWidget_New;
-  WinWidgetInfo := GetOrCreateWidgetInfo(Result);
+  WinWidgetInfo := GetWidgetInfo(Result, True);
   WinWidgetInfo^.CoreWidget := PGTKAPIWidget(Result)^.Client;
   WinWidgetInfo^.LCLObject := AWinControl;
 
   gtk_scrolled_window_set_policy(PGTKScrolledWindow(Result),
     GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
-  Adjustment := gtk_scrolled_window_get_vadjustment(PGTKScrolledWindow(Result));
+  Adjustment :=
+    gtk_scrolled_window_get_vadjustment(PGTKScrolledWindow(Result));
   if Adjustment <> nil
   then with Adjustment^ do
   begin
     g_object_set_data(PGObject(Adjustment), odnScrollBar,
-                      PGTKScrolledWindow(Result)^.VScrollBar);
+                        PGTKScrolledWindow(Result)^.VScrollBar);
     Step_Increment := 1;
   end;
 
-  Adjustment := gtk_scrolled_window_get_hadjustment(PGTKScrolledWindow(Result));
+  Adjustment :=
+    gtk_scrolled_window_get_hadjustment(PGTKScrolledWindow(Result));
   if Adjustment <> nil
   then with Adjustment^ do
   begin
     g_object_set_data(PGObject(Adjustment), odnScrollBar,
-                      PGTKScrolledWindow(Result)^.HScrollBar);
+                        PGTKScrolledWindow(Result)^.HScrollBar);
     Step_Increment := 1;
   end;
 
@@ -4934,7 +4936,7 @@ begin
   gtk_widget_show(TempWidget);
   if NotOnParentsClientArea then
   begin
-    WinWidgetInfo:=GetOrCreateWidgetInfo(Result);
+    WinWidgetInfo:=GetWidgetInfo(Result, true);
     Include(WinWidgetInfo^.Flags, wwiNotOnParentsClientArea);
   end;
   SetFixedWidget(Result, TempWidget);

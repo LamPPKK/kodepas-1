@@ -994,6 +994,7 @@ begin
     end
   else
     begin
+      StopDesigning;
       LoadDesignFromFile(AFileName);
       SetFileCaption(AFileName);
     end;
@@ -1855,10 +1856,8 @@ procedure TFPReportDesignerForm.CreateReportDataSets(Errors: TStrings);
 
 
 begin
-  if (rdoManageData in DesignOptions) then
-    FReportDesignData.ApplyToReport(FReport,Errors);
+  FReportDesignData.ApplyToReport(FReport,Errors);
   FReport.RestoreDataFromNames;
-  FReportData.Report:=FReport;
   FReportData.RefreshData;
 end;
 
@@ -2022,7 +2021,7 @@ procedure TFPReportDesignerForm.SaveDesignToFile(AFileName : string);
 
 Var
   WS: TFPReportJSONStreamer;
-  S : UTF8String;
+  S : String;
   FS : TFileStream;
   DD : TJSONObject;
 
@@ -2035,7 +2034,7 @@ begin
     FReport.WriteElement(WS);
     if rdoManageData in DesignOptions then
       begin
-      // Add design data
+    // Add design data
       DD:=TJSONObject.Create;
       WS.JSon.Add('DesignData',DD);
       FReportDesignData.SaveToJSON(DD);
@@ -2107,6 +2106,7 @@ end;
 Procedure TFPReportDesignerForm.LoadReportFromFile(Const AFileName : String);
 
 begin
+  StopDesigning;
   LoadDesignFromFile(AFileName);
   SetFileCaption(AFileName);
   if Assigned(MRUMenuManager1) then
@@ -2122,7 +2122,6 @@ Var
   I : integer;
 
 begin
-  I:=FReportDesignData.DataDefinitions.Count;
   FStopDesigning:=True;
   try
     if Assigned(FReport) then
@@ -2136,12 +2135,9 @@ begin
     // Give LCL time to clean up.
     Application.ProcessMessages;
     FReportData.Report:=Nil;
-    if (rdoManageData in DesignOptions) then
-      begin
-      if Assigned(FReport) then
-        FReportDesignData.RemoveFromReport(FReport);
-      FReportDesignData.DataDefinitions.Clear;
-      end;
+    if Assigned(FReport) then
+      FReportDesignData.RemoveFromReport(FReport);
+    FReportDesignData.DataDefinitions.Clear;
     FOI.Report:=Nil;
     FOI.SelectControls(Nil);
   Finally
@@ -2173,7 +2169,7 @@ begin
       FReport := TFPReport.Create(Self);
       end
     else
-      FReport.Clear(rdoManageData in DesignOptions);
+      FReport.Clear;
     end
   else
     FReport := TFPReport.Create(Self);
@@ -2183,8 +2179,7 @@ procedure TFPReportDesignerForm.LoadDesignFromFile(const AFilename: string);
 
 var
   rs: TFPReportJSONStreamer;
-  ms : TMemoryStream;
-  uts : UTF8String;
+  fs: TFileStream;
   DD,lJSON: TJSONObject;
   Errs : TStrings;
   OldName : TComponentName;
@@ -2195,16 +2190,12 @@ begin
   if not FileExists(AFilename) then
     raise Exception.CreateFmt('The file "%s" can not be found', [AFilename]);
 
-  ms := TMemoryStream.Create();
+  fs := TFileStream.Create(AFilename, fmOpenRead or fmShareDenyNone);
   try
-    ms.LoadFromFile(AFilename);
-    ms.Position := 0;
-    SetLength(uts,ms.Size);
-    Move(ms.Memory^,uts[Low(uts)],Length(uts));
+    lJSON := TJSONObject(GetJSON(fs));
   finally
-    FreeAndNil(ms);
+    FreeAndNil(fs);
   end;
-  lJSON := TJSONObject(GetJSON(uts));
   StopDesigning;
   ResetReport;
   OldName:=FReport.Name;
@@ -2217,10 +2208,10 @@ begin
       DD:=lJSON.Get('DesignData',TJSONObject(Nil));
       if Assigned(DD) then
         FReportDesignData.DataDefinitions.LoadFromJSON(DD);
+      // We must do this before the report is loaded, so the pages/bands can find their data
+      Errs:=TStringList.Create;
+      CreateReportDataSets(Errs);
       end;
-    // We must do this before the report is loaded, so the pages/bands can find their data
-    Errs:=TStringList.Create;
-    CreateReportDataSets(Errs);
     FReport.ReadElement(rs);
     if (FReport.Owner<>Self) and (OldName<>'') then
       FReport.Name:=OldName;

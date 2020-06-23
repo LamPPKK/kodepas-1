@@ -33,8 +33,7 @@ type
     FLogLock: TRTLCriticalSection;
     FLogFile: TLazLoggerFileHandle;
     FLogFileCreated: Boolean;
-    FLogFileName: String;
-    FLogBufferText: TStringList;
+    FLogFileName, FLogBufferText: String;
     procedure InitLog;
     procedure FinishLog;
 
@@ -63,8 +62,6 @@ type
     procedure TearDown; override;
     procedure RunTest; override;
   public
-    constructor Create; override;
-    destructor Destroy; override;
     function SkipTest: Boolean; virtual;
     Procedure TestCompile(const PrgName: string; out ExeName: string; NamePostFix: String=''; ExtraArgs: String=''); overload;
     Procedure TestCompile(const PrgName: string; out ExeName: string; const UsesDirs: array of TUsesDir;
@@ -196,7 +193,6 @@ begin
     inc(FIgnoredErrorCnt);
   end else begin
     FTestErrors := FTestErrors + IntToStr(FTestCnt) + ': ' + s + LineEnding;
-    DebugLn(['!!!!! ERROR: ' + IntToStr(FTestCnt) + ': ' + s]);
     inc(FTestErrorCnt);
   end;
 end;
@@ -281,7 +277,7 @@ end;
 function TDBGTestCase.TestMatches(Expected, Got: string; ACaseSense: Boolean
   ): Boolean;
 begin
-  Result := TestMatches('', Expected, Got, ACaseSense, 0, 0);
+  TestMatches('', Expected, Got, ACaseSense, 0, 0);
 end;
 
 function TDBGTestCase.TestMatches(Name: string; Expected, Got: string;
@@ -293,13 +289,13 @@ end;
 function TDBGTestCase.TestMatches(Name: string; Expected, Got: string;
   ACaseSense: Boolean; MinDbgVers: Integer; AIgnoreReason: String): Boolean;
 begin
-  Result := TestMatches(Name, Expected, Got, ACaseSense, MinDbgVers);
+  TestMatches(Name, Expected, Got, ACaseSense, MinDbgVers);
 end;
 
 function TDBGTestCase.TestMatches(Name: string; Expected, Got: string;
   MinDbgVers: Integer; MinFpcVers: Integer; AIgnoreReason: String): Boolean;
 begin
-  Result := TestMatches(Name, Expected, Got, False, MinDbgVers, MinFpcVers, AIgnoreReason);
+  TestMatches(Name, Expected, Got, False, MinDbgVers, MinFpcVers, AIgnoreReason);
 end;
 
 function TDBGTestCase.TestMatches(Name: string; Expected, Got: string;
@@ -462,7 +458,7 @@ end;
 procedure TDBGTestCase.InitLog;
 begin
   FLogFileCreated := False;
-  FLogBufferText.Clear;
+  FLogBufferText := '';
 end;
 
 procedure TDBGTestCase.CreateLog;
@@ -498,9 +494,9 @@ begin
     //Rewrite(FLogFile);
     FLogFileCreated := True;
 
-    FLogFile.WriteLnToFile(FLogBufferText.Text);
+    FLogFile.WriteLnToFile(FLogBufferText);
     //writeln(FLogFile, FLogBufferText);
-    FLogBufferText.Clear;
+    FLogBufferText := '';
   finally
     LeaveCriticalsection(FLogLock);
   end;
@@ -511,14 +507,13 @@ var
   NewName: String;
 begin
   if FLogFileCreated then begin
-    CheckSynchronize(1);
     FreeAndNil(FLogFile);
     //CloseFile(FLogFile);
     NewName := GetFinalLogFileName;
     sleep(5);
     RenameFileUTF8(FLogFileName + '.log.running', NewName + '.log');
   end;
-  FLogBufferText.Clear;
+  FLogBufferText := '';
 end;
 
 function EscapeText(s: String): String;
@@ -537,9 +532,9 @@ begin
   else begin
     EnterCriticalsection(FLogLock);
     try
-      if FLogBufferText.Count > 500000 then
-        FLogBufferText.Delete(1);
-      FLogBufferText.Add(EscapeText(s));
+      if length(FLogBufferText) > 20000000 then
+        Delete(FLogBufferText, 1 , Length(s + LineEnding));
+      FLogBufferText := FLogBufferText + EscapeText(s) + LineEnding;
     finally
       LeaveCriticalsection(FLogLock);
     end;
@@ -550,11 +545,10 @@ end;
 
 procedure TDBGTestCase.LogError(const s: string; CopyToTestLogger: Boolean);
 begin
-  if GetLogActive or (TestControlGetWriteLog = wlOnError) then begin
+  if GetLogActive or (TestControlGetWriteLog = wlOnError) then
     CreateLog;
-    FLogFile.WriteLnToFile(EscapeText(s));
-    //writeln(FLogFile, EscapeText(s));
-  end;
+  FLogFile.WriteLnToFile(EscapeText(s));
+  //writeln(FLogFile, EscapeText(s));
   if CopyToTestLogger then
     TestLogger.DebugLn(s);
 end;
@@ -622,18 +616,6 @@ begin
   end;
 end;
 
-constructor TDBGTestCase.Create;
-begin
-  inherited Create;
-  FLogBufferText := TStringList.Create;
-end;
-
-destructor TDBGTestCase.Destroy;
-begin
-  FreeAndNil(FLogBufferText);
-  inherited Destroy;
-end;
-
 function TDBGTestCase.SkipTest: Boolean;
 begin
   Result := not(
@@ -659,7 +641,7 @@ begin
     LogText(Compiler.LastCompileCommandLine+LineEnding + '*******************' +LineEnding+LineEnding );
   except
     On E: Exception do begin
-      TestTrue('Compile '+PrgName + ' GOT: '+ E.Message+ LineEnding + Compiler.LastCompileOutput, False);
+      TestTrue('Compile '+PrgName + ' GOT: '+ Compiler.LastCompileOutput, False);
       AssertTestErrors;
     end;
   end;

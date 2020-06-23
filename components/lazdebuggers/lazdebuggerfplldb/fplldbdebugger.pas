@@ -28,7 +28,7 @@ uses
   Classes, sysutils, math, FpdMemoryTools, FpDbgInfo, LldbDebugger,
   LldbInstructions, LldbHelper, DbgIntfBaseTypes, DbgIntfDebuggerBase, LCLProc,
   Forms, FpDbgLoader, FpDbgDwarf, LazLoggerBase, LazClasses, FpPascalParser,
-  FpPascalBuilder, FpErrorMessages, FpDbgDwarfDataClasses, FpDbgDwarfFreePascal;
+  FpPascalBuilder, FpErrorMessages, FpDbgDwarfDataClasses;
 
 type
 
@@ -103,6 +103,7 @@ type
   public
     procedure Execute; override;
     constructor Create(AFileName: String; ADebugger: TFpLldbDebugger);
+    destructor Destroy; override;
     procedure FreeDwarf;
 
     property ImageLoaderList: TDbgImageLoaderList read FImageLoaderList;
@@ -350,6 +351,13 @@ begin
   inherited Create(False);
 end;
 
+destructor TDwarfLoaderThread.Destroy;
+begin
+  if FreeOnTerminate then
+    FreeDwarf;
+  inherited Destroy;
+end;
+
 procedure TDwarfLoaderThread.FreeDwarf;
 begin
   FreeAndNil(FDwarfInfo);
@@ -402,9 +410,9 @@ end;
 procedure TFPLldbLocals.ProcessLocals(ALocals: TLocals);
 var
   Ctx: TFpDbgInfoContext;
-  ProcVal: TFpValue;
+  ProcVal: TFpDbgValue;
   i: Integer;
-  m: TFpValue;
+  m: TFpDbgValue;
   n, v: String;
 begin
   if FLocalsEvalCancel then begin
@@ -441,14 +449,12 @@ begin
         else
           n := '';
         FpDebugger.FPrettyPrinter.PrintValue(v, m);
-        m.ReleaseReference;
         ALocals.Add(n, v);
       end;
     end;
     ALocals.SetDataValidity(ddsValid);
   finally
     Ctx.ReleaseReference;
-    ProcVal.ReleaseReference;
   end;
 end;
 
@@ -968,7 +974,7 @@ var
   AnEntry: TDisassemblerEntry;
   SrcFileName, LineAddrStr: String;
   i,j, StatIndex, FirstIndex, SrcFileLine: Integer;
-  Sym: TFpSymbol;
+  Sym: TFpDbgSymbol;
   ALastAddr, LineAddr: TDBGPtr;
 begin
   StatIndex := 0;
@@ -996,7 +1002,7 @@ begin
     LineAddr := StrToInt64(LineAddrStr);
     if i = 0 then
       Range.RangeStartAddr :=  LineAddr;
-    Sym :=  FOwner.FpDebugger.FDwarfInfo.FindProcSymbol(LineAddr);
+    Sym :=  FOwner.FpDebugger.FDwarfInfo.FindSymbol(LineAddr);
 
     // If this is the last statement for this source-code-line, fill the
     // SrcStatementCount from the prior statements.
@@ -1042,12 +1048,14 @@ end;
 
 procedure TFpLldbDebuggerCommandDisassemble.DoExecute;
 var
+  memLoc: TFpDbgMemLocation;
+  ALinesAfter: Integer;
   DInstr: TLldbInstructionDisassem;
-  Sym: TFpSymbol;
+  Sym: TFpDbgSymbol;
   StartRange, EndRange: TDBGPtr;
 begin
 
-  Sym := FOwner.FpDebugger.FDwarfInfo.FindProcSymbol(FBeforeAddr);
+  Sym := FOwner.FpDebugger.FDwarfInfo.FindSymbol(FBeforeAddr);
   if Sym <> nil then
     StartRange := Sym.Address.Address
   else
@@ -1285,6 +1293,7 @@ end;
 
 function TFpLldbDebugger.GetLocationForContext(AThreadId, AStackFrame: Integer): TDBGPtr;
 var
+  t: TThreadEntry;
   s: TCallStackBase;
   f: TCallStackEntry;
   r: TRegisters;
@@ -1405,6 +1414,12 @@ begin
   Result.AddReference;
 end;
 
+type
+  TLldbDwarfTypeIdentifier = class(TFpDwarfSymbolType)
+  public
+    property InformationEntry;
+  end;
+
 procedure TFpLldbDebugger.DoWatchFreed(Sender: TObject);
 begin
   FWatchEvalList.Remove(pointer(Sender));
@@ -1415,11 +1430,11 @@ function TFpLldbDebugger.EvaluateExpression(AWatchValue: TWatchValue; AExpressio
 var
   Ctx: TFpDbgInfoContext;
   PasExpr, PasExpr2: TFpPascalExpression;
-  ResValue: TFpValue;
+  ResValue: TFpDbgValue;
   s: String;
   DispFormat: TWatchDisplayFormat;
   RepeatCnt: Integer;
-  TiSym: TFpSymbol;
+  TiSym: TFpDbgSymbol;
 
   function IsWatchValueAlive: Boolean;
   begin
@@ -1490,18 +1505,24 @@ DebugLn(DBG_VERBOSE, [ErrorHandler.ErrorAsString(PasExpr.Error)]);
     if not IsWatchValueAlive then exit;
 
     ResValue := PasExpr.ResultValue;
+    if ResValue = nil then begin
+      AResText := 'Error';
+      if AWatchValue <> nil then
+        AWatchValue.Validity := ddsInvalid;
+      exit;
+    end;
 
     if (ResValue.Kind = skClass) and (ResValue.AsCardinal <> 0) and (defClassAutoCast in EvalFlags)
     then begin
       CastName := '';
-      if FMemManager.ReadAddress(ResValue.DataAddress, SizeVal(Ctx.SizeOfAddress), ClassAddr) then begin
+      if FMemManager.ReadAddress(ResValue.DataAddress, Ctx.SizeOfAddress, ClassAddr) then begin
         ClassAddr.Address := ClassAddr.Address + 3 * Ctx.SizeOfAddress;
-        if FMemManager.ReadAddress(ClassAddr, SizeVal(Ctx.SizeOfAddress), CNameAddr) then begin
-          if (FMemManager.ReadUnsignedInt(CNameAddr, SizeVal(1), NameLen)) then
+        if FMemManager.ReadAddress(ClassAddr, Ctx.SizeOfAddress, CNameAddr) then begin
+          if (FMemManager.ReadUnsignedInt(CNameAddr, 1, NameLen)) then
             if NameLen > 0 then begin
               SetLength(CastName, NameLen);
               CNameAddr.Address := CNameAddr.Address + 1;
-              FMemManager.ReadMemory(CNameAddr, SizeVal(NameLen), @CastName[1]);
+              FMemManager.ReadMemory(CNameAddr, NameLen, @CastName[1]);
               PasExpr2 := TFpPascalExpression.Create(CastName+'('+AExpression+')', Ctx);
               PasExpr2.ResultValue;
               if PasExpr2.Valid then begin

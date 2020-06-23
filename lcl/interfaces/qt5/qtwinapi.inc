@@ -6789,6 +6789,7 @@ begin
       with SrcQDC.getDeviceSize do
         TmpPixmap := QPixmap_create(x, y);
       QScreen_grabWindow(QGuiApplication_primaryScreen, TmpPixmap, QWidget_winId(SrcQDC.Parent), 0, 0);
+      // QPixmap_grabWindow(TmpPixmap, QWidget_winId(SrcQDC.Parent), 0, 0);
       Image := QImage_create();
       QPixmap_toImage(TmpPixmap, Image);
       QPixmap_destroy(TmpPixmap);

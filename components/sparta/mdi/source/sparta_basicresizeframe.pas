@@ -5,10 +5,8 @@ unit sparta_BasicResizeFrame;
 interface
 
 uses
-  Classes, Types, contnrs, SysUtils, Math,
-  FileUtil,
-  LCLType, LCLIntf, LMessages, Forms, Controls, ExtCtrls, StdCtrls, Graphics, Menus,
-  sparta_InterfacesMDI;
+  Classes, contnrs, SysUtils, FileUtil, Forms, Controls, ExtCtrls, StdCtrls,
+  Graphics, LCLType, lclintf, Menus, LMessages, Math, Types, sparta_InterfacesMDI;
 
 type
   TPositioningCode = (pcPositioning, pcPositioningEnd);
@@ -53,6 +51,7 @@ type
     procedure FakeKeyUp(Sender: TObject; var Key: Word; {%H-}Shift: TShiftState);
     procedure FakeUTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
   private
+    { private declarations }
     FOnNodePositioning: TPositioningEvent;
     FOnHorizontalScroll, FOnVerticalScroll: TScrollEvent;
     FLastRightMarign: Integer;

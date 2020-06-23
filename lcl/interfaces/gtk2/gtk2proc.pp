@@ -49,7 +49,7 @@ uses
   LResources, Controls, Forms, Buttons, Menus, StdCtrls, ComCtrls, ExtCtrls,
   Dialogs, ExtDlgs, ImgList, LCLMessageGlue,
   // LazUtils
-  Masks, FileUtil, LazFileUtils, LazStringUtils, LazLoggerBase, LazUTF8, DynHashArray,
+  Masks, FileUtil, LazFileUtils, LazLoggerBase, LazUTF8, DynHashArray,
   // Gtk2
   Gtk2FontCache, Gtk2Globals, Gtk2Def, Gtk2Extra, {%H-}Gtk2Debug;
 
@@ -311,7 +311,8 @@ function DeliverPostMessage(const Target: Pointer; var TheMessage): GBoolean;
 function DeliverMessage(const Target: Pointer; var AMessage): PtrInt;
 
 // PChar
-//function CreatePChar(const s: string): PChar;
+function CreatePChar(const s: string): PChar;
+function ComparePChar(P1, P2: PChar): boolean;
 function FindChar(c: char; p:PChar; Max: integer): integer;
 function FindLineLen(p:PChar; Max: integer): integer;
 
@@ -338,7 +339,7 @@ function CreateWidgetInfo(const AWidget: Pointer): PWidgetInfo;
 function CreateWidgetInfo(const AWidget: Pointer; const AObject: TObject;
                           const AParams: TCreateParams): PWidgetInfo;
 function GetWidgetInfo(const AWidget: Pointer): PWidgetInfo;
-function GetOrCreateWidgetInfo(const AWidget: Pointer): PWidgetInfo;
+function GetWidgetInfo(const AWidget: Pointer; const ACreate: Boolean): PWidgetInfo;
 procedure FreeWidgetInfo(AWidget: Pointer);
 
 procedure DestroyWidget(Widget: PGtkWidget);
@@ -357,7 +358,8 @@ procedure FixedMoveControl(Parent, Child: PGTKWidget; Left, Top: Longint);
 procedure FixedPutControl(Parent, Child: PGTKWidget; Left, Top: Longint);
 
 // forms
-procedure SetFormShowInTaskbar(AForm: TCustomForm; const AValue: TShowInTaskbar);
+procedure SetFormShowInTaskbar(AForm: TCustomForm;
+                               const AValue: TShowInTaskbar);
 procedure SetGtkWindowShowInTaskbar(AGtkWindow: PGtkWindow; Value: boolean);
 procedure SetWindowFullScreen(AForm: TCustomForm; const AValue: Boolean);
 procedure GrabKeyBoardToForm(AForm: TCustomForm);
@@ -367,7 +369,8 @@ procedure ReleaseMouseFromForm({%H-}AForm: TCustomForm);
 procedure GtkWindowShowModal(AForm: TCustomForm; GtkWindow: PGtkWindow);
 
 // label
-procedure SetLabelAlignment(LabelWidget: PGtkLabel; const NewAlignment: TAlignment);
+procedure SetLabelAlignment(LabelWidget: PGtkLabel;
+  const NewAlignment: TAlignment);
 
 // paint messages
 function DoDeliverPaintMessage(const Target: TObject; var PaintMsg: TLMPaint): PtrInt;
@@ -585,9 +588,11 @@ procedure ConnectInternalWidgetsSignals(AWidget: PGtkWidget;
 //--
 
 // accelerators
+function DeleteAmpersands(var Str: String): Longint;
 function Ampersands2Underscore(Src: PChar): PChar;
 function Ampersands2Underscore(const ASource: String): String;
-function EscapeUnderscores(const Str: String): String; inline;
+function RemoveAmpersands(Src: PChar; LineLength: Longint): PChar;
+function RemoveAmpersands(const ASource: String): String;
 procedure LabelFromAmpersands(var AText, APattern: String; var AAccelChar: Char);
 
 function GetAccelGroup(const Widget: PGtkWidget;

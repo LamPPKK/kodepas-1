@@ -1,5 +1,5 @@
 {%MainUnit win32int.pp}
-{ $Id$ }
+{ $Id: win32lclintfh.inc 51983 2016-03-18 16:45:35Z bart $ }
 {******************************************************************************
                  All GTK interface communication implementations.
                    Initial Revision  : Sun Nov 23 23:53:53 2003
@@ -42,6 +42,8 @@ procedure DrawGrid(DC: HDC; const R: TRect; DX, DY: Integer); override;
 
 function ExtUTF8Out(DC: HDC; X, Y: Integer; Options: Longint; Rect: PRect;
   Str: PChar; Count: Longint; Dx: PInteger): Boolean; override;
+
+function FontCanUTF8({%H-}Font: HFont): boolean; override;
 function FontIsMonoSpace(Font: HFont): boolean; override;
 
 function GetAcceleratorString(const AVKey: Byte; const AShiftState: TShiftState): String; override;

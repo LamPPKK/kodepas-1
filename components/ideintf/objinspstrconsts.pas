@@ -58,7 +58,6 @@ resourcestring
   oisShowHints = 'Show Hints';
   oisShowInfoBox = 'Show Information Box';
   oisShowStatusBar = 'Show Status Bar';
-  oisShowPropertyFilter = 'Show Property Filter';
   oisOptions = 'Options';
 
   // typeinfo, PropEdits
@@ -223,9 +222,6 @@ resourcestring
   cgColumns = 'Columns:';
   cgCheckDuplicate = 'On Add, Check for Duplicate in Items';
   cgCheckDuplicateMsg = 'The "%s" Item is already listed. Add it anyway?';
-
-  // flowpanel editor
-  fpFlowPanelEditor = 'FlowPanel Editor';
 
   // Collection Editor
   oiColEditAdd = 'Add';

@@ -729,7 +729,7 @@ begin
   //Note: Assign/Clear is called inside CreateHandle before Handle is set
   if FOwner.HandleAllocated then
   begin
-    WidgetInfo := GetWidgetInfo({%H-}Pointer(FOwner.Handle));
+    WidgetInfo := GetWidgetInfo({%H-}Pointer(FOwner.Handle), False);
     Inc(WidgetInfo^.ChangeLock);
 
     gtk_list_store_clear(FGtkListStore);

@@ -1,5 +1,5 @@
 {%MainUnit gtkint.pp}
-{ $Id$ }
+{ $Id: gtkwinapi.inc 55188 2017-06-03 18:56:34Z juha $ }
 
 {******************************************************************************
                          All GTK Winapi implementations.
@@ -3084,7 +3084,11 @@ begin
       AStr := StringReplace(AStr, #9, TabString, [rfReplaceAll]);
 
     if (Flags and DT_NOPREFIX) <> DT_NOPREFIX then
-      pIndex := DeleteAmpersands(AStr)
+    begin
+      pIndex := DeleteAmpersands(AStr);
+      if pIndex > Length(AStr) then
+        pIndex := -1; // String ended in '&', which was deleted
+    end
     else
       pIndex := -1;
 

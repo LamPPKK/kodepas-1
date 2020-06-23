@@ -18,9 +18,7 @@ unit LldbHelper;
 interface
 
 uses
-  Classes, SysUtils, strutils, math,
-  // DebuggerIntf
-  DbgIntfBaseTypes;
+  Classes, SysUtils, math, DbgIntfBaseTypes, strutils;
 
 function LastPos(ASearch, AString: string): Integer;
 

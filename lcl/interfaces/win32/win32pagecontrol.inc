@@ -130,12 +130,14 @@ end;
 class procedure TWin32WSCustomPage.DestroyHandle(const AWinControl: TWinControl);
 var
   PageIndex, RealIndex: integer;
+  PageControlHandle: HWND;
 begin
   // remove tab from pagecontrol only if not pfRemoving is set
   // if pfRemoving is set then Tab has been deleted by RemovePage
   if (AWinControl.Parent <> nil) and (AWinControl.Parent.HandleAllocated) and
      not (pfRemoving in TCustomPageAccess(AWinControl).Flags) then
   begin
+    PageControlHandle := AWinControl.Parent.Handle;
     PageIndex := TCustomPage(AWinControl).PageIndex;
     RealIndex := TCustomTabControl(AWinControl.Parent).PageToTabIndex(PageIndex);
     if RealIndex <> -1 then
@@ -343,16 +345,11 @@ end;
 class function TWin32WSCustomTabControl.CreateHandle(const AWinControl: TWinControl;
   const AParams: TCreateParams): HWND;
 const
-  TabPositionFlags: array[TTabPosition, Boolean] of DWord = (
- { tpTop    } (0, 0),
- { tpBottom } (TCS_BOTTOM, TCS_BOTTOM),
- { tpLeft   } (TCS_MULTILINE or TCS_VERTICAL, TCS_MULTILINE or TCS_VERTICAL or TCS_RIGHT),
- { tpRight  } (TCS_MULTILINE or TCS_VERTICAL or TCS_RIGHT, TCS_MULTILINE or TCS_VERTICAL)
-  );
- TabStyleFlags: array[TTabStyle] of DWord = (
- { tsTabs        } TCS_TABS,
- { tsButtons     } TCS_BUTTONS,
- { tsFlatButtons } TCS_BUTTONS or TCS_FLATBUTTONS
+  TabPositionFlags: array[TTabPosition] of DWord = (
+ { tpTop    } 0,
+ { tpBottom } TCS_BOTTOM,
+ { tpLeft   } TCS_VERTICAL or TCS_MULTILINE,
+ { tpRight  } TCS_VERTICAL or TCS_RIGHT or TCS_MULTILINE
   );
 var
   Params: TCreateWindowExParams;
@@ -370,24 +367,11 @@ begin
       pClassName := @ClsName[0];
     end
     else begin
-      Flags := Flags or TabPositionFlags[T.TabPosition, T.UseRightToLeftAlignment];
-      Flags := Flags or TabStyleFlags[T.Style];
-      if not T.TabStop then
-        Flags := Flags or TCS_FOCUSNEVER;
+      Flags := Flags or TabPositionFlags[T.TabPosition];
       if nboMultiLine in T.Options then
         Flags := Flags or TCS_MULTILINE;
-      if T.MultiSelect then
-        Flags := Flags or TCS_MULTISELECT;
-      if T.RaggedRight then
-        Flags := Flags or TCS_RAGGEDRIGHT;
-      if T.ScrollOpposite then
-        Flags := Flags or TCS_SCROLLOPPOSITE;
       if T.TabWidth > 0 then
         Flags := Flags or TCS_FIXEDWIDTH;
-      if T.HotTrack and not (csDesigning in T.ComponentState) then
-        Flags := Flags or TCS_HOTTRACK;
-      if T.OwnerDraw and not (csDesigning in T.ComponentState) then
-        Flags := Flags or TCS_OWNERDRAWFIXED;
       pClassName := WC_TABCONTROL;
     end;
   end;

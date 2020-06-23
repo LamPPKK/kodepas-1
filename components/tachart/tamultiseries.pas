@@ -52,15 +52,10 @@ type
     procedure SetOverrideColor(AValue: TBubbleOverrideColors);
   protected
     function GetBubbleRect(AItem: PChartDataItem; out ARect: TRect): Boolean;
-    function GetLabelDataPoint(AIndex, AYIndex: Integer): TDoublePoint; override;
     procedure GetLegendItems(AItems: TChartLegendItems); override;
     function GetSeriesColor: TColor; override;
-    class procedure GetXYCountNeeded(out AXCount, AYCount: Cardinal); override;
     function ToolTargetDistance(const AParams: TNearestPointParams;
       AGraphPt: TDoublePoint; APointIdx, AXIdx, AYIdx: Integer): Integer; override;
-    procedure UpdateLabelDirectionReferenceLevel(AIndex, AYIndex: Integer;
-      var ALevel: Double); override;
-    procedure UpdateMargins(ADrawer: IChartDrawer; var AMargins: TRect); override;
   public
     function AddXY(AX, AY, ARadius: Double; AXLabel: String = '';
       AColor: TColor = clTAColor): Integer; overload;
@@ -80,8 +75,6 @@ type
     property BubblePen: TPen read FBubblePen write SetBubblePen;
     property BubbleRadiusUnits: TBubbleRadiusUnits read FBubbleRadiusUnits
       write SetBubbleRadiusUnits default bruXY;
-    property MarkPositions;
-    property Marks;
     property OverrideColor: TBubbleOverrideColors
       read FOverrideColor write SetOverrideColor default [];
     property Source;
@@ -111,19 +104,15 @@ type
   protected
     procedure GetLegendItems(AItems: TChartLegendItems); override;
     function GetSeriesColor: TColor; override;
-    class procedure GetXYCountNeeded(out AXCount, AYCount: Cardinal); override;
-    function SkipMissingValues(AIndex: Integer): Boolean; override;
     function ToolTargetDistance(const AParams: TNearestPointParams;
       AGraphPt: TDoublePoint; APointIdx, AXIdx, AYIdx: Integer): Integer; override;
-    procedure UpdateLabelDirectionReferenceLevel(AIndex, AYIndex: Integer;
-      var ALevel: Double); override;
   public
     function AddXY(
       AX, AYLoWhisker, AYLoBox, AY, AYHiBox, AYHiWhisker: Double;
       AXLabel: String = ''; AColor: TColor = clTAColor): Integer; overload;
     procedure Assign(ASource: TPersistent); override;
     constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
+    destructor  Destroy; override;
     procedure Draw(ADrawer: IChartDrawer); override;
     function Extent: TDoubleRect; override;
     function GetNearestPoint(const AParams: TNearestPointParams;
@@ -145,8 +134,6 @@ type
   published
     property AxisIndexX;
     property AxisIndexY;
-    property MarkPositions;
-    property Marks;
     property Source;
   end;
 
@@ -184,12 +171,8 @@ type
   protected
     procedure GetLegendItems(AItems: TChartLegendItems); override;
     function GetSeriesColor: TColor; override;
-    class procedure GetXYCountNeeded(out AXCount, AYCount: Cardinal); override;
-    function SkipMissingValues(AIndex: Integer): Boolean; override;
     function ToolTargetDistance(const AParams: TNearestPointParams;
       AGraphPt: TDoublePoint; APointIdx, AXIdx, AYIdx: Integer): Integer; override;
-    procedure UpdateLabelDirectionReferenceLevel(AIndex, AYIndex: Integer;
-      var ALevel: Double); override;
   public
     procedure Assign(ASource: TPersistent); override;
     constructor Create(AOwner: TComponent); override;
@@ -225,8 +208,6 @@ type
   published
     property AxisIndexX;
     property AxisIndexY;
-    property MarkPositions;
-    property Marks;
     property Source;
   end;
 
@@ -243,7 +224,6 @@ type
     function GetColor(AIndex: Integer): TColor; inline;
     function GetVectorPoints(AIndex: Integer;
       out AStartPt, AEndPt: TDoublePoint): Boolean; inline;
-    class procedure GetXYCountNeeded(out AXCount, AYCount: Cardinal); override;
   public
     procedure Assign(ASource: TPersistent); override;
     constructor Create(AOwner: TComponent); override;
@@ -267,8 +247,6 @@ type
     property Arrow: TChartArrow read FArrow write SetArrow;
     property AxisIndexX;
     property AxisIndexY;
-    property MarkPositions;
-    property Marks;
     property Pen: TPen read FPen write SetPen;
     property Source;
     property ToolTargets default [nptPoint, nptXList, nptYList, nptCustom];
@@ -475,6 +453,7 @@ end;
 function TBubbleSeries.AddXY(AX, AY, ARadius: Double; AXLabel: String;
   AColor: TColor): Integer;
 begin
+  if ListSource.YCount < 2 then ListSource.YCount := 2;
   Result := AddXY(AX, AY, [ARadius], AXLabel, AColor);
 end;
 
@@ -514,10 +493,8 @@ var
   irect: TRect;
   dummyR: TRect = (Left:0; Top:0; Right:0; Bottom:0);
   ext: TDoubleRect;
-  nx, ny: Cardinal;
 begin
-  if IsEmpty or (not Active) then exit;
-  if not RequestValidChartScaling then exit;
+  if Source.YCount < 2 then exit;
 
   ADrawer.Pen := BubblePen;
   ADrawer.Brush := BubbleBrush;
@@ -540,11 +517,7 @@ begin
       ADrawer.SetBrushColor(ColorDef(item^.Color, BubbleBrush.Color));
     ADrawer.Ellipse(irect.Left, irect.Top, irect.Right, irect.Bottom);
   end;
-  GetXYCountNeeded(nx, ny);
-  if Source.YCount > ny then
-    for i := 0 to ny - 1 do DrawLabels(ADrawer, i)
-  else
-    DrawLabels(ADrawer);
+  DrawLabels(ADrawer);
   ADrawer.ClippingStop;
 end;
 
@@ -558,8 +531,8 @@ var
   item: PChartDataItem;
 begin
   Result := EmptyExtent;
-  if IsEmpty then exit;
-  if not RequestValidChartScaling then exit;
+  if Source.YCount < 2 then
+    exit;
 
   for i := 0 to Count - 1 do begin
     item := Source[i];
@@ -622,33 +595,6 @@ begin
   Result := true;
 end;
 
-function TBubbleSeries.GetLabelDataPoint(AIndex, AYIndex: Integer): TDoublePoint;
-const
-  DIRECTION: array [Boolean, Boolean] of TLabelDirection =
-    ((ldTop, ldBottom), (ldRight, ldLeft));
-  IS_NEGATIVE: array[TLinearMarkPositions] of boolean =
-    (true,        false,       true,        false);
-    //lmpOutside, lmpPositive, lmpNegative, lmpInside
-var
-  R: TRect;
-  RArray: array[0..3] of Integer absolute R;
-  isneg: Boolean;
-  dir: TLabelDirection;
-begin
-  if (AYIndex = 1) and GetBubbleRect(Source.Item[AIndex + FLoBound], R) then begin
-    isNeg := IS_NEGATIVE[MarkPositions];
-    if Assigned(GetAxisY) then
-      if (IsRotated and ParentChart.IsRightToLeft) xor GetAxisY.Inverted then
-        isNeg := not isNeg;
-    dir := DIRECTION[IsRotated, isNeg];
-    if IsRotated then
-      Result := ParentChart.ImageToGraph(Point(RArray[ord(dir)], (R.Top + R.Bottom) div 2))
-    else
-      Result := ParentChart.ImageToGraph(Point((R.Left + R.Right) div 2, RArray[ord(dir)]));
-  end else
-    Result := GetGraphPoint(AIndex, 0, 0);
-end;
-
 procedure TBubbleSeries.GetLegendItems(AItems: TChartLegendItems);
 begin
   GetLegendItemsRect(AItems, BubbleBrush);
@@ -668,7 +614,7 @@ var
   cosphi, sinphi: Math.float;
 begin
   Result := inherited;
-  if IsEmpty or not RequestValidChartScaling then exit;
+
   if Result and (nptPoint in AParams.FTargets) and (nptPoint in ToolTargets) then
     if (AResults.FYIndex = 0) then
       exit;
@@ -719,12 +665,6 @@ end;
 function TBubbleSeries.GetSeriesColor: TColor;
 begin
   Result := FBubbleBrush.Color;
-end;
-
-class procedure TBubbleSeries.GetXYCountNeeded(out AXCount, AYCount: Cardinal);
-begin
-  AXCount := 1;
-  AYCount := 2;
 end;
 
 procedure TBubbleSeries.MovePointEx(var AIndex: Integer;
@@ -854,54 +794,6 @@ begin
   end;
 end;
 
-procedure TBubbleSeries.UpdateLabelDirectionReferenceLevel(AIndex, AYIndex: Integer;
-  var ALevel: Double);
-begin
-  Unused(AIndex);
-  case AYIndex of
-    0: ALevel := -Infinity;
-    1: ALevel := +Infinity;
-  end;
-end;
-
-procedure TBubbleSeries.UpdateMargins(ADrawer: IChartDrawer;
-  var AMargins: TRect);
-var
-  i, dist, j: Integer;
-  labelText: String;
-  dir: TLabelDirection;
-  m: array [TLabelDirection] of Integer absolute AMargins;
-  gp: TDoublePoint;
-  scMarksDistance: Integer;
-  center: Double;
-begin
-  if not Marks.IsMarkLabelsVisible or not Marks.AutoMargins then exit;
-  if IsEmpty then exit;
-  if not RequestValidChartScaling then exit;
-
-  FindExtentInterval(ParentChart.CurrentExtent, Source.IsSortedByXAsc);
-  with Extent do
-    center := AxisToGraphY((a.y + b.y) * 0.5);
-  UpdateLabelDirectionReferenceLevel(0, 0, center);
-  scMarksDistance := ADrawer.Scale(Marks.Distance);
-  for i := FLoBound to FUpBound do begin
-    for j := 0 to Min(1, Source.YCount-1) do begin
-      gp := GetLabelDataPoint(i, j);
-      if not ParentChart.IsPointInViewPort(gp) then break;
-      labelText := FormattedMark(i, '', j);
-      if labelText = '' then break;
-      UpdateLabelDirectionReferenceLevel(i, j, center);
-      dir := GetLabelDirection(TDoublePointBoolArr(gp)[not IsRotated], center);
-      with Marks.MeasureLabel(ADrawer, labelText) do
-        dist := IfThen(dir in [ldLeft, ldRight], cx, cy);
-      if Marks.DistanceToCenter then
-        dist := dist div 2;
-      m[dir] := Max(m[dir], dist + scMarksDistance);
-    end;
-  end;
-end;
-
-
 
 { TBoxAndWhiskerSeries }
 
@@ -909,6 +801,7 @@ function TBoxAndWhiskerSeries.AddXY(
   AX, AYLoWhisker, AYLoBox, AY, AYHiBox, AYHiWhisker: Double; AXLabel: String;
   AColor: TColor): Integer;
 begin
+  if ListSource.YCount < 5 then ListSource.YCount := 5;
   Result := AddXY(
     AX, AYLoWhisker, [AYLoBox, AY, AYHiBox, AYHiWhisker], AXLabel, AColor);
 end;
@@ -982,10 +875,9 @@ var
   ext2: TDoubleRect;
   x, ymin, yqmin, ymed, yqmax, ymax, wb, ww, w: Double;
   i: Integer;
-  nx, ny: Cardinal;
 begin
-  if IsEmpty or (not Active) then exit;
-
+  if IsEmpty or (Source.YCount < 5) then
+    exit;
   if FWidthStyle = bwsPercentMin then
     UpdateMinXRange;
 
@@ -1029,18 +921,11 @@ begin
     ADrawer.SetBrushParams(bsClear, clTAColor);
     DoLine(x - wb, ymed, x + wb, ymed);
   end;
-
-  GetXYCountNeeded(nx, ny);
-  if Source.YCount > ny then
-    for i := 0 to ny-1 do DrawLabels(ADrawer, i)
-  else
-    DrawLabels(ADrawer);
 end;
 
 function TBoxAndWhiskerSeries.Extent: TDoubleRect;
 var
   x: Double;
-  j: Integer;
 
   function ExtraWidth(AIndex: Integer): Double;
   begin
@@ -1048,22 +933,13 @@ var
   end;
 
 begin
+  if Source.YCount < 5 then exit(EmptyExtent);
   Result := Source.ExtentList;
   // Show first and last boxes fully.
-  j := -1;
-  x := NaN;
-  while IsNaN(x) and (j < Source.Count-1) do begin
-    inc(j);
-    x := GetGraphPointX(j);
-  end;
-  Result.a.X := Min(Result.a.X, GraphToAxisX(x - ExtraWidth(j)));
-  j := Count;
-  x := NaN;
-  while IsNaN(x) and (j > 0) do begin
-    dec(j);
-    x := GetGraphPointX(j);
-  end;
-  Result.b.X := Max(Result.b.X, GraphToAxisX(x + ExtraWidth(j)));
+  x := GetGraphPointX(0);
+  Result.a.X := Min(Result.a.X, GraphToAxisX(x - ExtraWidth(0)));
+  x := GetGraphPointX(Count - 1);
+  Result.b.X := Max(Result.b.X, GraphToAxisX(x + ExtraWidth(Count - 1)));
 end;
 
 procedure TBoxAndWhiskerSeries.GetLegendItems(AItems: TChartLegendItems);
@@ -1151,12 +1027,6 @@ begin
   Result := BoxBrush.Color;
 end;
 
-class procedure TBoxAndWhiskerSeries.GetXYCountNeeded(out AXCount, AYCount: Cardinal);
-begin
-  AXCount := 0;
-  AYCount := 5;
-end;
-
 procedure TBoxAndWhiskerSeries.SetBoxBrush(AValue: TBrush);
 begin
   if FBoxBrush = AValue then exit;
@@ -1205,13 +1075,6 @@ begin
   if FWhiskersWidth = AValue then exit;
   FWhiskersWidth := AValue;
   UpdateParentChart;
-end;
-
-function TBoxAndWhiskerSeries.SkipMissingValues(AIndex: Integer): Boolean;
-begin
-  Result := IsNaN(Source[AIndex]^.Point);
-  if not Result then
-    Result := HasMissingYValue(AIndex, 5);
 end;
 
 function TBoxAndWhiskerSeries.ToolTargetDistance(
@@ -1267,20 +1130,6 @@ begin
   end;
 end;
 
-procedure TBoxAndWhiskerSeries.UpdateLabelDirectionReferenceLevel(
-  AIndex, AYIndex: Integer; var ALevel: Double);
-var
-  item: PChartDataItem;
-begin
-  case AYIndex of
-    0: ALevel := +Infinity;
-    3: ALevel := -Infinity;
-    else
-       item := Source.Item[AIndex];
-       ALevel := (AxisToGraphY(item^.GetY(0)) + AxisToGraphY(item^.GetY(3)))*0.5;
-  end;
-end;
-
 
 { TOpenHighLowCloseSeries }
 
@@ -1290,6 +1139,8 @@ function TOpenHighLowCloseSeries.AddXOHLC(
 var
   y: Double;
 begin
+  if ListSource.YCount < 4 then ListSource.YCount := 4;
+
   if YIndexOpen = 0 then
     y := AOpen
   else if YIndexHigh = 0 then
@@ -1430,11 +1281,9 @@ var
   i: Integer;
   x, tw, yopen, yhigh, ylow, yclose: Double;
   p: TPen;
-  nx, ny: Cardinal;
 begin
-  if IsEmpty or (not Active) then exit;
   my := MaxIntValue([YIndexOpen, YIndexHigh, YIndexLow, YIndexClose]);
-  if my >= Source.YCount then exit;
+  if IsEmpty or (my >= Source.YCount) then exit;
 
   ext2 := ParentChart.CurrentExtent;
   ExpandRange(ext2.a.X, ext2.b.X, 1.0);
@@ -1444,16 +1293,12 @@ begin
 
   for i := FLoBound to FUpBound do begin
     x := GetGraphPointX(i);
-    if IsNaN(x) then Continue;
     yopen := GetGraphPointY(i, YIndexOpen);
-    if IsNaN(yopen) then Continue;
     yhigh := GetGraphPointY(i, YIndexHigh);
-    if IsNaN(yhigh) then Continue;
     ylow := GetGraphPointY(i, YIndexLow);
-    if IsNaN(ylow) then Continue;
     yclose := GetGraphPointY(i, YIndexClose);
-    if IsNaN(yclose) then Continue;
     tw := GetXRange(x, i) * PERCENT * TickWidth;
+
     if (yopen <= yclose) then begin
       p := LinePen;
       ADrawer.Brush := FCandleStickUpBrush;
@@ -1472,38 +1317,22 @@ begin
       mCandleStick: DrawCandleStick(x, yopen, yhigh, ylow, yclose, tw);
     end;
   end;
-
-  GetXYCountNeeded(nx, ny);
-  if Source.YCount > ny then
-    for i := 0 to ny-1 do DrawLabels(ADrawer, i)
-  else
-    DrawLabels(ADrawer);
 end;
 
 function TOpenHighLowCloseSeries.Extent: TDoubleRect;
 var
   x: Double;
   tw: Double;
-  j: Integer;
 begin
+  if Source.YCount < 4 then exit(EmptyExtent);
   Result := Source.ExtentList;                            // axis units
   // Show first and last open/close ticks and candle boxes fully.
-  j := -1;
-  x := NaN;
-  while IsNaN(x) and (j < Source.Count-1) do begin
-    inc(j);
-    x := GetGraphPointX(j);                                 // graph units
-  end;
-  tw := GetXRange(x, j) * PERCENT * TickWidth;
+  x := GetGraphPointX(0);                                 // graph units
+  tw := GetXRange(x, 0) * PERCENT * TickWidth;
   Result.a.X := Min(Result.a.X, GraphToAxisX(x - tw));    // axis units
 //  Result.a.X := Min(Result.a.X, x - tw);
-  j := Count;
-  x := NaN;
-  While IsNaN(x) and (j > 0) do begin
-    dec(j);
-    x := GetGraphPointX(j);
-  end;
-  tw := GetXRange(x, j) * PERCENT * TickWidth;
+  x := GetGraphPointX(Count - 1);
+  tw := GetXRange(x, Count - 1) * PERCENT * TickWidth;
   Result.b.X := Max(Result.b.X, AxisToGraphX(x + tw));
 //  Result.b.X := Max(Result.b.X, x + tw);
 end;
@@ -1591,12 +1420,6 @@ begin
   Result := LinePen.Color;
 end;
 
-class procedure TOpenHighLowCloseSeries.GetXYCountNeeded(out AXCount, AYCount: Cardinal);
-begin
-  AXCount := 0;
-  AYCount := 4;
-end;
-
 procedure TOpenHighLowCloseSeries.SetCandlestickLinePen(AValue: TPen);
 begin
   if FCandleStickLinePen = AValue then exit;
@@ -1674,13 +1497,6 @@ begin
   UpdateParentChart;
 end;
 
-function TOpenHighLowCloseSeries.SkipMissingValues(AIndex: Integer): Boolean;
-begin
-  Result := IsNaN(Source[AIndex]^.Point);
-  if not Result then
-    Result := HasMissingYValue(AIndex, 4);
-end;
-
 function TOpenHighLowCloseSeries.ToolTargetDistance(
   const AParams: TNearestPointParams; AGraphPt: TDoublePoint;
   APointIdx, AXIdx, AYIdx: Integer): Integer;
@@ -1741,21 +1557,6 @@ begin
   end;
 end;
 
-procedure TOpenHighLowCloseSeries.UpdateLabelDirectionReferenceLevel(
-  AIndex, AYIndex: Integer; var ALevel: Double);
-var
-  item: PChartDataItem;
-begin
-  if AYIndex = FYIndexLow then
-    ALevel := +Infinity
-  else if AYIndex = FYIndexHigh then
-    ALevel := -Infinity
-  else begin
-    item := Source.Item[AIndex];
-    ALevel := (AxisToGraphY(item^.GetY(FYIndexLow)) + AxisToGraphY(item^.GetY(FYIndexHigh)))*0.5;
-  end;
-end;
-
 
 { TFieldSeries }
 
@@ -1763,6 +1564,8 @@ constructor TFieldSeries.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   ToolTargets := [nptPoint, nptXList, nptYList, nptCustom];
+  ListSource.XCount := 2;
+  ListSource.YCount := 2;
   FArrow := TChartArrow.Create(ParentChart);
   FArrow.Length := 20;
   FArrow.Width := 10;
@@ -1808,7 +1611,6 @@ var
   p1, p2: TDoublePoint;
   lPen: TPen;
 begin
-  if IsEmpty or (not Active) then exit;
   with Extent do begin
     ext.a := AxisToGraph(a);
     ext.b := AxisToGraph(b);
@@ -1818,28 +1620,28 @@ begin
   if not RectIntersectsRect(ext, ParentChart.CurrentExtent) then exit;
 
   lPen := TPen.Create;
-  try
-    lPen.Assign(FPen);
-    if (AxisIndexX < 0) and (AxisIndexY < 0) then begin
-      // Optimization: bypass transformations in the default case
-      for i := 0 to Count - 1 do
-        if GetVectorPoints(i, p1, p2) then begin
-          lPen.Color := GetColor(i);
-          DrawVector(ADrawer, p1, p2, lPen);
-        end;
-    end else begin
-      for i := 0 to Count - 1 do
-        if GetVectorPoints(i, p1, p2) then begin
-          p1 := AxisToGraph(p1);
-          p2 := AxisToGraph(p2);
-          lPen.Color := GetColor(i);
-          DrawVector(ADrawer, p1, p2, lPen);
-        end;
-    end;
-    DrawLabels(ADrawer, 0);
-  finally
-    lPen.Free;
+  lPen.Assign(FPen);
+
+  if (AxisIndexX < 0) and (AxisIndexY < 0) then begin
+    // Optimization: bypass transformations in the default case
+    for i := 0 to Count - 1 do
+      if GetVectorPoints(i, p1, p2) then begin
+        lPen.Color := GetColor(i);
+        DrawVector(ADrawer, p1, p2, lPen);
+      end;
+  end else begin
+    for i := 0 to Count - 1 do
+      if GetVectorPoints(i, p1, p2) then begin
+        p1 := AxisToGraph(p1);
+        p2 := AxisToGraph(p2);
+        //p1 := DoublePoint(AxisToGraphX(p1.X), AxisToGraphY(p1.Y));
+        //p2 := DoublePoint(AxisToGraphX(p2.X), AxisToGraphY(p2.Y));
+        lPen.Color := GetColor(i);
+        DrawVector(ADrawer, p1, p2, lPen);
+      end;
   end;
+
+  lPen.Free;
 end;
 
 procedure TFieldSeries.DrawVector(ADrawer: IChartDrawer;
@@ -1907,8 +1709,6 @@ begin
   AResults.FIndex := -1;
   AResults.FXIndex := 0;
   AResults.FYIndex := 0;
-  if IsEmpty then exit(false);
-
   for i := 0 to Count - 1 do begin
     if not GetVectorPoints(i, sp1, sp2) then
       Continue;
@@ -1991,12 +1791,6 @@ begin
       Result := true;
     end;
   end;
-end;
-
-class procedure TFieldSeries.GetXYCountNeeded(out AXCount, AYCount: Cardinal);
-begin
-  AXCount := 2;
-  AYCount := 2;
 end;
 
 procedure TFieldSeries.MovePointEx(var AIndex: Integer;

@@ -109,11 +109,11 @@ const
   VirtualTempDir='TEMPORARYDIRECTORY';
   
   // FPC operating systems and processor types
-  FPCOperatingSystemNames: array[1..36] of shortstring =(
+  FPCOperatingSystemNames: array[1..35] of shortstring =(
      'linux',
      'win32','win64','wince',
      'darwin','macos',
-     'freebsd','netbsd','openbsd','dragonfly',
+     'freebsd','netbsd','openbsd',
      'aix',
      'amiga',
      'android',
@@ -141,35 +141,34 @@ const
      'wdosx',
      'wii'
     );
-  FPCOperatingSystemCaptions: array[1..36] of shortstring =(
+  FPCOperatingSystemCaptions: array[1..35] of shortstring =(
      'AIX',
      'Amiga',
      'Android',
      'AROS',
      'Atari',
-     'BeOS',
+     'Beos',
      'Darwin',
-     'DragonFly',
      'Embedded',
      'emx',
      'FreeBSD',
-     'GBA',
-     'Go32v2',
+     'gba',
+     'go32v2',
      'Haiku',
-     'iPhoneSim',
+     'iphonesim',
      'Java',
      'Linux',
      'MacOS',
      'MorphOS',
      'MSDOS',
-     'NDS',
+     'nds',
      'NetBSD',
-     'NetWare',
+     'Netware',
      'NetwLibC',
      'OpenBSD',
      'OS2',
      'PalmOS',
-     'QNX',
+     'qnx',
      'Solaris',
      'Symbian',
      'Watcom',
@@ -214,7 +213,7 @@ const
     'ECMAScript6'
     );
 
-  Lazarus_CPU_OS_Widget_Combinations: array[1..106] of shortstring = (
+  Lazarus_CPU_OS_Widget_Combinations: array[1..91] of shortstring = (
     'i386-linux-gtk',
     'i386-linux-gtk2',
     'i386-linux-qt',
@@ -295,21 +294,6 @@ const
     'x86_64-freebsd-qt5',
     'x86_64-freebsd-fpgui',
     'x86_64-freebsd-nogui',
-    'x86_64-openbsd-gtk2',
-    'x86_64-openbsd-qt',
-    'x86_64-openbsd-qt5',
-    'x86_64-openbsd-fpgui',
-    'x86_64-openbsd-nogui',
-    'x86_64-netbsd-gtk2',
-    'x86_64-netbsd-qt',
-    'x86_64-netbsd-qt5',
-    'x86_64-netbsd-fpgui',
-    'x86_64-netbsd-nogui',
-    'x86_64-dragonfly-gtk2',
-    'x86_64-dragonfly-qt',
-    'x86_64-dragonfly-qt5',
-    'x86_64-dragonfly-fpgui',
-    'x86_64-dragonfly-nogui',
     'x86_64-linux-gtk',
     'x86_64-linux-gtk2',
     'x86_64-linux-qt',
@@ -749,7 +733,7 @@ const
 type
 
   { TPCConfigFileState
-    Stores if a config file exists and its modification date }
+    Store if a config file exists and its modification date }
 
   TPCConfigFileState = class
   public
@@ -788,25 +772,6 @@ type
 
   TFPCConfigFileStateList = TPCConfigFileStateList deprecated 'use TPCConfigFileStateList'; // Laz 1.9
 
-  { TPCFPMFileState
-    Stores information about a fppkg .fpm file }
-
-  TPCFPMFileState = class
-  public
-    Name: string;
-    FPMFilename: string;
-    FileDate: longint;
-    SourcePath: string;
-    UnitToSrc: TStringToStringTree; // case insensitive unit name to source file
-    constructor Create;
-    destructor Destroy; override;
-    procedure Clear;
-    procedure Assign(List: TPCFPMFileState);
-    function Equals(List: TPCFPMFileState; CheckDates: boolean): boolean; reintroduce;
-    procedure LoadFromXMLConfig(XMLConfig: TXMLConfig; const Path: string);
-    procedure SaveToXMLConfig(XMLConfig: TXMLConfig; const Path: string);
-  end;
-
   TPCTargetConfigCaches = class;
 
   { TPCTargetConfigCache
@@ -839,8 +804,6 @@ type
     Undefines: TStringToStringTree; // macro
     Units: TStringToStringTree; // unit name to file name
     Includes: TStringToStringTree; // inc name to file name
-    UnitToFPM: TStringToPointerTree; // unitname to TPCFPMFileState
-    FPMNameToFPM: TStringToPointerTree; // fpm name to TPCFPMFileState
     ErrorMsg: string;
     ErrorTranslatedMsg: string;
     Caches: TPCTargetConfigCaches;
@@ -868,6 +831,8 @@ type
     procedure IncreaseChangeStamp;
     property ChangeStamp: integer read FChangeStamp;
   end;
+
+  TFPCTargetConfigCache = TPCTargetConfigCache deprecated 'use TPCTargetConfigCache'; // Laz 1.9
 
   { TPCTargetConfigCaches
     List of TPCTargetConfigCache }
@@ -898,6 +863,8 @@ type
     property TestFilename: string read FTestFilename write FTestFilename; // an empty file to test the compiler, will be auto created
     property ExtraOptions: string read FExtraOptions write FExtraOptions; // additional compiler options not used as key, e.g. -Fr<language file>
   end;
+
+  TFPCTargetConfigCaches = TPCTargetConfigCaches deprecated 'use TPCTargetConfigCaches'; // Laz 1.9
 
   TFPCSourceCaches = class;
 
@@ -1146,12 +1113,8 @@ function RunFPCVerbose(const CompilerFilename, TestFilename: string;
 procedure GatherUnitsInSearchPaths(SearchUnitPaths, SearchIncludePaths: TStrings;
                     const OnProgress: TDefinePoolProgress;
                     out Units: TStringToStringTree;
-                    out Includes: TStringToStringTree); // unit names to full file name
-procedure GatherUnitsInFPMSources(Units: TStringToStringTree; // unit names to full file name
-                    out UnitToFPM: TStringToPointerTree;
-                    out FPMNameToFPM: TStringToPointerTree; // TPCFPMFileState
-                    const OnProgress: TDefinePoolProgress = nil
-                    );
+                    out Includes: TStringToStringTree;
+                    CheckFPMkInst: boolean = false); // unit names to full file name
 function GatherUnitSourcesInDirectory(Directory: string;
                     MaxLevel: integer = 1): TStringToStringTree; // unit names to full file name
 procedure AdjustFPCSrcRulesForPPUPaths(Units: TStringToStringTree;
@@ -1477,7 +1440,7 @@ begin
   try
     buf:='';
     if (MainThreadID=GetCurrentThreadId) and not Quiet then begin
-      DbgOut(['Hint: (kode) [RunTool] "',Filename,'"']);
+      DbgOut(['Hint: (lazarus) [RunTool] "',Filename,'"']);
       for i:=0 to Params.Count-1 do
         dbgout(' "',Params[i],'"');
       Debugln;
@@ -1917,24 +1880,45 @@ end;
 
 procedure GatherUnitsInSearchPaths(SearchUnitPaths, SearchIncludePaths: TStrings;
   const OnProgress: TDefinePoolProgress; out Units: TStringToStringTree;
-  out Includes: TStringToStringTree);
+  out Includes: TStringToStringTree; CheckFPMkInst: boolean);
 { returns a stringtree,
   where name is unitname and value is the full file name
 
   SearchUnitsPaths are searched from last to start
   first found wins
   pas, pp, p replaces ppu
+
+  check for each UnitPath of the form
+    lib/fpc/<FPCVer>/units/<FPCTarget>/<name>/
+  if there is lib/fpc/<FPCVer>/fpmkinst/><FPCTarget>/<name>.fpm
+  and search line SourcePath=<directory>
+  and search source files in this directory including subdirectories
 }
+
+  function SearchPriorPathDelim(var p: integer; const Filename: string): boolean; inline;
+  begin
+    repeat
+      dec(p);
+      if p<1 then exit(false)
+    until Filename[p]=PathDelim;
+    Result:=true;
+  end;
+
 var
   i: Integer;
   Directory: String;
-  FileCount: Integer;
+  FileCount, p, EndPos, FPCTargetEndPos: Integer;
   Abort: boolean;
   FileInfo: TSearchRec;
   ShortFilename: String;
   Filename: String;
   Ext: String;
-  File_Name: String;
+  File_Name, PkgName, FPMFilename, FPMSourcePath, Line, SrcFilename: String;
+  AVLNode: TAVLTreeNode;
+  S2SItem: PStringToStringItem;
+  FPMToUnitTree: TStringToPointerTree;// pkgname to TStringToStringTree (unitname to source filename)
+  sl: TStringListUTF8;
+  PkgUnitToFilename: TStringToStringTree;
 begin
   // units sources
   Units:=TStringToStringTree.Create(false);
@@ -2000,115 +1984,88 @@ begin
       end;
       FindCloseUTF8(FileInfo);
     end;
-end;
 
-procedure GatherUnitsInFPMSources(Units: TStringToStringTree; out
-  UnitToFPM: TStringToPointerTree; out FPMNameToFPM: TStringToPointerTree;
-  const OnProgress: TDefinePoolProgress);
-{ check for each UnitPath of the form
-    lib/fpc/<FPCVer>/units/<FPCTarget>/<name>/
-  if there is lib/fpc/<FPCVer>/fpmkinst/><FPCTarget>/<name>.fpm
-  and search line SourcePath=<directory>
-  then search source files in this directory including subdirectories
-}
-  function SearchPriorPathDelim(var p: integer; const Filename: string): boolean; inline;
-  begin
-    repeat
-      dec(p);
-      if p<1 then exit(false)
-    until Filename[p]=PathDelim;
-    Result:=true;
-  end;
-
-var
-  Abort: boolean;
-  AVLNode: TAVLTreeNode;
-  S2SItem: PStringToStringItem;
-  CurUnitName, Filename, PkgName, FPMFilename, FPMSourcePath, Line: String;
-  p, EndPos, FPCTargetEndPos, i, FileCount: Integer;
-  sl: TStringListUTF8;
-  FPM: TPCFPMFileState;
-begin
-  // try to resolve .ppu files via fpmkinst .fpm files
-  UnitToFPM:=TStringToPointerTree.Create(false);
-  FPMNameToFPM:=TStringToPointerTree.Create(false);
-  FPMNameToFPM.FreeValues:=true;
-  if Units=nil then exit;
-  FileCount:=0;
-  Abort:=false;
-  AVLNode:=Units.Tree.FindLowest;
-  while AVLNode<>nil do begin
-    S2SItem:=PStringToStringItem(AVLNode.Data);
-    CurUnitName:=S2SItem^.Name;
-    Filename:=S2SItem^.Value; // trimmed and expanded filename
-    //if Pos('lazmkunit',Filename)>0 then
-      //debugln(['GatherUnitsInFPMSources ===== ',Filename]);
-    AVLNode:=Units.Tree.FindSuccessor(AVLNode);
-    if CompareFileExt(Filename,'ppu',false)<>0 then continue;
-    // check if filename has the form
-    //                  /something/units/<FPCTarget>/<pkgname>/<unitname>.ppu
-    // and if there is  /something/fpmkinst/<FPCTarget>/<pkgname>.fpm
-    p:=length(Filename);
-    if not SearchPriorPathDelim(p,Filename) then exit;
-    // <pkgname>
-    EndPos:=p;
-    if not SearchPriorPathDelim(p,Filename) then exit;
-    PkgName:=copy(Filename,p+1,EndPos-p-1);
-    if PkgName='' then continue;
-    FPCTargetEndPos:=p;
-    if not SearchPriorPathDelim(p,Filename) then exit;
-    // <fpctarget>
-    EndPos:=p;
-    if not SearchPriorPathDelim(p,Filename) then exit;
-    // 'units'
-    if (EndPos-p<>6) or (CompareIdentifiers(@Filename[p+1],'units')<>0) then
-      continue;
-    FPMFilename:=copy(Filename,1,p)+'fpmkinst'
-                +copy(Filename,EndPos,FPCTargetEndPos-EndPos+1)+PkgName+'.fpm';
-
-    FPM:=TPCFPMFileState(FPMNameToFPM[PkgName]);
-    if FPM=nil then begin
-      inc(FileCount);
-      if (FileCount mod 100=0) and Assigned(OnProgress) then begin
-        OnProgress(nil, 0, -1, Format(ctsScannedFiles, [IntToStr(FileCount)]
-          ), Abort);
-        if Abort then break;
-      end;
-      FPMSourcePath:='';
-      if FileExistsCached(FPMFilename) then begin
-        //debugln(['GatherUnitsInFPMSources Found .fpm: ',FPMFilename]);
-        sl:=TStringListUTF8.Create;
-        try
-          try
-            sl.LoadFromFile(FPMFilename);
-            for i:=0 to sl.Count-1 do begin
-              Line:=sl[i];
-              if LeftStr(Line,length('SourcePath='))='SourcePath=' then
-              begin
-                FPMSourcePath:=TrimAndExpandDirectory(copy(Line,length('SourcePath=')+1,length(Line)));
-                break;
+  // units ppu
+  if CheckFPMkInst then begin
+    // try to resolve .ppu files via fpmkinst .fpm files
+    FPMToUnitTree:=nil;
+    try
+      AVLNode:=Units.Tree.FindLowest;
+      while AVLNode<>nil do begin
+        S2SItem:=PStringToStringItem(AVLNode.Data);
+        File_Name:=S2SItem^.Name;
+        Filename:=S2SItem^.Value; // trimmed and expanded filename
+        //if Pos('lazmkunit',Filename)>0 then
+        //  debugln(['GatherUnitsInSearchPaths ===== ',Filename]);
+        AVLNode:=Units.Tree.FindSuccessor(AVLNode);
+        if CompareFileExt(Filename,'ppu',false)<>0 then continue;
+        // check if filename has the form
+        //                  /something/lib/fpc/<FPCVer>/units/<FPCTarget>/<pkgname>/
+        // and if there is  /something/lib/fpc/<FPCVer>/fpmkinst/><FPCTarget>/<pkgname>.fpm
+        p:=length(Filename);
+        if not SearchPriorPathDelim(p,Filename) then exit;
+        // <pkgname>
+        EndPos:=p;
+        if not SearchPriorPathDelim(p,Filename) then exit;
+        PkgName:=copy(Filename,p+1,EndPos-p-1);
+        if PkgName='' then continue;
+        FPCTargetEndPos:=p;
+        if not SearchPriorPathDelim(p,Filename) then exit;
+        // <fpctarget>
+        EndPos:=p;
+        if not SearchPriorPathDelim(p,Filename) then exit;
+        // 'units'
+        if (EndPos-p<>6) or (CompareIdentifiers(@Filename[p+1],'units')<>0) then
+          continue;
+        FPMFilename:=copy(Filename,1,p)+'fpmkinst'
+                    +copy(Filename,EndPos,FPCTargetEndPos-EndPos+1)+PkgName+'.fpm';
+        if FPMToUnitTree=nil then begin
+          FPMToUnitTree:=TStringToPointerTree.Create(false);
+          FPMToUnitTree.FreeValues:=true;
+        end;
+        if not FPMToUnitTree.Contains(PkgName) then begin
+          FPMSourcePath:='';
+          if FileExistsCached(FPMFilename) then begin
+            //debugln(['GatherUnitsInSearchPaths Found .fpm: ',FPMFilename]);
+            sl:=TStringListUTF8.Create;
+            try
+              try
+                sl.LoadFromFile(FPMFilename);
+                for i:=0 to sl.Count-1 do begin
+                  Line:=sl[i];
+                  if LeftStr(Line,length('SourcePath='))='SourcePath=' then
+                  begin
+                    FPMSourcePath:=TrimAndExpandDirectory(copy(Line,length('SourcePath=')+1,length(Line)));
+                    break;
+                  end;
+                end;
+              except
+                on E: Exception do
+                  debugln(['Warning: (lazarus) [GatherUnitsInSearchPaths] ',E.Message]);
               end;
+            finally
+              sl.Free;
             end;
-          except
-            on E: Exception do
-              debugln(['Warning: (kode) [GatherUnitsInFPMSources] ',E.Message]);
           end;
-        finally
-          sl.Free;
+          if FPMSourcePath<>'' then begin
+            PkgUnitToFilename:=GatherUnitSourcesInDirectory(FPMSourcePath,5);
+            FPMToUnitTree[PkgName]:=PkgUnitToFilename;
+            //debugln(['GatherUnitsInSearchPaths Pkg=',PkgName,' UnitsFound=',PkgUnitToFilename.Count]);
+          end else
+            FPMToUnitTree[PkgName]:=nil; // mark as not found
         end;
-        FPM:=TPCFPMFileState.Create;
-        FPM.Name:=PkgName;
-        FPM.FPMFilename:=FPMFilename;
-        FPM.SourcePath:=FPMSourcePath;
-        FPMNameToFPM[PkgName]:=FPM;
-        UnitToFPM[CurUnitName]:=FPM;
 
-        if FPMSourcePath<>'' then begin
-          //debugln(['GatherUnitsInFPMSources ',FPMFilename,' ',FPMSourcePath]);
-          FreeAndNil(FPM.UnitToSrc);
-          FPM.UnitToSrc:=GatherUnitSourcesInDirectory(FPMSourcePath,3);
+        PkgUnitToFilename:=TStringToStringTree(FPMToUnitTree[PkgName]);
+        if PkgUnitToFilename=nil then continue;
+        SrcFilename:=PkgUnitToFilename[File_Name];
+        if SrcFilename<>'' then begin
+          // unit source found in fppkg -> replace ppu with src file
+          //debugln(['GatherUnitsInSearchPaths ppu=',Filename,' -> fppkg src=',SrcFilename]);
+          Units[File_Name]:=SrcFilename;
         end;
       end;
+    finally
+      FPMToUnitTree.Free;
     end;
   end;
 end;
@@ -2323,9 +2280,7 @@ begin
       Link:=TUnitNameLink(Node.Data);
       Result[Link.Unit_Name]:=Link.Filename;
       if (Link.ConflictFilename<>'') and (Link.Score>0) then begin
-        if (DebugUnitName<>'') and (SysUtils.CompareText(Link.Unit_Name,DebugUnitName)=0)
-        then
-          DebugLn(['GatherUnitsInFPCSources Ambiguous: ',Link.Score,' ',Link.Filename,' ',Link.ConflictFilename]);
+        //DebugLn(['GatherUnitsInFPCSources Ambiguous: ',Link.Score,' ',Link.Filename,' ',Link.ConflictFilename]);
         if Duplicates<>nil then
           Duplicates[Link.Unit_Name]:=Link.Filename+';'+Link.ConflictFilename;
       end;
@@ -2915,91 +2870,6 @@ begin
     Sources.SaveToXMLConfig(XMLConfig,'FPCSourceDirectories/');
   finally
     XMLConfig.Free;
-  end;
-end;
-
-{ TPCFPMFileState }
-
-constructor TPCFPMFileState.Create;
-begin
-  UnitToSrc:=TStringToStringTree.Create(false);
-end;
-
-destructor TPCFPMFileState.Destroy;
-begin
-  FreeAndNil(UnitToSrc);
-  inherited Destroy;
-end;
-
-procedure TPCFPMFileState.Clear;
-begin
-  UnitToSrc.Clear;
-  FileDate:=-1;
-end;
-
-procedure TPCFPMFileState.Assign(List: TPCFPMFileState);
-begin
-  // do not assign Name
-  FPMFilename:=List.FPMFilename;
-  FileDate:=List.FileDate;
-  SourcePath:=List.SourcePath;
-  UnitToSrc.Assign(List.UnitToSrc);
-end;
-
-function TPCFPMFileState.Equals(List: TPCFPMFileState; CheckDates: boolean
-  ): boolean;
-begin
-  Result:=false;
-  if Name<>List.Name then exit;
-  if FPMFilename<>List.FPMFilename then exit;
-  if CheckDates and (FileDate<>List.FileDate) then exit;
-  if SourcePath<>List.SourcePath then exit;
-  if not UnitToSrc.Equals(List.UnitToSrc) then exit;
-  Result:=true;
-end;
-
-procedure TPCFPMFileState.LoadFromXMLConfig(XMLConfig: TXMLConfig;
-  const Path: string);
-var
-  Cnt, i: Integer;
-  SubPath, CurName, CurFilename: String;
-begin
-  // do not read Name
-  FPMFilename:=XMLConfig.GetValue(Path+'FPMFile','');
-  FileDate:=XMLConfig.GetValue(Path+'FileDate',0);
-  SourcePath:=TrimAndExpandDirectory(XMLConfig.GetValue(Path+'SourcePath',''));
-  UnitToSrc.Clear;
-  Cnt:=XMLConfig.GetValue(Path+'Units/Count',0);
-  for i:=1 to Cnt do begin
-    SubPath:=Path+'Units/Item'+IntToStr(i)+'/';
-    CurName:=XMLConfig.GetValue(SubPath+'Name','');
-    CurFilename:=XMLConfig.GetValue(SubPath+'File','');
-    UnitToSrc[CurName]:=SourcePath+CurFilename;
-  end;
-end;
-
-procedure TPCFPMFileState.SaveToXMLConfig(XMLConfig: TXMLConfig;
-  const Path: string);
-var
-  Node: TAVLTreeNode;
-  S2PItem: PStringToStringItem;
-  i: Integer;
-  SubPath: String;
-begin
-  XMLConfig.SetDeleteValue(Path+'Name',Name,'');
-  XMLConfig.SetDeleteValue(Path+'File',FPMFilename,'');
-  XMLConfig.SetDeleteValue(Path+'FileDate',FileDate,0);
-  XMLConfig.SetDeleteValue(Path+'SourcePath',SourcePath,'');
-  XMLConfig.SetDeleteValue(Path+'Units/Count',UnitToSrc.Count,0);
-  i:=0;
-  Node:=UnitToSrc.Tree.FindLowest;
-  while Node<>nil do begin
-    S2PItem:=PStringToStringItem(Node.Data);
-    inc(i);
-    SubPath:=Path+'Units/Item'+IntToStr(i)+'/';
-    XMLConfig.SetDeleteValue(SubPath+'Name',S2PItem^.Name,'');
-    XMLConfig.SetDeleteValue(SubPath+'File',CreateRelativePath(S2PItem^.Value,SourcePath),'');
-    Node:=Node.Successor;
   end;
 end;
 
@@ -3631,7 +3501,6 @@ begin
   or (CompareText(TargetOS,'freebsd')=0)
   or (CompareText(TargetOS,'netbsd')=0)
   or (CompareText(TargetOS,'openbsd')=0)
-  or (CompareText(TargetOS,'dragonfly')=0)
   or (CompareText(TargetOS,'darwin')=0)
   or (CompareText(TargetOS,'solaris')=0)
   or (CompareText(TargetOS,'haiku')=0)
@@ -3652,7 +3521,6 @@ begin
   if (CompareText(TargetOS,'freebsd')=0)
   or (CompareText(TargetOS,'netbsd')=0)
   or (CompareText(TargetOS,'openbsd')=0)
-  or (CompareText(TargetOS,'dragonfly')=0)
   or (CompareText(TargetOS,'darwin')=0)
   then
     Result:='bsd'
@@ -3826,7 +3694,6 @@ procedure GetTargetProcessors(const TargetCPU: string; aList: TStrings);
   
   procedure AVR;
   begin
-    aList.Add('AVRTINY');
     aList.Add('AVR1');
     aList.Add('AVR2');
     aList.Add('AVR25');
@@ -3837,7 +3704,6 @@ procedure GetTargetProcessors(const TargetCPU: string; aList: TStrings);
     aList.Add('AVR5');
     aList.Add('AVR51');
     aList.Add('AVR6');
-    aList.Add('AVRXMEGA3');
   end;
   
   procedure M68k;
@@ -3974,7 +3840,7 @@ begin
 
   if Run then begin
     // run it and check for magics
-    debugln(['Note: (kode) [IsCompilerExecutable] run "',AFilename,'"']);
+    debugln(['Note: (lazarus) [IsCompilerExecutable] run "',AFilename,'"']);
     Params:=TStringListUTF8.Create;
     Lines:=nil;
     try
@@ -7167,44 +7033,6 @@ function TDefinePool.CreateFPCCommandLineDefines(const Name, CmdLine: string;
       AddUndefine(AName);
   end;
 
-  procedure DefineOpt(const Opt, Value: string);
-  var
-    tpl: TDefineTemplate;
-    Name, Descr, OptValue: string;
-    NewAction: TDefineAction;
-  begin
-    Name:='Option $' + Opt;
-    Descr:=Format('{$%s %s}', [Opt, Value]);
-    if Value = 'ON' then
-      OptValue:='1'
-    else
-      OptValue:='0';
-    if Result <> nil then
-      tpl:=Result.FindChildByName(Name)
-    else
-      tpl:=nil;
-    if tpl = nil then begin
-      if RecursiveDefines then
-        NewAction:=da_DefineRecurse
-      else
-        NewAction:=da_Define;
-      CreateMainTemplate;
-      tpl:=TDefineTemplate.Create(Name, Descr, Opt, OptValue, NewAction);
-      Result.AddChild(tpl);
-    end
-    else begin
-      tpl.Value:=OptValue;
-      tpl.Description:=Descr;
-    end;
-  end;
-
-  procedure DefineOpt(const Opt: char; Enabled: boolean);
-  const
-    Values: array[boolean] of string = ('OFF', 'ON');
-  begin
-    DefineOpt(CompilerSwitchesNames[Opt], Values[Enabled]);
-  end;
-
   function FindControllerUnit(const AControllerName: string): string;
   type
     TControllerType = record
@@ -7212,7 +7040,7 @@ function TDefinePool.CreateFPCCommandLineDefines(const Name, CmdLine: string;
       controllerunitstr: string[20];
     end;
   const
-    ControllerTypes: array[0..606] of TControllerType =
+    ControllerTypes: array[0..532] of TControllerType =
      ((controllertypestr:'';                  controllerunitstr:''),
       (controllertypestr:'LPC810M021FN8';     controllerunitstr:'LPC8xx'),
       (controllertypestr:'LPC811M001JDH16';   controllerunitstr:'LPC8xx'),
@@ -7603,226 +7431,150 @@ function TDefinePool.CreateFPCCommandLineDefines(const Name, CmdLine: string;
       (controllertypestr:'PIC32MX775F512L';   controllerunitstr:'PIC32MX7x5FxxxL'),
       (controllertypestr:'PIC32MX795F512H';   controllerunitstr:'PIC32MX7x5FxxxH'),
       (controllertypestr:'PIC32MX795F512L';   controllerunitstr:'PIC32MX7x5FxxxL'),
-      // AVR controllers
-      (controllertypestr:'AT90CAN32';         controllerunitstr:'AT90CAN32'),
-      (controllertypestr:'AT90CAN64';         controllerunitstr:'AT90CAN64'),
-      (controllertypestr:'AT90CAN128';        controllerunitstr:'AT90CAN128'),
-      (controllertypestr:'AT90PWM1';          controllerunitstr:'AT90PWM1'),
-      (controllertypestr:'AT90PWM2B';         controllerunitstr:'AT90PWM2B'),
-      (controllertypestr:'AT90PWM3B';         controllerunitstr:'AT90PWM3B'),
-      (controllertypestr:'AT90PWM81';         controllerunitstr:'AT90PWM81'),
-      (controllertypestr:'AT90PWM161';        controllerunitstr:'AT90PWM161'),
-      (controllertypestr:'AT90PWM216';        controllerunitstr:'AT90PWM216'),
-      (controllertypestr:'AT90PWM316';        controllerunitstr:'AT90PWM316'),
-      (controllertypestr:'AT90USB82';         controllerunitstr:'AT90USB82'),
-      (controllertypestr:'AT90USB162';        controllerunitstr:'AT90USB162'),
-      (controllertypestr:'AT90USB646';        controllerunitstr:'AT90USB646'),
-      (controllertypestr:'AT90USB647';        controllerunitstr:'AT90USB647'),
-      (controllertypestr:'AT90USB1286';       controllerunitstr:'AT90USB1286'),
-      (controllertypestr:'AT90USB1287';       controllerunitstr:'AT90USB1287'),
-      (controllertypestr:'ATA6285';           controllerunitstr:'ATA6285'),
-      (controllertypestr:'ATA6286';           controllerunitstr:'ATA6286'),
-      (controllertypestr:'ATMEGA8';           controllerunitstr:'ATMEGA8'),
-      (controllertypestr:'ATMEGA8A';          controllerunitstr:'ATMEGA8A'),
-      (controllertypestr:'ATMEGA8HVA';        controllerunitstr:'ATMEGA8HVA'),
-      (controllertypestr:'ATMEGA8U2';         controllerunitstr:'ATMEGA8U2'),
-      (controllertypestr:'ATMEGA16';          controllerunitstr:'ATMEGA16'),
-      (controllertypestr:'ATMEGA16A';         controllerunitstr:'ATMEGA16A'),
-      (controllertypestr:'ATMEGA16HVA';       controllerunitstr:'ATMEGA16HVA'),
-      (controllertypestr:'ATMEGA16HVB';       controllerunitstr:'ATMEGA16HVB'),
-      (controllertypestr:'ATMEGA16HVBREVB';   controllerunitstr:'ATMEGA16HVBREVB'),
-      (controllertypestr:'ATMEGA16M1';        controllerunitstr:'ATMEGA16M1'),
-      (controllertypestr:'ATMEGA16U2';        controllerunitstr:'ATMEGA16U2'),
-      (controllertypestr:'ATMEGA16U4';        controllerunitstr:'ATMEGA16U4'),
-      (controllertypestr:'ATMEGA32';          controllerunitstr:'ATMEGA32'),
-      (controllertypestr:'ATMEGA32A';         controllerunitstr:'ATMEGA32A'),
-      (controllertypestr:'ATMEGA32C1';        controllerunitstr:'ATMEGA32C1'),
-      (controllertypestr:'ATMEGA32HVB';       controllerunitstr:'ATMEGA32HVB'),
-      (controllertypestr:'ATMEGA32HVBREVB';   controllerunitstr:'ATMEGA32HVBREVB'),
-      (controllertypestr:'ATMEGA32M1';        controllerunitstr:'ATMEGA32M1'),
-      (controllertypestr:'ATMEGA32U2';        controllerunitstr:'ATMEGA32U2'),
-      (controllertypestr:'ATMEGA32U4';        controllerunitstr:'ATMEGA32U4'),
-      (controllertypestr:'ATMEGA48';          controllerunitstr:'ATMEGA48'),
-      (controllertypestr:'ATMEGA48A';         controllerunitstr:'ATMEGA48A'),
-      (controllertypestr:'ATMEGA48P';         controllerunitstr:'ATMEGA48P'),
-      (controllertypestr:'ATMEGA48PA';        controllerunitstr:'ATMEGA48PA'),
-      (controllertypestr:'ATMEGA48PB';        controllerunitstr:'ATMEGA48PB'),
-      (controllertypestr:'ATMEGA64';          controllerunitstr:'ATMEGA64'),
-      (controllertypestr:'ATMEGA64A';         controllerunitstr:'ATMEGA64A'),
-      (controllertypestr:'ATMEGA64C1';        controllerunitstr:'ATMEGA64C1'),
-      (controllertypestr:'ATMEGA64HVE2';      controllerunitstr:'ATMEGA64HVE2'),
-      (controllertypestr:'ATMEGA64M1';        controllerunitstr:'ATMEGA64M1'),
-      (controllertypestr:'ATMEGA64RFR2';      controllerunitstr:'ATMEGA64RFR2'),
-      (controllertypestr:'ATMEGA88';          controllerunitstr:'ATMEGA88'),
-      (controllertypestr:'ATMEGA88A';         controllerunitstr:'ATMEGA88A'),
-      (controllertypestr:'ATMEGA88P';         controllerunitstr:'ATMEGA88P'),
-      (controllertypestr:'ATMEGA88PA';        controllerunitstr:'ATMEGA88PA'),
-      (controllertypestr:'ATMEGA88PB';        controllerunitstr:'ATMEGA88PB'),
-      (controllertypestr:'ATMEGA128';         controllerunitstr:'ATMEGA128'),
-      (controllertypestr:'ATMEGA128A';        controllerunitstr:'ATMEGA128A'),
-      (controllertypestr:'ATMEGA128RFA1';     controllerunitstr:'ATMEGA128RFA1'),
-      (controllertypestr:'ATMEGA128RFR2';     controllerunitstr:'ATMEGA128RFR2'),
-      (controllertypestr:'ATMEGA162';         controllerunitstr:'ATMEGA162'),
-      (controllertypestr:'ATMEGA164A';        controllerunitstr:'ATMEGA164A'),
-      (controllertypestr:'ATMEGA164P';        controllerunitstr:'ATMEGA164P'),
-      (controllertypestr:'ATMEGA164PA';       controllerunitstr:'ATMEGA164PA'),
-      (controllertypestr:'ATMEGA165A';        controllerunitstr:'ATMEGA165A'),
-      (controllertypestr:'ATMEGA165P';        controllerunitstr:'ATMEGA165P'),
-      (controllertypestr:'ATMEGA165PA';       controllerunitstr:'ATMEGA165PA'),
-      (controllertypestr:'ATMEGA168';         controllerunitstr:'ATMEGA168'),
-      (controllertypestr:'ATMEGA168A';        controllerunitstr:'ATMEGA168A'),
-      (controllertypestr:'ATMEGA168P';        controllerunitstr:'ATMEGA168P'),
-      (controllertypestr:'ATMEGA168PA';       controllerunitstr:'ATMEGA168PA'),
-      (controllertypestr:'ATMEGA168PB';       controllerunitstr:'ATMEGA168PB'),
-      (controllertypestr:'ATMEGA169A';        controllerunitstr:'ATMEGA169A'),
-      (controllertypestr:'ATMEGA169P';        controllerunitstr:'ATMEGA169P'),
-      (controllertypestr:'ATMEGA169PA';       controllerunitstr:'ATMEGA169PA'),
-      (controllertypestr:'ATMEGA256RFR2';     controllerunitstr:'ATMEGA256RFR2'),
-      (controllertypestr:'ATMEGA324A';        controllerunitstr:'ATMEGA324A'),
-      (controllertypestr:'ATMEGA324P';        controllerunitstr:'ATMEGA324P'),
-      (controllertypestr:'ATMEGA324PA';       controllerunitstr:'ATMEGA324PA'),
-      (controllertypestr:'ATMEGA324PB';       controllerunitstr:'ATMEGA324PB'),
-      (controllertypestr:'ATMEGA325';         controllerunitstr:'ATMEGA325'),
-      (controllertypestr:'ATMEGA325A';        controllerunitstr:'ATMEGA325A'),
-      (controllertypestr:'ATMEGA325P';        controllerunitstr:'ATMEGA325P'),
-      (controllertypestr:'ATMEGA325PA';       controllerunitstr:'ATMEGA325PA'),
-      (controllertypestr:'ATMEGA328';         controllerunitstr:'ATMEGA328'),
-      (controllertypestr:'ATMEGA328P';        controllerunitstr:'ATMEGA328P'),
-      (controllertypestr:'ATMEGA328PB';       controllerunitstr:'ATMEGA328PB'),
-      (controllertypestr:'ATMEGA329';         controllerunitstr:'ATMEGA329'),
-      (controllertypestr:'ATMEGA329A';        controllerunitstr:'ATMEGA329A'),
-      (controllertypestr:'ATMEGA329P';        controllerunitstr:'ATMEGA329P'),
-      (controllertypestr:'ATMEGA329PA';       controllerunitstr:'ATMEGA329PA'),
-      (controllertypestr:'ATMEGA406';         controllerunitstr:'ATMEGA406'),
-      (controllertypestr:'ATMEGA640';         controllerunitstr:'ATMEGA640'),
-      (controllertypestr:'ATMEGA644';         controllerunitstr:'ATMEGA644'),
-      (controllertypestr:'ATMEGA644A';        controllerunitstr:'ATMEGA644A'),
-      (controllertypestr:'ATMEGA644P';        controllerunitstr:'ATMEGA644P'),
-      (controllertypestr:'ATMEGA644PA';       controllerunitstr:'ATMEGA644PA'),
-      (controllertypestr:'ATMEGA644RFR2';     controllerunitstr:'ATMEGA644RFR2'),
       (controllertypestr:'ATMEGA645';         controllerunitstr:'ATMEGA645'),
-      (controllertypestr:'ATMEGA645A';        controllerunitstr:'ATMEGA645A'),
-      (controllertypestr:'ATMEGA645P';        controllerunitstr:'ATMEGA645P'),
-      (controllertypestr:'ATMEGA649';         controllerunitstr:'ATMEGA649'),
-      (controllertypestr:'ATMEGA649A';        controllerunitstr:'ATMEGA649A'),
-      (controllertypestr:'ATMEGA649P';        controllerunitstr:'ATMEGA649P'),
-      (controllertypestr:'ATMEGA808';         controllerunitstr:'ATMEGA808'),
-      (controllertypestr:'ATMEGA809';         controllerunitstr:'ATMEGA809'),
-      (controllertypestr:'ATMEGA1280';        controllerunitstr:'ATMEGA1280'),
-      (controllertypestr:'ATMEGA1281';        controllerunitstr:'ATMEGA1281'),
-      (controllertypestr:'ATMEGA1284';        controllerunitstr:'ATMEGA1284'),
-      (controllertypestr:'ATMEGA1284P';       controllerunitstr:'ATMEGA1284P'),
-      (controllertypestr:'ATMEGA1284RFR2';    controllerunitstr:'ATMEGA1284RFR2'),
-      (controllertypestr:'ATMEGA1608';        controllerunitstr:'ATMEGA1608'),
-      (controllertypestr:'ATMEGA1609';        controllerunitstr:'ATMEGA1609'),
-      (controllertypestr:'ATMEGA2560';        controllerunitstr:'ATMEGA2560'),
-      (controllertypestr:'ATMEGA2561';        controllerunitstr:'ATMEGA2561'),
-      (controllertypestr:'ATMEGA2564RFR2';    controllerunitstr:'ATMEGA2564RFR2'),
-      (controllertypestr:'ATMEGA3208';        controllerunitstr:'ATMEGA3208'),
-      (controllertypestr:'ATMEGA3209';        controllerunitstr:'ATMEGA3209'),
-      (controllertypestr:'ATMEGA3250';        controllerunitstr:'ATMEGA3250'),
-      (controllertypestr:'ATMEGA3250A';       controllerunitstr:'ATMEGA3250A'),
-      (controllertypestr:'ATMEGA3250P';       controllerunitstr:'ATMEGA3250P'),
-      (controllertypestr:'ATMEGA3250PA';      controllerunitstr:'ATMEGA3250PA'),
-      (controllertypestr:'ATMEGA3290';        controllerunitstr:'ATMEGA3290'),
-      (controllertypestr:'ATMEGA3290A';       controllerunitstr:'ATMEGA3290A'),
-      (controllertypestr:'ATMEGA3290P';       controllerunitstr:'ATMEGA3290P'),
-      (controllertypestr:'ATMEGA3290PA';      controllerunitstr:'ATMEGA3290PA'),
-      (controllertypestr:'ATMEGA4808';        controllerunitstr:'ATMEGA4808'),
-      (controllertypestr:'ATMEGA4809';        controllerunitstr:'ATMEGA4809'),
-      (controllertypestr:'ATMEGA6450';        controllerunitstr:'ATMEGA6450'),
-      (controllertypestr:'ATMEGA6450A';       controllerunitstr:'ATMEGA6450A'),
-      (controllertypestr:'ATMEGA6450P';       controllerunitstr:'ATMEGA6450P'),
-      (controllertypestr:'ATMEGA6490';        controllerunitstr:'ATMEGA6490'),
-      (controllertypestr:'ATMEGA6490A';       controllerunitstr:'ATMEGA6490A'),
-      (controllertypestr:'ATMEGA6490P';       controllerunitstr:'ATMEGA6490P'),
-      (controllertypestr:'ATMEGA8515';        controllerunitstr:'ATMEGA8515'),
-      (controllertypestr:'ATMEGA8535';        controllerunitstr:'ATMEGA8535'),
-      (controllertypestr:'ATTINY4';           controllerunitstr:'ATTINY4'),
-      (controllertypestr:'ATTINY5';           controllerunitstr:'ATTINY5'),
-      (controllertypestr:'ATTINY9';           controllerunitstr:'ATTINY9'),
-      (controllertypestr:'ATTINY10';          controllerunitstr:'ATTINY10'),
-      (controllertypestr:'ATTINY11';          controllerunitstr:'ATTINY11'),
-      (controllertypestr:'ATTINY12';          controllerunitstr:'ATTINY12'),
-      (controllertypestr:'ATTINY13';          controllerunitstr:'ATTINY13'),
-      (controllertypestr:'ATTINY13A';         controllerunitstr:'ATTINY13A'),
-      (controllertypestr:'ATTINY15';          controllerunitstr:'ATTINY15'),
-      (controllertypestr:'ATTINY20';          controllerunitstr:'ATTINY20'),
-      (controllertypestr:'ATTINY24';          controllerunitstr:'ATTINY24'),
-      (controllertypestr:'ATTINY24A';         controllerunitstr:'ATTINY24A'),
-      (controllertypestr:'ATTINY25';          controllerunitstr:'ATTINY25'),
-      (controllertypestr:'ATTINY26';          controllerunitstr:'ATTINY26'),
-      (controllertypestr:'ATTINY28';          controllerunitstr:'ATTINY28'),
-      (controllertypestr:'ATTINY40';          controllerunitstr:'ATTINY40'),
-      (controllertypestr:'ATTINY43U';         controllerunitstr:'ATTINY43U'),
-      (controllertypestr:'ATTINY44';          controllerunitstr:'ATTINY44'),
+      (controllertypestr:'ATMEGA165A';        controllerunitstr:'ATMEGA165A'),
       (controllertypestr:'ATTINY44A';         controllerunitstr:'ATTINY44A'),
-      (controllertypestr:'ATTINY45';          controllerunitstr:'ATTINY45'),
+      (controllertypestr:'ATMEGA649A';        controllerunitstr:'ATMEGA649A'),
+      (controllertypestr:'ATMEGA32U4';        controllerunitstr:'ATMEGA32U4'),
+      (controllertypestr:'ATTINY26';          controllerunitstr:'ATTINY26'),
+      (controllertypestr:'AT90USB1287';       controllerunitstr:'AT90USB1287'),
+      (controllertypestr:'AT90PWM161';        controllerunitstr:'AT90PWM161'),
       (controllertypestr:'ATTINY48';          controllerunitstr:'ATTINY48'),
-      (controllertypestr:'ATTINY84';          controllerunitstr:'ATTINY84'),
+      (controllertypestr:'ATMEGA168P';        controllerunitstr:'ATMEGA168P'),
+      (controllertypestr:'ATTINY10';          controllerunitstr:'ATTINY10'),
       (controllertypestr:'ATTINY84A';         controllerunitstr:'ATTINY84A'),
-      (controllertypestr:'ATTINY85';          controllerunitstr:'ATTINY85'),
-      (controllertypestr:'ATTINY87';          controllerunitstr:'ATTINY87'),
-      (controllertypestr:'ATTINY88';          controllerunitstr:'ATTINY88'),
-      (controllertypestr:'ATTINY102';         controllerunitstr:'ATTINY102'),
-      (controllertypestr:'ATTINY104';         controllerunitstr:'ATTINY104'),
-      (controllertypestr:'ATTINY167';         controllerunitstr:'ATTINY167'),
-      (controllertypestr:'ATTINY202';         controllerunitstr:'ATTINY202'),
-      (controllertypestr:'ATTINY204';         controllerunitstr:'ATTINY204'),
-      (controllertypestr:'ATTINY212';         controllerunitstr:'ATTINY212'),
-      (controllertypestr:'ATTINY214';         controllerunitstr:'ATTINY214'),
-      (controllertypestr:'ATTINY261';         controllerunitstr:'ATTINY261'),
-      (controllertypestr:'ATTINY261A';        controllerunitstr:'ATTINY261A'),
-      (controllertypestr:'ATTINY402';         controllerunitstr:'ATTINY402'),
-      (controllertypestr:'ATTINY404';         controllerunitstr:'ATTINY404'),
-      (controllertypestr:'ATTINY406';         controllerunitstr:'ATTINY406'),
-      (controllertypestr:'ATTINY412';         controllerunitstr:'ATTINY412'),
-      (controllertypestr:'ATTINY414';         controllerunitstr:'ATTINY414'),
-      (controllertypestr:'ATTINY416';         controllerunitstr:'ATTINY416'),
-      (controllertypestr:'ATTINY416AUTO';     controllerunitstr:'ATTINY416AUTO'),
-      (controllertypestr:'ATTINY417';         controllerunitstr:'ATTINY417'),
-      (controllertypestr:'ATTINY441';         controllerunitstr:'ATTINY441'),
-      (controllertypestr:'ATTINY461';         controllerunitstr:'ATTINY461'),
-      (controllertypestr:'ATTINY461A';        controllerunitstr:'ATTINY461A'),
-      (controllertypestr:'ATTINY804';         controllerunitstr:'ATTINY804'),
-      (controllertypestr:'ATTINY806';         controllerunitstr:'ATTINY806'),
-      (controllertypestr:'ATTINY807';         controllerunitstr:'ATTINY807'),
-      (controllertypestr:'ATTINY814';         controllerunitstr:'ATTINY814'),
-      (controllertypestr:'ATTINY816';         controllerunitstr:'ATTINY816'),
-      (controllertypestr:'ATTINY817';         controllerunitstr:'ATTINY817'),
-      (controllertypestr:'ATTINY828';         controllerunitstr:'ATTINY828'),
-      (controllertypestr:'ATTINY841';         controllerunitstr:'ATTINY841'),
-      (controllertypestr:'ATTINY861';         controllerunitstr:'ATTINY861'),
-      (controllertypestr:'ATTINY861A';        controllerunitstr:'ATTINY861A'),
-      (controllertypestr:'ATTINY1604';        controllerunitstr:'ATTINY1604'),
-      (controllertypestr:'ATTINY1606';        controllerunitstr:'ATTINY1606'),
-      (controllertypestr:'ATTINY1607';        controllerunitstr:'ATTINY1607'),
-      (controllertypestr:'ATTINY1614';        controllerunitstr:'ATTINY1614'),
-      (controllertypestr:'ATTINY1616';        controllerunitstr:'ATTINY1616'),
-      (controllertypestr:'ATTINY1617';        controllerunitstr:'ATTINY1617'),
-      (controllertypestr:'ATTINY1624';        controllerunitstr:'ATTINY1624'),
-      (controllertypestr:'ATTINY1626';        controllerunitstr:'ATTINY1626'),
-      (controllertypestr:'ATTINY1627';        controllerunitstr:'ATTINY1627'),
-      (controllertypestr:'ATTINY1634';        controllerunitstr:'ATTINY1634'),
+      (controllertypestr:'AT90USB82';         controllerunitstr:'AT90USB82'),
       (controllertypestr:'ATTINY2313';        controllerunitstr:'ATTINY2313'),
-      (controllertypestr:'ATTINY2313A';       controllerunitstr:'ATTINY2313A'),
-      (controllertypestr:'ATTINY3214';        controllerunitstr:'ATTINY3214'),
-      (controllertypestr:'ATTINY3216';        controllerunitstr:'ATTINY3216'),
-      (controllertypestr:'ATTINY3217';        controllerunitstr:'ATTINY3217'),
+      (controllertypestr:'ATTINY461';         controllerunitstr:'ATTINY461'),
+      (controllertypestr:'ATMEGA3250PA';      controllerunitstr:'ATMEGA3250PA'),
+      (controllertypestr:'ATMEGA3290A';       controllerunitstr:'ATMEGA3290A'),
+      (controllertypestr:'ATMEGA165P';        controllerunitstr:'ATMEGA165P'),
+      (controllertypestr:'ATTINY43U';         controllerunitstr:'ATTINY43U'),
+      (controllertypestr:'AT90USB162';        controllerunitstr:'AT90USB162'),
+      (controllertypestr:'ATMEGA16U4';        controllerunitstr:'ATMEGA16U4'),
+      (controllertypestr:'ATTINY24A';         controllerunitstr:'ATTINY24A'),
+      (controllertypestr:'ATMEGA88P';         controllerunitstr:'ATMEGA88P'),
+      (controllertypestr:'ATTINY88';          controllerunitstr:'ATTINY88'),
+      (controllertypestr:'ATMEGA6490P';       controllerunitstr:'ATMEGA6490P'),
+      (controllertypestr:'ATTINY40';          controllerunitstr:'ATTINY40'),
+      (controllertypestr:'ATMEGA324P';        controllerunitstr:'ATMEGA324P'),
+      (controllertypestr:'ATTINY167';         controllerunitstr:'ATTINY167'),
+      (controllertypestr:'ATMEGA328';         controllerunitstr:'ATMEGA328'),
+      (controllertypestr:'ATTINY861';         controllerunitstr:'ATTINY861'),
+      (controllertypestr:'ATTINY85';          controllerunitstr:'ATTINY85'),
+      (controllertypestr:'ATMEGA64M1';        controllerunitstr:'ATMEGA64M1'),
+      (controllertypestr:'ATMEGA645P';        controllerunitstr:'ATMEGA645P'),
+      (controllertypestr:'ATMEGA8U2';         controllerunitstr:'ATMEGA8U2'),
+      (controllertypestr:'ATMEGA329A';        controllerunitstr:'ATMEGA329A'),
+      (controllertypestr:'ATMEGA8A';          controllerunitstr:'ATMEGA8A'),
+      (controllertypestr:'ATMEGA324PA';       controllerunitstr:'ATMEGA324PA'),
+      (controllertypestr:'ATMEGA32HVB';       controllerunitstr:'ATMEGA32HVB'),
+      (controllertypestr:'AT90PWM316';        controllerunitstr:'AT90PWM316'),
+      (controllertypestr:'AT90PWM3B';         controllerunitstr:'AT90PWM3B'),
+      (controllertypestr:'AT90USB646';        controllerunitstr:'AT90USB646'),
+      (controllertypestr:'ATTINY20';          controllerunitstr:'ATTINY20'),
+      (controllertypestr:'ATMEGA16';          controllerunitstr:'ATMEGA16'),
+      (controllertypestr:'ATMEGA48A';         controllerunitstr:'ATMEGA48A'),
+      (controllertypestr:'ATTINY24';          controllerunitstr:'ATTINY24'),
+      (controllertypestr:'ATMEGA644';         controllerunitstr:'ATMEGA644'),
+      (controllertypestr:'ATMEGA1284';        controllerunitstr:'ATMEGA1284'),
+      (controllertypestr:'ATA6285';           controllerunitstr:'ATA6285'),
+      (controllertypestr:'AT90CAN64';         controllerunitstr:'AT90CAN64'),
+      (controllertypestr:'ATMEGA48';          controllerunitstr:'ATMEGA48'),
+      (controllertypestr:'AT90CAN32';         controllerunitstr:'AT90CAN32'),
+      (controllertypestr:'ATTINY9';           controllerunitstr:'ATTINY9'),
+      (controllertypestr:'ATTINY87';          controllerunitstr:'ATTINY87'),
+      (controllertypestr:'ATMEGA1281';        controllerunitstr:'ATMEGA1281'),
+      (controllertypestr:'AT90PWM216';        controllerunitstr:'AT90PWM216'),
+      (controllertypestr:'ATMEGA3250A';       controllerunitstr:'ATMEGA3250A'),
+      (controllertypestr:'ATMEGA88A';         controllerunitstr:'ATMEGA88A'),
+      (controllertypestr:'ATMEGA128RFA1';     controllerunitstr:'ATMEGA128RFA1'),
+      (controllertypestr:'ATMEGA3290PA';      controllerunitstr:'ATMEGA3290PA'),
+      (controllertypestr:'AT90PWM81';         controllerunitstr:'AT90PWM81'),
+      (controllertypestr:'ATMEGA325P';        controllerunitstr:'ATMEGA325P'),
+      (controllertypestr:'ATTINY84';          controllerunitstr:'ATTINY84'),
+      (controllertypestr:'ATMEGA328P';        controllerunitstr:'ATMEGA328P'),
+      (controllertypestr:'ATTINY13A';         controllerunitstr:'ATTINY13A'),
+      (controllertypestr:'ATMEGA8';           controllerunitstr:'ATMEGA8'),
+      (controllertypestr:'ATMEGA1284P';       controllerunitstr:'ATMEGA1284P'),
+      (controllertypestr:'ATMEGA16U2';        controllerunitstr:'ATMEGA16U2'),
+      (controllertypestr:'ATTINY45';          controllerunitstr:'ATTINY45'),
+      (controllertypestr:'ATMEGA3250';        controllerunitstr:'ATMEGA3250'),
+      (controllertypestr:'ATMEGA329';         controllerunitstr:'ATMEGA329'),
+      (controllertypestr:'ATMEGA32A';         controllerunitstr:'ATMEGA32A'),
+      (controllertypestr:'ATTINY5';           controllerunitstr:'ATTINY5'),
+      (controllertypestr:'AT90CAN128';        controllerunitstr:'AT90CAN128'),
+      (controllertypestr:'ATMEGA6490';        controllerunitstr:'ATMEGA6490'),
+      (controllertypestr:'ATMEGA8515';        controllerunitstr:'ATMEGA8515'),
+      (controllertypestr:'ATMEGA88PA';        controllerunitstr:'ATMEGA88PA'),
+      (controllertypestr:'ATMEGA168A';        controllerunitstr:'ATMEGA168A'),
+      (controllertypestr:'ATMEGA128';         controllerunitstr:'ATMEGA128'),
+      (controllertypestr:'AT90USB1286';       controllerunitstr:'AT90USB1286'),
+      (controllertypestr:'ATMEGA164PA';       controllerunitstr:'ATMEGA164PA'),
+      (controllertypestr:'ATTINY828';         controllerunitstr:'ATTINY828'),
+      (controllertypestr:'ATMEGA88';          controllerunitstr:'ATMEGA88'),
+      (controllertypestr:'ATMEGA645A';        controllerunitstr:'ATMEGA645A'),
+      (controllertypestr:'ATMEGA3290P';       controllerunitstr:'ATMEGA3290P'),
+      (controllertypestr:'ATMEGA644P';        controllerunitstr:'ATMEGA644P'),
+      (controllertypestr:'ATMEGA164A';        controllerunitstr:'ATMEGA164A'),
       (controllertypestr:'ATTINY4313';        controllerunitstr:'ATTINY4313'),
-      // AVR controller board aliases
-      (controllertypestr:'ARDUINOLEONARDO';   controllerunitstr:'ATMEGA32U4'),
-      (controllertypestr:'ARDUINOMEGA';       controllerunitstr:'ATMEGA2560'),
-      (controllertypestr:'ARDUINOMICRO';      controllerunitstr:'ATMEGA32U4'),
-      (controllertypestr:'ARDUINONANO';       controllerunitstr:'ATMEGA328P'),
-      (controllertypestr:'ARDUINONANOEVERY';  controllerunitstr:'ATMEGA4809'),
-      (controllertypestr:'ARDUINOUNO';        controllerunitstr:'ATMEGA328P'),
-      (controllertypestr:'ATMEGA256RFR2XPRO'; controllerunitstr:'ATMEGA256RFR2'),
-      (controllertypestr:'ATMEGA324PBXPRO';   controllerunitstr:'ATMEGA324PB'),
-      (controllertypestr:'ATMEGA1284PXPLAINED'; controllerunitstr:'ATMEGA1284P'),
-      (controllertypestr:'ATMEGA4809XPRO';    controllerunitstr:'ATMEGA4809'),
-      (controllertypestr:'ATTINY817XPRO';     controllerunitstr:'ATTINY817'),
-      (controllertypestr:'ATTINY3217XPRO';    controllerunitstr:'ATTINY3217'));
+      (controllertypestr:'ATMEGA162';         controllerunitstr:'ATMEGA162'),
+      (controllertypestr:'ATMEGA32C1';        controllerunitstr:'ATMEGA32C1'),
+      (controllertypestr:'ATMEGA128A';        controllerunitstr:'ATMEGA128A'),
+      (controllertypestr:'ATMEGA324A';        controllerunitstr:'ATMEGA324A'),
+      (controllertypestr:'ATTINY13';          controllerunitstr:'ATTINY13'),
+      (controllertypestr:'ATMEGA2561';        controllerunitstr:'ATMEGA2561'),
+      (controllertypestr:'ATMEGA169A';        controllerunitstr:'ATMEGA169A'),
+      (controllertypestr:'ATTINY261';         controllerunitstr:'ATTINY261'),
+      (controllertypestr:'ATMEGA644A';        controllerunitstr:'ATMEGA644A'),
+      (controllertypestr:'ATMEGA3290';        controllerunitstr:'ATMEGA3290'),
+      (controllertypestr:'ATMEGA64A';         controllerunitstr:'ATMEGA64A'),
+      (controllertypestr:'ATMEGA169P';        controllerunitstr:'ATMEGA169P'),
+      (controllertypestr:'ATMEGA2560';        controllerunitstr:'ATMEGA2560'),
+      (controllertypestr:'ATMEGA32';          controllerunitstr:'ATMEGA32'),
+      (controllertypestr:'ATTINY861A';        controllerunitstr:'ATTINY861A'),
+      (controllertypestr:'ATTINY28';          controllerunitstr:'ATTINY28'),
+      (controllertypestr:'ATMEGA48P';         controllerunitstr:'ATMEGA48P'),
+      (controllertypestr:'ATMEGA8535';        controllerunitstr:'ATMEGA8535'),
+      (controllertypestr:'ATMEGA168PA';       controllerunitstr:'ATMEGA168PA'),
+      (controllertypestr:'ATMEGA16M1';        controllerunitstr:'ATMEGA16M1'),
+      (controllertypestr:'ATMEGA16HVB';       controllerunitstr:'ATMEGA16HVB'),
+      (controllertypestr:'ATMEGA164P';        controllerunitstr:'ATMEGA164P'),
+      (controllertypestr:'ATMEGA325A';        controllerunitstr:'ATMEGA325A'),
+      (controllertypestr:'ATMEGA640';         controllerunitstr:'ATMEGA640'),
+      (controllertypestr:'ATMEGA6450';        controllerunitstr:'ATMEGA6450'),
+      (controllertypestr:'ATMEGA329P';        controllerunitstr:'ATMEGA329P'),
+      (controllertypestr:'ATA6286';           controllerunitstr:'ATA6286'),
+      (controllertypestr:'AT90USB647';        controllerunitstr:'AT90USB647'),
+      (controllertypestr:'ATMEGA168';         controllerunitstr:'ATMEGA168'),
+      (controllertypestr:'ATMEGA6490A';       controllerunitstr:'ATMEGA6490A'),
+      (controllertypestr:'ATMEGA32M1';        controllerunitstr:'ATMEGA32M1'),
+      (controllertypestr:'ATMEGA64C1';        controllerunitstr:'ATMEGA64C1'),
+      (controllertypestr:'ATMEGA32U2';        controllerunitstr:'ATMEGA32U2'),
+      (controllertypestr:'ATTINY4';           controllerunitstr:'ATTINY4'),
+      (controllertypestr:'ATMEGA644PA';       controllerunitstr:'ATMEGA644PA'),
+      (controllertypestr:'AT90PWM1';          controllerunitstr:'AT90PWM1'),
+      (controllertypestr:'ATTINY44';          controllerunitstr:'ATTINY44'),
+      (controllertypestr:'ATMEGA325PA';       controllerunitstr:'ATMEGA325PA'),
+      (controllertypestr:'ATMEGA6450A';       controllerunitstr:'ATMEGA6450A'),
+      (controllertypestr:'ATTINY2313A';       controllerunitstr:'ATTINY2313A'),
+      (controllertypestr:'ATMEGA329PA';       controllerunitstr:'ATMEGA329PA'),
+      (controllertypestr:'ATTINY461A';        controllerunitstr:'ATTINY461A'),
+      (controllertypestr:'ATMEGA6450P';       controllerunitstr:'ATMEGA6450P'),
+      (controllertypestr:'ATMEGA64';          controllerunitstr:'ATMEGA64'),
+      (controllertypestr:'ATMEGA165PA';       controllerunitstr:'ATMEGA165PA'),
+      (controllertypestr:'ATMEGA16A';         controllerunitstr:'ATMEGA16A'),
+      (controllertypestr:'ATMEGA649';         controllerunitstr:'ATMEGA649'),
+      (controllertypestr:'ATMEGA1280';        controllerunitstr:'ATMEGA1280'),
+      (controllertypestr:'AT90PWM2B';         controllerunitstr:'AT90PWM2B'),
+      (controllertypestr:'ATMEGA649P';        controllerunitstr:'ATMEGA649P'),
+      (controllertypestr:'ATMEGA3250P';       controllerunitstr:'ATMEGA3250P'),
+      (controllertypestr:'ATMEGA48PA';        controllerunitstr:'ATMEGA48PA'),
+      (controllertypestr:'ATTINY1634';        controllerunitstr:'ATTINY1634'),
+      (controllertypestr:'ATMEGA325';         controllerunitstr:'ATMEGA325'),
+      (controllertypestr:'ATMEGA169PA';       controllerunitstr:'ATMEGA169PA'),
+      (controllertypestr:'ATTINY261A';        controllerunitstr:'ATTINY261A'),
+      (controllertypestr:'ATTINY25';          controllerunitstr:'ATTINY25'));
 
   var
     i: integer;
@@ -7859,7 +7611,7 @@ begin
     SplitCmdLineParams(CmdLine,Params);
     for i:=0 to Params.Count-1 do begin
       Param:=Params[i];
-      if Length(Param) < 2 then continue;
+      if Param='' then continue;
       p:=PChar(Param);
       if p^<>'-' then continue;
       // a parameter
@@ -7890,17 +7642,16 @@ begin
         begin
           // syntax
           inc(p,2);
-          while p^ <> #0 do begin
+          repeat
             case p^ of
             '2': CompilerMode:='ObjFPC';
             'd': CompilerMode:='Delphi';
             'o': CompilerMode:='TP';
             'p': CompilerMode:='GPC';
-            'a': DefineOpt('C', p[1] <> '-');  // Assertions
-            'h': DefineOpt('H', p[1] <> '-');  // ansistrings
+            else break;
             end;
             inc(p);
-          end;
+          until false;
         end;
 
       'M':
@@ -7934,40 +7685,7 @@ begin
                 MacOSMinSDKVersionMacro,IntToStr(Round(MacMinVer*100)));
           end;
         end;
-      'g':
-        begin
-          // Debug info
-          Inc(p, 2);
-          case p^ of
-            #0:
-              DefineOpt('D', True);
-            '-':
-              DefineOpt('D', False);
-            else
-              begin
-                while not (p^ in [#0, 'o']) do begin
-                  if p^ = 'w' then begin
-                    DefineOpt('D', True);
-                    break;
-                  end;
-                  Inc(p);
-                end;
-              end;
-          end;
-        end;
-      'C':
-        begin
-          // Code generator options
-          Inc(p, 2);
-          while p^ <> #0 do begin
-            case p^ of
-              'i': DefineOpt('I', p[1] <> '-');
-              'r': DefineOpt('R', p[1] <> '-');
-              'o': DefineOpt('Q', p[1] <> '-');
-            end;
-            Inc(p);
-          end;
-        end;
+
       end;
     end;
   finally
@@ -8309,8 +8027,6 @@ begin
   FreeAndNil(UnitScopes);
   FreeAndNil(Units);
   FreeAndNil(Includes);
-  FreeAndNil(UnitToFPM);
-  FreeAndNil(FPMNameToFPM); // this frees the FPMs
 end;
 
 function TPCTargetConfigCache.Equals(Item: TPCTargetConfigCache;
@@ -8342,9 +8058,6 @@ function TPCTargetConfigCache.Equals(Item: TPCTargetConfigCache;
     Result:=true;
   end;
 
-var
-  Node1, Node2: TAVLTreeNode;
-  S2PItem1, S2PItem2: PStringToPointerTreeItem;
 begin
   Result:=false;
   if CompareKey then begin
@@ -8374,50 +8087,12 @@ begin
   if not CompareStrings(UnitScopes,Item.UnitScopes) then exit;
   if not CompareStringTrees(Units,Item.Units) then exit;
   if not CompareStringTrees(Includes,Item.Includes) then exit;
-
-  if UnitToFPM<>nil then begin
-    if Item.UnitToFPM=nil then exit;
-    if UnitToFPM.Count<>Item.UnitToFPM.Count then exit;
-    Node1:=UnitToFPM.Tree.FindLowest;
-    Node2:=Item.UnitToFPM.Tree.FindLowest;
-    while Node1<>nil do begin
-      S2PItem1:=PStringToPointerTreeItem(Node1.Data);
-      S2PItem2:=PStringToPointerTreeItem(Node2.Data);
-      if S2PItem1^.Name<>S2PItem2^.Name then
-        exit;
-      if TPCFPMFileState(S2PItem1^.Value).Name<>TPCFPMFileState(S2PItem2^.Value).Name then
-        exit;
-      Node1:=Node1.Successor;
-      Node2:=Node2.Successor;
-    end;
-  end;
-
-  if FPMNameToFPM<>nil then begin
-    if Item.FPMNameToFPM=nil then exit;
-    if FPMNameToFPM.Count<>Item.FPMNameToFPM.Count then exit;
-    Node1:=FPMNameToFPM.Tree.FindLowest;
-    Node2:=Item.FPMNameToFPM.Tree.FindLowest;
-    while Node1<>nil do begin
-      S2PItem1:=PStringToPointerTreeItem(Node1.Data);
-      S2PItem2:=PStringToPointerTreeItem(Node2.Data);
-      if S2PItem1^.Name<>S2PItem2^.Name then
-        exit;
-      if not TPCFPMFileState(S2PItem1^.Value).Equals(TPCFPMFileState(S2PItem2^.Value),true) then
-        exit;
-      Node1:=Node1.Successor;
-      Node2:=Node2.Successor;
-    end;
-  end;
-
   Result:=true;
 end;
 
 procedure TPCTargetConfigCache.Assign(Source: TPersistent);
 var
   Item: TPCTargetConfigCache;
-  Node: TAVLTreeNode;
-  FPM: TPCFPMFileState;
-  S2PItem: PStringToPointerTreeItem;
 
   procedure AssignStringTree(var Dest: TStringToStringTree; const Src: TStringToStringTree);
   begin
@@ -8466,32 +8141,6 @@ begin
     AssignStringList(UnitScopes,Item.UnitScopes);
     AssignStringTree(Units,Item.Units);
     AssignStringTree(Includes,Item.Includes);
-
-    FreeAndNil(UnitToFPM);
-    FreeAndNil(FPMNameToFPM);
-    if (Item.FPMNameToFPM<>nil) and (Item.UnitToFPM=nil) then begin
-      FPMNameToFPM:=TStringToPointerTree.Create(false);
-      FPMNameToFPM.FreeValues:=true;
-      UnitToFPM:=TStringToPointerTree.Create(false);
-      // clone TPCFPMFileState objects
-      Node:=Item.FPMNameToFPM.Tree.FindLowest;
-      while Node<>nil do begin
-        S2PItem:=PStringToPointerTreeItem(Node.Data);
-        FPM:=TPCFPMFileState.Create;
-        FPM.Name:=S2PItem^.Name;
-        FPM.Assign(TPCFPMFileState(S2PItem^.Value));
-        FPMNameToFPM[FPM.Name]:=FPM;
-        Node:=Node.Successor;
-      end;
-      // clone UnitToFPM
-      Node:=Item.UnitToFPM.Tree.FindLowest;
-      while Node<>nil do begin
-        S2PItem:=PStringToPointerTreeItem(Node.Data);
-        FPM:=TPCFPMFileState(FPMNameToFPM[TPCFPMFileState(S2PItem^.Value).Name]);
-        UnitToFPM[S2PItem^.Name]:=FPM;
-        Node:=Node.Successor;
-      end;
-    end;
 
     ErrorMsg:=Item.ErrorMsg;
     ErrorTranslatedMsg:=Item.ErrorTranslatedMsg;
@@ -8585,11 +8234,10 @@ var
   Cnt: integer;
   SubPath: String;
   DefineName, DefineValue: String;
-  s, CurUnitName, CurFPMName: String;
+  s: String;
   i: Integer;
   p: Integer;
   StartPos: Integer;
-  FPM: TPCFPMFileState;
 begin
   Clear;
 
@@ -8650,39 +8298,6 @@ begin
   // Files
   LoadFilesFor(Units,'Units/');
   LoadFilesFor(Includes,'Includes/');
-
-  // read FPMNameToFPM before UnitToFPM!
-  Cnt:=XMLConfig.GetValue(Path+'FPMs/Count',0);
-  if Cnt>0 then begin
-    FPMNameToFPM:=TStringToPointerTree.Create(false);
-    FPMNameToFPM.FreeValues:=true;
-    UnitToFPM:=TStringToPointerTree.Create(false);
-    for i:=1 to Cnt do begin
-      SubPath:=Path+'FPMs/Item'+IntToStr(i)+'/';
-      FPM:=TPCFPMFileState.Create;
-      FPM.Name:=XMLConfig.GetValue(SubPath+'Name','');
-      if FPM.Name='' then
-        FPM.Free
-      else
-        FPM.LoadFromXMLConfig(XMLConfig,SubPath);
-      FPMNameToFPM[FPM.Name]:=FPM;
-    end;
-  end;
-
-  // UnitToFPM
-  Cnt:=XMLConfig.GetValue(Path+'UnitToFPM/Count',0);
-  if UnitToFPM<>nil then begin
-    for i:=1 to Cnt do begin
-      SubPath:=Path+'UnitToFPM/Item'+IntToStr(i)+'/';
-      CurUnitName:=XMLConfig.GetValue(SubPath+'Unit','');
-      if CurUnitName='' then continue;
-      CurFPMName:=XMLConfig.GetValue(SubPath+'FPM','');
-      if CurFPMName='' then continue;
-      FPM:=TPCFPMFileState(FPMNameToFPM[CurFPMName]);
-      if FPM=nil then exit;
-      UnitToFPM[CurUnitName]:=FPM;
-    end;
-  end;
 end;
 
 procedure TPCTargetConfigCache.SaveToXMLConfig(XMLConfig: TXMLConfig;
@@ -8772,11 +8387,9 @@ procedure TPCTargetConfigCache.SaveToXMLConfig(XMLConfig: TXMLConfig;
 var
   Node: TAVLTreeNode;
   Item: PStringToStringItem;
-  Cnt, i: Integer;
+  Cnt: Integer;
   SubPath: String;
   s: String;
-  S2PItem: PStringToPointerTreeItem;
-  FPM: TPCFPMFileState;
 begin
   XMLConfig.SetDeleteValue(Path+'Kind',PascalCompilerNames[Kind],PascalCompilerNames[pcFPC]);
   XMLConfig.SetDeleteValue(Path+'TargetOS',TargetOS,'');
@@ -8835,39 +8448,6 @@ begin
   // Files
   SaveFilesFor(Units, 'Units/');
   SaveFilesFor(Includes, 'Includes/');
-
-  // UnitToFPM
-  if UnitToFPM<>nil then begin
-    // write as UnitToFPM/Item<i>/Unit,FPM
-    i:=0;
-    Node:=UnitToFPM.Tree.FindLowest;
-    while Node<>nil do begin
-      inc(i);
-      SubPath:=Path+'UnitToFPM/Item'+IntToStr(i)+'/';
-      S2PItem:=PStringToPointerTreeItem(Node.Data);
-      XMLConfig.SetValue(SubPath+'Unit',S2PItem^.Name);
-      FPM:=TPCFPMFileState(S2PItem^.Value);
-      XMLConfig.SetValue(SubPath+'FPM',FPM.Name);
-      Node:=Node.Successor;
-    end;
-    XMLConfig.SetDeleteValue(Path+'UnitToFPM/Count',i,0);
-  end;
-
-  // FPMNameToFPM
-  if FPMNameToFPM<>nil then begin
-    // write as FPMs/Item<i>/
-    i:=0;
-    Node:=FPMNameToFPM.Tree.FindLowest;
-    while Node<>nil do begin
-      inc(i);
-      SubPath:=Path+'FPMs/Item'+IntToStr(i)+'/';
-      S2PItem:=PStringToPointerTreeItem(Node.Data);
-      FPM:=TPCFPMFileState(S2PItem^.Value);
-      FPM.SaveToXMLConfig(XMLConfig,SubPath);
-      Node:=Node.Successor;
-    end;
-    XMLConfig.SetDeleteValue(Path+'FPMs/Count',i,0);
-  end;
 end;
 
 procedure TPCTargetConfigCache.LoadFromFile(Filename: string);
@@ -9078,8 +8658,7 @@ begin
           ConfigFiles.Add(Filename,CfgFileExists,CfgFileDate);
         end;
       // gather all units and include files in search paths
-      GatherUnitsInSearchPaths(UnitPaths,IncludePaths,OnProgress,Units,Includes);
-      GatherUnitsInFPMSources(Units,UnitToFPM,FPMNameToFPM,OnProgress);
+      GatherUnitsInSearchPaths(UnitPaths,IncludePaths,OnProgress,Units,Includes,true);
       //if Kind=pcPas2js then begin
       //  debugln(['TPCTargetConfigCache.Update Units:']);
       //  for e in Units do

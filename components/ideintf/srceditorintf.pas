@@ -76,9 +76,6 @@ type
 
   TSrcEditReplaceAction = (seraCancel, seraSkip, seraReplace, seraReplaceAll);
 
-  TSrcEditProjectUpdateNeeded = (sepuNewShared, sepuChangedHighlighter);
-  TSrcEditProjectUpdatesNeeded = set of TSrcEditProjectUpdateNeeded;
-
   { TSourceEditorInterface }
 
   TSourceEditorInterface = class
@@ -163,7 +160,7 @@ type
 
     // context
     function GetProjectFile: TLazProjectFile; virtual; abstract;
-    procedure UpdateProjectFile(AnUpdates: TSrcEditProjectUpdatesNeeded = []); virtual; abstract;
+    procedure UpdateProjectFile; virtual; abstract;
     function GetDesigner(LoadForm: boolean): TIDesigner; virtual; abstract;
 
     // editor commands
@@ -362,7 +359,7 @@ type
 
 
 var
-  SourceEditorManagerIntf: TSourceEditorManagerInterface=nil; // set by the IDE
+  SourceEditorManagerIntf: TSourceEditorManagerInterface= nil;                      // set by the IDE
 
 type
   TEditorMacroState = (emStopped, emRecording, emPlaying, emRecPaused); // msPaused = paused recording
@@ -456,15 +453,6 @@ var
   ActiveEditorMacro: TEditorMacro = nil;
   DefaultBindingClass: TEditorMacroKeyBindingClass = nil;
   EditorMacroPlayerClass: TEditorMacroClass = nil;
-
-function GetMacroListViewerWarningText: String;
-procedure SetMacroListViewerWarningText(AValue: String);
-function GetMacroListViewerWarningChanged: TNotifyProcedure;
-procedure SetMacroListViewerWarningChanged(AValue: TNotifyProcedure);
-
-property MacroListViewerWarningText: string read GetMacroListViewerWarningText write SetMacroListViewerWarningText;
-property MacroListViewerWarningChanged: TNotifyProcedure read GetMacroListViewerWarningChanged write SetMacroListViewerWarningChanged;
-
 
 type
   { TIDEInteractiveStringValue }
@@ -621,8 +609,8 @@ var
 begin
   NewName:=IDECodeMacros.CreateUniqueName(Name);
   Result:=TIDECodeMacro.Create(NewName);
-  Result.ShortDescription:=LineBreaksToSystemLineBreaks(ShortDescription);
-  Result.LongDescription:=LineBreaksToSystemLineBreaks(LongDescription);
+  Result.ShortDescription:=ConvertLineEndings(ShortDescription);
+  Result.LongDescription:=ConvertLineEndings(LongDescription);
   Result.OnGetValueProc:=OnGetValueProc;
   Result.OnGetValueMethod:=OnGetValueMethod;
   IDECodeMacros.Add(Result);
@@ -636,8 +624,8 @@ var
 begin
   NewName:=IDECodeMacros.CreateUniqueName(Name);
   Result:=TIDECodeMacro.Create(NewName);
-  Result.ShortDescription:=LineBreaksToSystemLineBreaks(ShortDescription);
-  Result.LongDescription:=LineBreaksToSystemLineBreaks(LongDescription);
+  Result.ShortDescription:=ConvertLineEndings(ShortDescription);
+  Result.LongDescription:=ConvertLineEndings(LongDescription);
   Result.OnGetValueExProc:=OnGetValueProc;
   Result.OnGetValueExMethod:=OnGetValueMethod;
   IDECodeMacros.Add(Result);
@@ -752,36 +740,6 @@ procedure TEditorMacro.Resume;
 begin
   DoResume;
   CheckStateAndActivated;
-end;
-
-var
-  FMacroListViewerWarningText: String;
-  FMacroListViewerWarningChanged: TNotifyProcedure;
-
-function GetMacroListViewerWarningText: String;
-begin
-  Result := FMacroListViewerWarningText;
-end;
-
-procedure SetMacroListViewerWarningText(AValue: String);
-begin
-  FMacroListViewerWarningText := AValue;
-  if FMacroListViewerWarningChanged <> nil then
-    FMacroListViewerWarningChanged(nil);
-end;
-
-function GetMacroListViewerWarningChanged: TNotifyProcedure;
-begin
-  Result := FMacroListViewerWarningChanged;
-end;
-
-procedure SetMacroListViewerWarningChanged(AValue: TNotifyProcedure);
-begin
-  FMacroListViewerWarningChanged := AValue;
-  if (FMacroListViewerWarningChanged <> nil) and
-     (FMacroListViewerWarningText <> '')
-  then
-    FMacroListViewerWarningChanged(nil);
 end;
 
 { TEditorMacro }

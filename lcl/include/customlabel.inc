@@ -20,9 +20,6 @@
 
 }
 
-const
-  cMaxLabelSize = 10000;
-
 procedure TCustomLabel.CalculatePreferredSize(
   var PreferredWidth, PreferredHeight: integer; WithThemeSpace: Boolean);
 // assumes: (Parent <> nil) and Parent.HandleAllocated
@@ -33,7 +30,7 @@ begin
   if WidthIsAnchored and WordWrap then
     AWidth:=Width
   else
-    AWidth:=cMaxLabelSize;
+    AWidth:=10000;
   AWidth:=Constraints.MinMaxWidth(AWidth);
   CalculateSize(AWidth,PreferredWidth,PreferredHeight);
 end;
@@ -56,7 +53,7 @@ begin
 
   DC := GetDC(Parent.Handle);
   try
-    R := Rect(0, 0, MaxWidth, cMaxLabelSize);
+    R := Rect(0, 0, MaxWidth, 10000);
     OldFont := SelectObject(DC, HGDIOBJ(Font.Reference.Handle));
     Flags := DT_CALCRECT or DT_EXPANDTABS;
     if WordWrap then

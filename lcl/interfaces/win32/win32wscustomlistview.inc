@@ -1,5 +1,5 @@
 {%MainUnit win32wscomctrls.pp}
-{ $Id$
+{ $Id: win32wscustomlistview.inc 62862 2020-04-02 15:56:16Z mattias $
 
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

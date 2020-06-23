@@ -26,6 +26,7 @@ type
   TChartComboBox = class(TCustomComboBox)
     private
       FAlignment: TAlignment;
+      FBitmaps: array[TSeriesPointerStyle] of TBitmap;
       FBrushBitmap: TBitmap;
       FBrushColor: TColor;
       FBrushStyle: TBrushStyle;
@@ -59,11 +60,11 @@ type
       function SymbolWidthStored: Boolean;
     protected
       procedure Change; override;
+      procedure CreateBitmaps(AWidth, AHeight: Integer);
+      procedure DestroyBitmaps;
       procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
         const AXProportion, AYProportion: Double); override;
       procedure DrawItem(AIndex: Integer; ARect: TRect; AState: TOwnerDrawState); override;
-      procedure DrawPointer(ACanvas: TCanvas; ARect: TRect;
-        AStyle: TSeriesPointerStyle; APenColor, ABrushColor: TColor);
       function GetBrushStyle(const AIndex: Integer): TBrushStyle;
       function GetPenStyle(const AIndex: Integer): TPenStyle;
       function GetPenWidth(const AIndex: Integer): Integer;
@@ -160,7 +161,7 @@ implementation
 
 uses
   LCLType, Types, TypInfo, Math, FPCanvas,
-  TAChartStrConsts, TAChartUtils, TADrawerCanvas, TACustomSeries,
+  TAChartStrConsts, TAChartUtils, TADrawUtils, TADrawerCanvas, TACustomSeries,
   TASeries, TALegend;
 
 procedure Register;
@@ -257,6 +258,7 @@ end;
 
 destructor TChartCombobox.Destroy;
 begin
+  DestroyBitmaps;
   FBrushBitmap.Free;
   inherited;
 end;
@@ -265,6 +267,64 @@ procedure TChartCombobox.Change;
 begin
   SetItemIndex(ItemIndex);
   inherited;
+end;
+
+procedure TChartCombobox.CreateBitmaps(AWidth, AHeight: Integer);
+var
+  ps: TSeriesPointerStyle;
+  chart: TChart;
+  id: IChartDrawer;
+  series: TLineSeries;
+  legItems: TChartLegendItems;
+begin
+  DestroyBitmaps;
+
+  chart := TChart.Create(nil);
+  try
+    for ps in TSeriesPointerStyle do begin
+      FBitmaps[ps] := TBitmap.Create;
+      FBitmaps[ps].Transparent := true;
+      FBitmaps[ps].TransparentColor := RgbToColor(254,254,254);
+      FBitmaps[ps].SetSize(AWidth, AHeight);
+      FBitmaps[ps].Canvas.Brush.Color := FBitmaps[ps].TransparentColor;
+      FBitmaps[ps].Canvas.FillRect(0, 0, AWidth, AHeight);
+
+      series := TLineSeries.Create(chart);
+      try
+        with series do begin
+          Pointer.Style := ps;
+          Pointer.Brush.Color := FBrushColor;
+          Pointer.Pen.Color := FPenColor;
+          Pointer.HorizSize := Min(AWidth, AHeight);
+          Pointer.VertSize := Pointer.HorizSize;
+          ShowPoints := true;
+          LineType := ltNone;
+        end;
+        chart.AddSeries(series);
+        legitems := TChartLegendItems.Create;
+        try
+          series.GetSingleLegendItem(legItems);
+          id := TCanvasDrawer.Create(FBitmaps[ps].Canvas);
+          id.Pen := Chart.Legend.SymbolFrame;
+          legItems[0].Draw(id, Rect(0, 0, AWidth-1, AHeight-1));
+        finally
+          legitems.Free;
+        end;
+      finally
+        series.Free;
+      end;
+    end;
+  finally
+    chart.Free;
+  end;
+end;
+
+procedure TChartCombobox.DestroyBitmaps;
+var
+  ps: TSeriesPointerStyle;
+begin
+  for ps in TSeriesPointerStyle do
+    FreeAndNil(FBitmaps[ps]);
 end;
 
 procedure TChartComboBox.DoAutoAdjustLayout(
@@ -287,22 +347,22 @@ const
   DIST = 4;
   MARGIN = 2;
 var
+  ts: TTextStyle;
   alignmnt: TAlignment;
   x1, x2, y: Integer;
+  txt: String;
   bs: TBrushStyle;
+  sps: TSeriesPointerStyle;
   symwidth, symheight: Integer;
-  R: TRect;
-  penClr: TColor;
 begin
   if Assigned(OnDrawItem) then
     OnDrawItem(Self, AIndex, ARect, AState)
   else begin
-    if [odFocused, odSelected] * AState = [odFocused] then
+    if odFocused in AState then begin
       Canvas.Brush.Color := clHighlight;
-    {$IFNDEF MSWINDOWS}
-    if DroppedDown then
-    {$ENDIF}
-      Canvas.FillRect(ARect);
+      Canvas.Font.Color := clHighlightText;
+    end;
+    Canvas.FillRect(ARect);
 
     if (BiDiMode <> bdLeftToRight) then
       case FAlignment of
@@ -317,19 +377,16 @@ begin
     symwidth := IfThen(FMode = ccmPointerStyle, symheight * 6 div 4, SymbolWidth);
 
     case alignmnt of
-      taLeftJustify  : x1 := ARect.Left + MARGIN;
-      taRightJustify : x1 := ARect.Right - 1 - MARGIN - symwidth;
+      taLeftJustify  : x1 := IfThen(DroppedDown, MARGIN, MARGIN * 2);
+      taRightJustify : x1 := ARect.Right - MARGIN - symwidth;
       taCenter       : x1 := (ARect.Left + ARect.Right - symwidth) div 2;
     end;
     x2 := x1 + symwidth;
-    inc(x1, MARGIN*2);
 
-    if [odSelected, odFocused] * AState <> [] then
-      Canvas.Pen.Color := Canvas.Font.Color
+    if (odSelected in AState) or (odFocused in AState) then
+      Canvas.Pen.Color := clHighlightText
     else
       Canvas.Pen.Color := FPenColor;
-    penClr := Canvas.Pen.Color;
-    Canvas.Pen.Width := 1;
     Canvas.Pen.Cosmetic := FCosmetic;
     case FMode of
       ccmBrushStyle:
@@ -339,19 +396,14 @@ begin
             Canvas.Brush.Color := clWhite;
             Canvas.Brush.Style := bsSolid;
             Canvas.FillRect(x1, ARect.Top + MARGIN, x2, ARect.Bottom - MARGIN);
-          end else begin
-            Canvas.Pen.Color := penClr;
-            Canvas.Line(x1, ARect.Top + MARGIN, x2, ARect.Bottom - MARGIN);
-            Canvas.Line(x1, ARect.Bottom - MARGIN, x2, ARect.Top + MARGIN);
           end;
           Canvas.Brush.Color := FBrushColor;
           Canvas.Brush.Style := bs;
           if (bs = bsImage) or (bs = bsPattern) then
             Canvas.Brush.Bitmap := FBrushBitmap; // AFTER assigning Brush.Style!
-          Canvas.Pen.Color := penClr;
+          Canvas.Pen.Color := clBlack;
           Canvas.Pen.Style := psSolid;
-          Canvas.Rectangle(x1, ARect.Top + MARGIN, x2, ARect.Bottom - MARGIN);
-          Canvas.Brush.Style := bsClear;
+          Canvas.Rectangle(x1, ARect.Top + MARGIN, x2, ARect.Bottom - MARGIN)
         end;
       ccmPenStyle:
         begin
@@ -374,43 +426,25 @@ begin
         end;
       ccmPointerStyle:
         begin
-          case alignmnt of
-            taLeftJustify: x2 := x1 + symheight;
-            taRightJustify: x1 := x2 - symheight;
-          end;
-          R := Rect(x1, ARect.Top + MARGIN, x2, ARect.Bottom - MARGIN);
-          DrawPointer(Canvas, R, GetPointerStyle(AIndex), FPenColor, FBrushColor);
-          Canvas.Brush.Style := bsClear;
+          if (FBitmaps[psCircle] = nil) or (FBitmaps[psCircle].Height <> symHeight)
+            then CreateBitmaps(symwidth, symHeight);
+          sps := GetPointerStyle(AIndex);
+          Canvas.Draw(x1, ARect.Top + MARGIN, FBitmaps[sps]);
         end;
     end;
 
     if (ccoNames in FOptions) and (FAlignment <> taCenter) then begin
+      ts := Canvas.TextStyle;
+      ts.Layout := tlCenter;
+      ts.Opaque := false;
+      ts.EndEllipsis := true;
+      txt := Items[AIndex];
       case alignmnt of
         taLeftJustify  : ARect.Left := x2 + DIST;
-        taRightJustify : ARect.Left := x1 - DIST - Canvas.TextWidth(Items[AIndex]) - 1;
+        taRightJustify : ARect.Left := x1 - DIST - Canvas.TextWidth(txt);
       end;
-      inherited DrawItem(AIndex, ARect, AState);
+      Canvas.TextRect(ARect, ARect.Left, ARect.Top, txt, ts);
     end;
-  end;
-end;
-
-procedure TChartCombobox.DrawPointer(ACanvas: TCanvas; ARect: TRect;
-  AStyle: TSeriesPointerStyle; APenColor, ABrushColor: TColor);
-var
-  pointer: TSeriesPointer;
-  c: TPoint;
-begin
-  pointer := TSeriesPointer.Create(nil);
-  try
-    pointer.Style := AStyle;
-    Pointer.HorizSize := (ARect.Right - ARect.Left) div 2 - 1;
-    Pointer.VertSize := (ARect.Bottom - ARect.Top) div 2 - 1;
-    Pointer.Brush.Color := ABrushColor;
-    Pointer.Pen.Color := APenColor;
-    c := Point((ARect.Left + ARect.Right) div 2, (ARect.Top + ARect.Bottom) div 2);
-    pointer.Draw(TCanvasDrawer.Create(ACanvas), c, ABrushColor);
-  finally
-    pointer.Free;
   end;
 end;
 
@@ -595,6 +629,7 @@ procedure TChartCombobox.SetBrushColor(const AValue: TColor);
 begin
   if FBrushColor = AValue then exit;
   FBrushColor := AValue;
+  DestroyBitmaps;
   Invalidate;
 end;
 
@@ -638,21 +673,25 @@ begin
   case FMode of
     ccmBrushStyle:
       begin
+        DestroyBitmaps;
         PopulateBrushStyles;
         SetSelectedBrushStyle(FBrushStyle);
       end;
     ccmPenStyle:
       begin
+        DestroyBitmaps;
         PopulatePenStyles;
         SetSelectedPenStyle(FPenStyle);
       end;
     ccmPenWidth:
       begin
+        DestroyBitmaps;
         PopulatePenWidths;
         SetSelectedPenWidth(FPenWidth);
       end;
     ccmPointerStyle:
       begin
+        DestroyBitmaps;  // bitmaps will be created when painting
         PopulatePointerStyles;
         SetSelectedPointerStyle(FPointerStyle);
       end;
@@ -700,6 +739,7 @@ procedure TChartComboBox.SetPenColor(const AValue: TColor);
 begin
   if AValue = FPenColor then exit;
   FPenColor := AValue;
+  DestroyBitmaps;
   Invalidate;
 end;
 

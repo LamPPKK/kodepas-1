@@ -41,7 +41,7 @@ uses
   IDEDialogs,
   // IDE
   LazarusIDEStrConsts, InputHistory, EnvironmentOpts,
-  PackageSystem, PackageDefs;
+  PackageSystem, PackageDefs, ProjPackChecks;
   
 type
 
@@ -268,8 +268,6 @@ begin
   fIconNormGUI:=TIconGuiStuff.Create(IconNormBitBtn, IconNormInfoLabel, lisA2PIcon24x24);
   fIcon150GUI:=TIconGuiStuff.Create(Icon150BitBtn, Icon150InfoLabel, lisA2PIcon36x36);
   fIcon200GUI:=TIconGuiStuff.Create(Icon200BitBtn, Icon200InfoLabel, lisA2PIcon48x48);
-  AncestorComboBox.DropDownCount:=EnvironmentOptions.DropDownCount;
-  PalettePageCombobox.DropDownCount:=EnvironmentOptions.DropDownCount;
 end;
 
 procedure TAddToPackageDlg.FormDestroy(Sender: TObject);
@@ -414,6 +412,7 @@ var
   PkgFile: TPkgFile;
   PkgComponent: TPkgComponent;
   ARequiredPackage: TLazPackage;
+  NewDependency: TPkgDependency;
   ThePath: String;
 begin
   fParams.Clear;
@@ -518,10 +517,13 @@ begin
     fParams.UsedUnitname:=PkgComponent.GetUnitName;
     ARequiredPackage:=PkgComponent.PkgFile.LazPackage;
     ARequiredPackage:=TLazPackage(PackageEditingInterface.RedirectPackageDependency(ARequiredPackage));
-    if (LazPackage<>ARequiredPackage)
-    and not LazPackage.Requires(PkgComponent.PkgFile.LazPackage)
-    then
-      PackageGraph.AddDependencyToPackage(LazPackage, ARequiredPackage);
+    NewDependency:=TPkgDependency.Create;
+    NewDependency.DependencyType:=pdtLazarus;
+    NewDependency.PackageName:=ARequiredPackage.Name;
+    if CheckAddingPackageDependency(LazPackage,NewDependency,false,false)=mrOK then
+      PackageGraph.AddDependencyToPackage(LazPackage, NewDependency)
+    else
+      NewDependency.Free;
   end;
   ModalResult:=mrOk;
 end;

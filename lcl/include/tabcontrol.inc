@@ -545,12 +545,6 @@ begin
   TTabControlNoteBookStrings(FTabs).NoteBook.TabWidth := AValue;
 end;
 
-class procedure TTabControl.WSRegisterClass;
-begin
-  inherited WSRegisterClass;
-  RegisterPropertyToSkip(TTabControl, 'OnDrawTab', 'Property streamed in older Lazarus revision','');
-end;
-
 procedure TTabControl.SetOptions(const AValue: TCTabControlOptions);
 begin
   inherited SetOptions(AValue);

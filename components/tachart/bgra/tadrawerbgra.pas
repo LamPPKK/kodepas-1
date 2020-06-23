@@ -48,7 +48,6 @@ type
     function GetFontName: String; override;
     function GetFontSize: Integer; override;
     function GetFontStyle: TChartFontStyles; override;
-    function GetPenColor: TChartColor;
     procedure Line(AX1, AY1, AX2, AY2: Integer);
     procedure Line(const AP1, AP2: TPoint);
     procedure LineTo(AX, AY: Integer); override;
@@ -68,7 +67,6 @@ type
     procedure ResetFont;
     procedure SetBrushColor(AColor: TChartColor);
     procedure SetBrushParams(AStyle: TFPBrushStyle; AColor: TChartColor);
-    procedure SetPenColor(AColor: TChartColor);
     procedure SetPenParams(AStyle: TFPPenStyle; AColor: TChartColor);
     procedure SetTransparency(ATransparency: TChartTransparency);
   end;
@@ -165,11 +163,6 @@ end;
 function TBGRABitmapDrawer.GetFontStyle: TChartFontStyles;
 begin
   Result := TChartFontStyles(Canvas.Font.Style);
-end;
-
-function TBGRABitmapDrawer.GetPenColor: TChartColor;
-begin
-  Result := TChartColor(Canvas.Pen.Color);
 end;
 
 procedure TBGRABitmapDrawer.Line(AX1, AY1, AX2, AY2: Integer);
@@ -293,7 +286,7 @@ begin
   Canvas.Font.Orientation := FGetFontOrientationFunc(AFont);
   Canvas.Font.BGRAColor := BGRAColorOrMono(AFont.FPColor);
   if AFont is TFont then
-    Canvas.Font.Style := TFont(AFont).Style;
+    Canvas.Font.Style := (AFont as TFont).Style;
   Canvas.Font.Opacity := Opacity;
 end;
 
@@ -304,17 +297,12 @@ begin
     Width := APen.Width;
     // TODO: Update for FPC 2.8
     if APen is TPen then begin
-      JoinStyle := TPen(APen).JoinStyle;
-      EndCap := TPen(APen).EndCap;
+      JoinStyle := (APen as TPen).JoinStyle;
+      EndCap := (APen as TPen).EndCap;
     end;
     BGRAColor := BGRAColorOrMono(APen.FPColor);
     Opacity := Self.Opacity;
   end;
-end;
-
-procedure TBGRABitmapDrawer.SetPenColor(AColor: TChartColor);
-begin
-  Canvas.Pen.Color := ColorOrMono(AColor);
 end;
 
 procedure TBGRABitmapDrawer.SetPenParams(

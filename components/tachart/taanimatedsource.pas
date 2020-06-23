@@ -54,12 +54,9 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    function BasicExtent: TDoubleRect; override;
     function Extent: TDoubleRect; override;
     function ExtentCumulative: TDoubleRect; override;
     function ExtentList: TDoubleRect; override;
-    function ExtentXYList: TDoubleRect; override;
-    function ValuesTotal: Double; override;
 
     function IsAnimating: Boolean; inline;
     function Progress: Double; inline;
@@ -91,21 +88,12 @@ uses
 procedure TCustomAnimatedChartSource.Changed(ASender: TObject);
 begin
   Unused(ASender);
-  if FOrigin <> nil then begin
-    FXCount := Origin.XCount;
-    FYCount := Origin.YCount;
-  end else begin
-    FXCount := MaxInt;    // Allow source to be used by any series while Origin = nil
-    FYCount := MaxInt;
-  end;
   Notify;
 end;
 
 constructor TCustomAnimatedChartSource.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FXCount := MaxInt;    // Allow source to be used by any series while Origin = nil
-  FYCount := MaxInt;
   FListener := TListener.Create(@FOrigin, @Changed);
   FTimer := TCustomTimer.Create(nil);
   FTimer.Enabled := false;
@@ -117,14 +105,6 @@ begin
   FreeAndNil(FTimer);
   FreeAndNil(FListener);
   inherited;
-end;
-
-function TCustomAnimatedChartSource.BasicExtent: TDoubleRect;
-begin
-  if Origin = nil then
-    Result := EmptyExtent
-  else
-    Result := Origin.BasicExtent;
 end;
 
 function TCustomAnimatedChartSource.Extent: TDoubleRect;
@@ -149,22 +129,6 @@ begin
     Result := EmptyExtent
   else
     Result := Origin.ExtentList;
-end;
-
-function TCustomAnimatedChartSource.ExtentXYList: TDoubleRect;
-begin
-  if Origin = nil then
-    Result := EmptyExtent
-  else
-    Result := Origin.ExtentXYList;
-end;
-
-function TCustomAnimatedChartSource.ValuesTotal: Double;
-begin
-  if Origin = nil then
-    Result := 0
-  else
-    Result := Origin.ValuesTotal;
 end;
 
 function TCustomAnimatedChartSource.GetCount: Integer;
@@ -223,7 +187,6 @@ begin
   FOrigin := AValue;
   if FOrigin <> nil then
     FOrigin.Broadcaster.Subscribe(FListener);
-  Changed(nil);
 end;
 
 procedure TCustomAnimatedChartSource.SetXCount(AValue: Cardinal);

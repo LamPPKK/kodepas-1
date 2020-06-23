@@ -213,7 +213,6 @@ type
                                 ansistring; similarly, char becomes unicodechar rather than ansichar }
     cmsTypeHelpers,        { allows the declaration of "type helper" (non-Delphi) or "record helper"
                                   (Delphi) for primitive types }
-    cmsClosures,           { Anonymous methods }
     cmsCBlocks,            { support for http://en.wikipedia.org/wiki/Blocks_(C_language_extension) }
     cmsISOlike_IO,         { I/O as it required by an ISO compatible compiler }
     cmsISOLike_Program_Para, { program parameters as it required by an ISO compatible compiler }
@@ -222,10 +221,7 @@ type
     // not yet in FPC, supported by pas2js:
     cmsPrefixedAttributes, { allow Delphi attributes, disable FPC [] proc modifier }
     cmsExternalClass,      { pas2js: allow  class external [pkgname] name [symbol] }
-    cmsIgnoreAttributes,   { pas2js: ignore attributes }
-    cmsOmitRTTI,           { pas2js: treat class section 'published' as 'public' and typeinfo does not work on symbols declared with this switch }
-    msMultiHelpers,        { off=only one helper per type, on=all }
-    msImplicitFunctionSpecialization { infer types on calls of generic functions }
+    cmsIgnoreAttributes    { pas2js: ignore attributes }
     );
   TCompilerModeSwitches = set of TCompilerModeSwitch;
 const
@@ -240,14 +236,14 @@ const
      cmsPointer_2_procedure,cmsAutoderef,cmsTp_procvar,cmsInitfinal,cmsDefault_ansistring,
      cmsOut,cmsDefault_para,cmsDuplicate_names,cmsHintdirective,
      cmsProperty,cmsDefault_inline,cmsExcept,cmsAdvancedRecords,
-     cmsClosures,cmsPrefixedAttributes,cmsArrayOperators],
+     cmsPrefixedAttributes,cmsArrayOperators],
     // cmDELPHIUNICODE
     [cmsClass,cmsObjpas,cmsResult,cmsString_pchar,
      cmsPointer_2_procedure,cmsAutoderef,cmsTp_procvar,cmsInitfinal,
      cmsOut,cmsDefault_para,cmsDuplicate_names,cmsHintdirective,
      cmsProperty,cmsDefault_inline,cmsExcept,cmsAdvancedRecords,
      cmsSystemcodepage,cmsDefault_unicodestring,
-     cmsClosures,cmsPrefixedAttributes,cmsArrayOperators],
+     cmsPrefixedAttributes,cmsArrayOperators],
     // cmGPC
     [cmsTp_procvar],
     // cmTP
@@ -303,7 +299,6 @@ const
     'FINALFIELDS',
     'UNICODESTRINGS',
     'TYPEHELPERS',
-    'CLOSURES',
     'CBLOCKS',
     'ISOIO',
     'ISOPROGRAMPARAS',
@@ -311,10 +306,7 @@ const
     'ARRAYOPERATORS',
     'PREFIXEDATTRIBUTES',
     'EXTERNALCLASS',
-    'IGNOREATTRIBUTES',
-    'OMITRTTI',
-    'MULTIHELPERS',
-    'IMPLICITFUNCTIONSPECIALIZATION'
+    'IGNOREATTRIBUTES'
     );
 
 
@@ -795,12 +787,12 @@ type
 
     function SearchIncludeFile(AFilename: string; out NewCode: Pointer;
                          var MissingIncludeFile: TMissingIncludeFile): boolean;
-    {$IFDEF GuessMisplacedIfdef}
+
     function GuessMisplacedIfdefEndif(StartCursorPos: integer;
                                       StartCode: pointer;
                                       out EndCursorPos: integer;
                                       out EndCode: Pointer): boolean;
-    {$ENDIF}
+
     function GetHiddenUsedUnits: string; // comma separated
 
     // global write lock
@@ -2042,6 +2034,8 @@ procedure TLinkScanner.Scan(Range: TLinkScannerRange; CheckFilesOnDisk: boolean)
 var
   LastTokenType: TLSTokenType;
   cm: TCompilerMode;
+  pc: TPascalCompiler;
+  s: string;
   LastProgressPos: integer;
   CheckForAbort: boolean;
   NewSrcLen: Integer;
@@ -2102,7 +2096,15 @@ begin
   Values.Assign(FInitValues);
 
   // compiler
-  PascalCompiler:=GetPascalCompiler(FInitValues);
+  s:=FInitValues.Variables[PascalCompilerDefine];
+  if s<>'' then begin
+    for pc:=Low(TPascalCompiler) to High(TPascalCompiler) do
+      if (s=PascalCompilerNames[pc]) then
+        PascalCompiler:=pc;
+  end else if InitialValues.IsDefined('pas2js') then
+    PascalCompiler:=pcPas2js
+  else if InitialValues.IsDefined('delphi') and not InitialValues.IsDefined('fpc') then
+    PascalCompiler:=pcDelphi;
 
   // compiler mode
   for cm:=Low(TCompilerMode) to High(TCompilerMode) do
@@ -2737,8 +2739,9 @@ end;
   Params: StartCursorPos: integer; StartCode: pointer;
           var EndCursorPos: integer; var EndCode: Pointer;
   Result: boolean;
+
+
 -------------------------------------------------------------------------------}
-{$IFDEF GuessMisplacedIfdef}
 function TLinkScanner.GuessMisplacedIfdefEndif(StartCursorPos: integer;
   StartCode: pointer;
   out EndCursorPos: integer; out EndCode: Pointer): boolean;
@@ -3125,7 +3128,6 @@ begin
     SearchedCodes.Free;
   end;
 end;
-{$ENDIF}
 
 function TLinkScanner.GetHiddenUsedUnits: string;
 var

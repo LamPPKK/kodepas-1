@@ -90,7 +90,7 @@ begin
       if result then begin
         FDatalink.Modified;
         if FDetectedEvents and DBCBEVENT_CHANGE <> 0 then
-          DoOnChange;
+          inherited Change;
         if FDetectedEvents and DBCBEVENT_SELECT <> 0 then begin
           if FDetectedEvents and DBCBEVENT_WHEEL <> 0 then
             FDatalink.UpdateRecord;
@@ -132,11 +132,6 @@ end;
 procedure TCustomDBComboBox.DoOnSelect;
 begin
   inherited Select;
-end;
-
-procedure TCustomDBComboBox.DoOnChange;
-begin
-  inherited Change;
 end;
 
 procedure TCustomDBComboBox.SetDataField(const AValue: string);

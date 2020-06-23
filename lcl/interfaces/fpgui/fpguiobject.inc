@@ -177,11 +177,18 @@ end;
   Initializes the application
  ------------------------------------------------------------------------------}
 procedure TFpGuiWidgetSet.AppInit(var ScreenInfo: TScreenInfo);
+//var
+//  Display: String;
 begin
+  // This doesn't hurt. on other playforms than X it just will do nothing
+//  Display := GetEnvironmentVariableUTF8('DISPLAY');
   fpgApplication.Initialize;
+  //GFApplication.QuitWhenLastWindowCloses := False;
 
-  ScreenInfo.PixelsPerInchX := fpgApplication.Screen_dpi_x;
-  ScreenInfo.PixelsPerInchY := fpgApplication.Screen_dpi_y;
+  //if fpgStyleManager.SetStyle('win8') then begin
+  //  fpgStyle:=fpgStyleManager.Style;
+  //end;
+
 end;
 
 {------------------------------------------------------------------------------
@@ -289,14 +296,8 @@ begin
 end;
 
 function TFpGuiWidgetSet.DCGetPixel(CanvasHandle: HDC; X, Y: integer): TGraphicsColor;
-var
-  DC: TFPGUIDeviceContext;
-  p: TPoint;
 begin
-  DC := TFPGUIDeviceContext(CanvasHandle);
-  p := Point(X,Y);
-  p := DC.PreparePointOffsets(p);
-  Result := DC.fpgCanvas.Pixels[p.x, p.y];
+  Result:=clNone;
 end;
 
 procedure TFpGuiWidgetSet.DCSetPixel(CanvasHandle: HDC; X, Y: integer; AColor: TGraphicsColor);

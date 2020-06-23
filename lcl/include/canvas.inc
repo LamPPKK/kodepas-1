@@ -834,25 +834,22 @@ end;
  ------------------------------------------------------------------------------}
 procedure TCanvas.PolyBezier(const Points: array of TPoint;
   Filled: boolean = False;
-  Continuous: boolean = True);
+  Continuous: boolean = False);
 var NPoints, i: integer;
   PointArray: ^TPoint;
 begin
   NPoints:=High(Points)-Low(Points)+1;
-  if NPoints<4 then exit; // Curve must have at least 4 points
+  if NPoints<=0 then exit;
   GetMem(PointArray,SizeOf(TPoint)*NPoints);
-  try
-    for i:=0 to NPoints-1 do
-      PointArray[i]:=Points[i+Low(Points)];
-    PolyBezier(PointArray, NPoints, Filled, Continuous);
-  finally
-    FreeMem(PointArray);
-  end;
+  for i:=0 to NPoints-1 do
+    PointArray[i]:=Points[i+Low(Points)];
+  PolyBezier(PointArray, NPoints, Filled, Continuous);
+  FreeMem(PointArray);
 end;
 
 procedure TCanvas.PolyBezier(Points: PPoint; NumPts: Integer;
   Filled: boolean = False;
-  Continuous: boolean = True);
+  Continuous: boolean = False);
 begin
   Changing;
   RequiredState([csHandleValid, csBrushValid, csPenValid]);
@@ -1244,10 +1241,6 @@ var
   
 begin
   //debugln(['TCanvas.TextRect ',DbgSName(Self),' Text="',Text,'" ',dbgs(ARect),' X=',X,',Y=',Y]);
-
-  if Font.Name = '' then      // Empty name is allowed in Delphi.
-    Font.Name := 'default';
-
   Changing;
   
   Options := 0;

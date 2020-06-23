@@ -69,7 +69,6 @@ msgid "fppkg options"
 msgstr "„fppkg“ parinktys"
 
 #: fppkg_const.rsfppkgsfailedresultds
-#, object-pascal-format
 msgid "Fppkg %s failed: Result %d%s%s"
 msgstr "„Fppkg“ nesėkmė dorojant „%s“: rezultatas %d%s%s"
 
@@ -104,10 +103,6 @@ msgstr "Nepavyko rasti „fppkg“ vykdomojo failo"
 #: fppkg_const.rsoptions
 msgid "Options"
 msgstr "Parinktys"
-
-#: fppkg_const.rspackagefileoptionstitle
-msgid "FPMake"
-msgstr ""
 
 #: fppkg_const.rsremotemirrorsurl
 msgid "Remote mirrors URL"

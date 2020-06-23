@@ -169,10 +169,9 @@ begin
 
   FPForm := TFPGUIPrivateWindow.Create(AWinControl, AParams);
   FPForm.SetFormBorderStyle(TForm(AWinControl).BorderStyle);
-
-  { This fixes the AV error when trying to use TLabel components }
-  TfpgForm(FPForm.Widget).Show;
-
+  //if (AParams.Style and WS_VISIBLE)=0 then begin
+    TfpgForm(FPForm.Widget).Visible:=false;
+  //end;
   Result := TLCLIntfHandle(FPForm);
 end;
 

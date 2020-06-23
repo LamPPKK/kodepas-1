@@ -1,11 +1,11 @@
-{ $Id$ }
+{ $Id: gtk2debug.pp 45601 2014-06-22 08:57:16Z mattias $ }
 {
                        ----------------------------------
                        gtkdebug.pp  -  graphic dump utils 
                        ----------------------------------
  
  @created(Wed May 10th WET 2007)
- @lastmod($Date$)
+ @lastmod($Date: 2014-06-22 10:57:16 +0200 (So, 22 Jun 2014) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)                       
 
  This unit contains utility functions to show the contents of graphics

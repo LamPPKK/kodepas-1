@@ -81,14 +81,13 @@ const
   ecFindBlockStart          = ecFirstLazarus + 22;
   ecOpenFileAtCursor        = ecFirstLazarus + 23;
   ecGotoIncludeDirective    = ecFirstLazarus + 24;
-  ecJumpToSection           = ecFirstLazarus + 25;
-  ecJumpToInterface         = ecFirstLazarus + 26;
-  ecJumpToInterfaceUses     = ecFirstLazarus + 27;
-  ecJumpToImplementation    = ecFirstLazarus + 28;
-  ecJumpToImplementationUses= ecFirstLazarus + 29;
-  ecJumpToInitialization    = ecFirstLazarus + 30;
-  ecJumpToProcedureHeader   = ecFirstLazarus + 31;
-  ecJumpToProcedureBegin    = ecFirstLazarus + 32;
+  ecJumpToInterface         = ecFirstLazarus + 25;
+  ecJumpToInterfaceUses     = ecFirstLazarus + 26;
+  ecJumpToImplementation    = ecFirstLazarus + 27;
+  ecJumpToImplementationUses= ecFirstLazarus + 28;
+  ecJumpToInitialization    = ecFirstLazarus + 29;
+  ecJumpToProcedureHeader   = ecFirstLazarus + 30;
+  ecJumpToProcedureBegin    = ecFirstLazarus + 31;
 
   // edit selection
   ecSelectionUpperCase      = ecFirstLazarus + 50;
@@ -175,9 +174,6 @@ const
   ecRestart                 = ecFirstLazarus + 213;
   ecQuit                    = ecFirstLazarus + 214;
   ecOpenUnit                = ecFirstLazarus + 215;
-  ecOpenRecent              = ecFirstLazarus + 216;
-  ecCloseOtherTabs          = ecFirstLazarus + 217;
-  ecCloseRightTabs          = ecFirstLazarus + 218;
 
   // edit menu
   ecMultiPaste              = ecFirstLazarus + 230;
@@ -218,6 +214,8 @@ const
   ecPrevEditor              = ecFirstLazarus + 331;
   ecMoveEditorLeft          = ecFirstLazarus + 332;
   ecMoveEditorRight         = ecFirstLazarus + 333;
+  ecToggleBreakPoint        = ecFirstLazarus + 334;
+  ecRemoveBreakPoint        = ecFirstLazarus + 335;
   ecMoveEditorLeftmost      = ecFirstLazarus + 336;
   ecMoveEditorRightmost     = ecFirstLazarus + 337;
 
@@ -298,42 +296,35 @@ const
 
   // 460++ : used for ecViewHistory (debugger) / ecViewMacroList
 
-  ecToggleBreakPoint        = ecFirstLazarus + 470;
-  ecRemoveBreakPoint        = ecFirstLazarus + 471;
-  ecToggleBreakPointEnabled = ecFirstLazarus + 472;
-
-
   // project menu
   ecNewProject              = ecFirstLazarus + 500;
   ecNewProjectFromFile      = ecFirstLazarus + 501;
   ecOpenProject             = ecFirstLazarus + 502;
-  ecOpenRecentProject       = ecFirstLazarus + 503;
-  ecCloseProject            = ecFirstLazarus + 504;
-  ecSaveProject             = ecFirstLazarus + 505;
-  ecSaveProjectAs           = ecFirstLazarus + 506;
-  ecPublishProject          = ecFirstLazarus + 507;
-  ecProjectInspector        = ecFirstLazarus + 508;
-  ecAddCurUnitToProj        = ecFirstLazarus + 509;
-  ecRemoveFromProj          = ecFirstLazarus + 510;
-  ecViewProjectUnits        = ecFirstLazarus + 511;
-  ecViewProjectForms        = ecFirstLazarus + 512;
-  ecViewProjectSource       = ecFirstLazarus + 513;
-  ecProjectOptions          = ecFirstLazarus + 514;
-  ecProjectChangeBuildMode  = ecFirstLazarus + 515;
-  ecProjectResaveFormsWithI18n = ecFirstLazarus + 516;
+  ecCloseProject            = ecFirstLazarus + 503;
+  ecSaveProject             = ecFirstLazarus + 504;
+  ecSaveProjectAs           = ecFirstLazarus + 505;
+  ecPublishProject          = ecFirstLazarus + 506;
+  ecProjectInspector        = ecFirstLazarus + 507;
+  ecAddCurUnitToProj        = ecFirstLazarus + 508;
+  ecRemoveFromProj          = ecFirstLazarus + 509;
+  ecViewProjectUnits        = ecFirstLazarus + 510;
+  ecViewProjectForms        = ecFirstLazarus + 511;
+  ecViewProjectSource       = ecFirstLazarus + 512;
+  ecProjectOptions          = ecFirstLazarus + 513;
+  ecProjectChangeBuildMode  = ecFirstLazarus + 514;
+  ecProjectResaveFormsWithI18n = ecFirstLazarus + 515;
 
   // package menu
   ecOpenPackage             = ecFirstLazarus + 600;
   ecOpenPackageFile         = ecFirstLazarus + 601;
   ecOpenPackageOfCurUnit    = ecFirstLazarus + 602;
-  ecOpenRecentPackage       = ecFirstLazarus + 603;
-  ecAddCurFileToPkg         = ecFirstLazarus + 604;
-  ecNewPkgComponent         = ecFirstLazarus + 605;
-  ecPackageGraph            = ecFirstLazarus + 606;
-  ecPackageLinks            = ecFirstLazarus + 607;
-  ecEditInstallPkgs         = ecFirstLazarus + 608;
-  ecConfigCustomComps       = ecFirstLazarus + 609;
-  ecNewPackage              = ecFirstLazarus + 610;
+  ecAddCurFileToPkg         = ecFirstLazarus + 603;
+  ecNewPkgComponent         = ecFirstLazarus + 604;
+  ecPackageGraph            = ecFirstLazarus + 605;
+  ecPackageLinks            = ecFirstLazarus + 606;
+  ecEditInstallPkgs         = ecFirstLazarus + 607;
+  ecConfigCustomComps       = ecFirstLazarus + 608;
+  ecNewPackage              = ecFirstLazarus + 609;
 
   // custom tools menu
   ecExtToolFirst            = ecFirstLazarus + 700;
@@ -607,9 +598,9 @@ type
     procedure DoOnUpdate; overload;
     procedure DoOnUpdate(Sender: TObject); overload;
   public
-    property Enabled: Boolean write SetEnabled; // set Enabled of all "Users" TIDESpecialCommand, use Users to read
-    property Caption: string write SetCaption; // set Caption of all "Users" TIDESpecialCommand, use Users to read
-    property Hint: string write SetHint; // set Hint of all "Users" TIDESpecialCommand, use Users to read
+    property Enabled: Boolean write SetEnabled;
+    property Caption: string write SetCaption;
+    property Hint: string write SetHint;
     // don't add Visible property here - it is not generic. Tool buttons should never be hidden programmatically
   public
     property Name: String read FName;
@@ -1813,7 +1804,7 @@ procedure TIDESpecialCommand.SetOnClickMethod(const aOnClick: TNotifyEvent);
 begin
   if CompareMethods(TMethod(FOnClickMethod), TMethod(aOnClick)) then Exit;
   FOnClickMethod := aOnClick;
-  if (FCommand<>nil) and SyncAvailable then
+  if (FCommand<> nil) and SyncAvailable then
     FCommand.OnExecute:=aOnClick;
 end;
 
@@ -1933,7 +1924,7 @@ begin
 end;
 
 const
-  IDEEditorCommandStrs: array[0..322] of TIdentMapEntry = (
+  IDEEditorCommandStrs: array[0..319] of TIdentMapEntry = (
   // search
     (Value: ecFind;                                   Name: 'ecFind'),
     (Value: ecFindAgain;                              Name: 'ecFindAgain'),
@@ -2051,8 +2042,6 @@ const
     (Value: ecCleanDirectory;                         Name: 'ecCleanDirectory'),
     (Value: ecRestart;                                Name: 'ecRestart'),
     (Value: ecQuit;                                   Name: 'ecQuit'),
-    (Value: ecCloseOtherTabs;                         Name: 'ecCloseOtherTabs'),
-    (Value: ecCloseRightTabs;                         Name: 'ecCloseRightTabs'),
 
   // edit menu
     (Value: ecMultiPaste;                             Name: 'ecMultiPaste'),
@@ -2094,8 +2083,6 @@ const
     (Value: ecMoveEditorLeft;                         Name: 'ecMoveEditorLeft'),
     (Value: ecMoveEditorRight;                        Name: 'ecMoveEditorRight'),
     (Value: ecToggleBreakPoint;                       Name: 'ecToggleBreakPoint'),
-    (Value: ecToggleBreakPointEnabled;                Name: 'ecToggleBreakPointEnabled'),
-
     (Value: ecRemoveBreakPoint;                       Name: 'ecRemoveBreakPoint'),
     (Value: ecMoveEditorLeftmost;                     Name: 'ecMoveEditorLeftmost'),
     (Value: ecMoveEditorRightmost;                    Name: 'ecMoveEditorRightmost'),

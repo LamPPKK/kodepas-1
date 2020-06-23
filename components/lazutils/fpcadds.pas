@@ -25,21 +25,24 @@ type
 
 function StrToWord(const s: string): word;
 
-function AlignToPtr(const p: Pointer): Pointer; inline;
-function AlignToInt(const p: Pointer): Pointer; inline;
+function AlignToPtr(const p: Pointer): Pointer;
+function AlignToInt(const p: Pointer): Pointer;
 
 implementation
 
 function StrToWord(const s: string): word;
 var
-  i: Integer;
+  p: Integer;
 begin
   Result:=0;
-  for i:=1 to Length(s) do
-    Result:=Result*10+ord(s[i])-ord('0');
+  p:=1;
+  while (p<=length(s)) do begin
+    Result:=Result*10+ord(s[p])-ord('0');
+    inc(p);
+  end;
 end;
 
-function AlignToPtr(const p: Pointer): Pointer; inline;
+function AlignToPtr(const p: Pointer): Pointer;
 begin
 {$IFDEF FPC_REQUIRES_PROPER_ALIGNMENT}
   Result := Align(p, SizeOf(Pointer));
@@ -48,7 +51,7 @@ begin
 {$ENDIF}
 end;
 
-function AlignToInt(const p: Pointer): Pointer; inline;
+function AlignToInt(const p: Pointer): Pointer;
 begin
 {$IFDEF FPC_REQUIRES_PROPER_ALIGNMENT}
   Result := Align(p, SizeOf(integer));

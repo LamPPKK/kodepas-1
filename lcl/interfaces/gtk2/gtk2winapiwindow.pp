@@ -868,7 +868,7 @@ function GTKAPIWidgetClient_IsPainting(Client: PGTKAPIWidgetClient): boolean;
 var
   Info: PWidgetInfo;
 begin
-  Info:=GetWidgetInfo(Client);
+  Info:=GetWidgetInfo(Client,false);
   Result:=(Info<>nil) and (Info^.PaintDepth>0);
 end;
 

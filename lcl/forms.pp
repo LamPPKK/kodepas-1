@@ -268,20 +268,20 @@ type
     FDesignTimePPI: Integer;
     FPixelsPerInch: Integer;
 
-    function DesignTimePPIIsStored: Boolean;
     procedure SetDesignTimePPI(const ADesignTimePPI: Integer);
   protected
     procedure SetScaled(const AScaled: Boolean); virtual;
 
     procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
       const AXProportion, AYProportion: Double); override;
+    procedure Loaded; override;
   public
     constructor Create(TheOwner: TComponent); override;
 
     procedure AutoAdjustLayout(AMode: TLayoutAdjustmentPolicy; const AFromPPI,
       AToPPI, AOldFormWidth, ANewFormWidth: Integer); override;
   public
-    property DesignTimePPI: Integer read FDesignTimePPI write SetDesignTimePPI stored DesignTimePPIIsStored;
+    property DesignTimePPI: Integer read FDesignTimePPI write SetDesignTimePPI default 96;
     property PixelsPerInch: Integer read FPixelsPerInch write FPixelsPerInch stored False;
     property Scaled: Boolean read FScaled write SetScaled default True;
   end;
@@ -435,8 +435,8 @@ type
   );
 
   TCloseEvent = procedure(Sender: TObject; var CloseAction: TCloseAction) of object;
-  TCloseQueryEvent = procedure(Sender : TObject; var CanClose: Boolean) of object;
-  TDropFilesEvent = procedure (Sender: TObject; const FileNames: array of string) of object;
+  TCloseQueryEvent = procedure(Sender : TObject; var CanClose : boolean) of object;
+  TDropFilesEvent = procedure (Sender: TObject; const FileNames: Array of String) of object;
   THelpEvent = function(Command: Word; Data: PtrInt; var CallHelp: Boolean): Boolean of object;
   TShortCutEvent = procedure (var Msg: TLMKey; var Handled: Boolean) of object;
   TModalDialogFinished = procedure (Sender: TObject; AResult: Integer) of object;
@@ -490,9 +490,6 @@ type
     FRestoredHeight: integer;
     FShowInTaskbar: TShowInTaskbar;
     FWindowState: TWindowState;
-    FDelayedEventCtr: Integer;
-    FDelayedWMMove, FDelayedWMSize: Boolean;
-    FIsFirstOnShow, FIsFirstOnActivate: Boolean;
     function GetClientHandle: HWND;
     function GetEffectiveShowInTaskBar: TShowInTaskBar;
     function GetMonitor: TMonitor;
@@ -502,7 +499,7 @@ type
     procedure CloseModal;
     procedure FreeIconHandles;
     procedure IconChanged(Sender: TObject);
-    procedure DelayedEvent(Data: PtrInt);
+    procedure Moved(Data: PtrInt);
     procedure SetActive(AValue: Boolean);
     procedure SetActiveControl(AWinControl: TWinControl);
     procedure SetActiveDefaultControl(AControl: TControl);
@@ -593,6 +590,7 @@ type
     procedure VisibleChanged; override;
     procedure WndProc(var TheMessage : TLMessage); override;
     function VisibleIsStored: boolean;
+    procedure DoSendBoundsToInterface; override;
     procedure DoAutoSize; override;
     procedure SetAutoSize(Value: Boolean); override;
     procedure SetAutoScroll(Value: Boolean); override;
@@ -651,8 +649,7 @@ type
     function CanFocus: Boolean; override;
     procedure SetFocus; override;
     function SetFocusedControl(Control: TWinControl): Boolean ; virtual;
-    procedure SetRestoredBounds(ALeft, ATop, AWidth, AHeight: integer; const
-                                ADefaultPosition: Boolean = False);
+    procedure SetRestoredBounds(ALeft, ATop, AWidth, AHeight: integer);
     procedure Show;
 
     function ShowModal: Integer; virtual;
@@ -755,7 +752,6 @@ type
     FLCLVersion: string;
     function LCLVersionIsStored: boolean;
   protected
-    class procedure WSRegisterClass; override;
     procedure CreateWnd; override;
     procedure Loaded; override;
   public
@@ -2109,17 +2105,21 @@ var
 begin
   ACaption := Str;
   Result := false;
-  repeat
-    position := UTF8Pos(AmpersandChar, ACaption);
-    // Not found or found at the end of string. Nothing to underscore.
-    if (position <= 0) or (position >= UTF8Length(ACaption)) then break;
+  position := UTF8Pos(AmpersandChar, ACaption);
+  // if AmpersandChar is on the last position then there is nothing to underscore, ignore this character
+  while (position > 0) and (position < UTF8Length(ACaption)) do
+  begin
     FoundChar := UTF8Copy(ACaption, position+1, 1);
     // two AmpersandChar characters together are not valid hot key
-    if FoundChar = AmpersandChar then
-      UTF8Delete(ACaption, 1, position+1)
-    else
-      Exit(UTF8UpperCase(UTF16ToUTF8(WideString(WideChar(VK)))) = UTF8UpperCase(FoundChar));
-  until false;
+    if FoundChar <> AmpersandChar then begin
+      Result := UTF8UpperCase(UTF16ToUTF8(WideString(WideChar(VK)))) = UTF8UpperCase(FoundChar);
+      exit;
+    end
+    else begin
+      UTF8Delete(ACaption, 1, position+1);
+      position := UTF8Pos(AmpersandChar, ACaption);
+    end;
+  end;
 end;
 
 //==============================================================================
@@ -2283,6 +2283,10 @@ begin
 end;
 
 initialization
+  RegisterPropertyToSkip(TForm, 'OldCreateOrder', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TForm, 'TextHeight', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TForm, 'Scaled', 'VCL compatibility property', '');
+  RegisterPropertyToSkip(TForm, 'TransparentColorValue', 'VCL compatibility property', '');
   LCLProc.OwnerFormDesignerModifiedProc:=@IfOwnerIsFormThenDesignerModified;
   ThemesImageDrawEvent:=@ImageDrawEvent;
   IsFormDesign := @IsFormDesignFunction;

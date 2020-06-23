@@ -60,7 +60,6 @@ object PkgGraphExplorerDlg: TPkgGraphExplorerDlg
       NodeStyle.Coloring = lgncRGB
       OnDblClick = LvlGraphControl1DblClick
       OnSelectionChanged = LvlGraphControl1SelectionChanged
-      Options = [lgoAutoLayout, lgoMinimizeEdgeLens, lgoHighlightNodeUnderMouse, lgoHighlightEdgeNearMouse, lgoMouseSelects]
       ParentColor = True
       ParentShowHint = False
       PopupMenu = PkgPopupMenu
@@ -120,10 +119,6 @@ object PkgGraphExplorerDlg: TPkgGraphExplorerDlg
     object CleanPkgDepsMenuItem: TMenuItem
       Caption = 'Unneeded dependencies'
       OnClick = CleanPkgDepsMenuItemClick
-    end
-    object GraphOptionsMenuItem: TMenuItem
-      Caption = 'GraphOptionsMenuItem'
-      OnClick = GraphOptionsMenuItemClick
     end
   end
 end

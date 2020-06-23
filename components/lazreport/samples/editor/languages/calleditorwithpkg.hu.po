@@ -12,7 +12,6 @@ msgstr ""
 "X-Generator: Poedit 1.5.4\n"
 
 #: maincalleditor.ceractivereport
-#, object-pascal-format
 msgid "Active report: %s"
 msgstr "Aktív jelentés: %s"
 
@@ -73,7 +72,6 @@ msgid "Index"
 msgstr "Index"
 
 #: maincalleditor.cerindexfields
-#, object-pascal-format
 msgid "Index Fields: %s"
 msgstr "Index mezők: %s"
 

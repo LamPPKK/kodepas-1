@@ -68,7 +68,6 @@ msgid "fppkg options"
 msgstr "fppkg-Einstellungen"
 
 #: fppkg_const.rsfppkgsfailedresultds
-#, object-pascal-format
 msgid "Fppkg %s failed: Result %d%s%s"
 msgstr "Fppkg %s fehlgeschlagen: Ergebnis %d%s%s"
 
@@ -103,10 +102,6 @@ msgstr "fppkg nicht gefunden"
 #: fppkg_const.rsoptions
 msgid "Options"
 msgstr "Einstellungen"
-
-#: fppkg_const.rspackagefileoptionstitle
-msgid "FPMake"
-msgstr ""
 
 #: fppkg_const.rsremotemirrorsurl
 msgid "Remote mirrors URL"

@@ -144,18 +144,18 @@ Var
 begin
   For I:=0 to IDETemplates.Count-1 do
     begin
-    ATemplate:=IDETemplates[i];
-    ProjDesc:=TTemplateProjectDescriptor.Create(ATemplate);
+    Atemplate:=IDETemplates[i];
+    ProjDesc:=TTemplateProjectDescriptor.Create(Atemplate);
     RegisterProjectDescriptor(ProjDesc,STemplateCategory);
     ProjMenu:=RegisterIDEMenuCommand(itmFileNewFromTemplate,
-                                     SItmtemplate+ATemplate.Name,
+                                     SItmtemplate+Atemplate.Name,
                                      ATemplate.Name,                                     
                                      Nil,@DoProject,Nil);
     MenuList.Add(TIDEObject.Create(ProjDesc,ProjMenu));
     end;
 end;
 
-procedure UnRegisterKnownTemplates;
+procedure UnRegisterKnowntemplates;
 
 Var
   I : Integer;
@@ -194,7 +194,7 @@ procedure Register;
 begin
   RegisterIdeMenuCommand(itmOptionsDialogs,STemplateSettings,SProjectTemplateSettings,nil,@ChangeSettings);
   itmFileNewFromTemplate:=RegisterIDESubMenu(itmFileNew,
-                                             'itmFileFromTemplate',
+                                             'itmFileFromtemplate',
                                              SNewFromTemplate);
   IDETemplates:=TProjectTemplates.Create(GetTemplateDir);
   RegisterTemplateCategory;
@@ -309,7 +309,7 @@ begin
         AFile.IsPartOfProject:=true;
         AProject.AddFile(AFile,Not B);
         AProject.MainFileID:=0;
-        L:=TStringList.Create;
+        L:=TstringList.Create;
         try
           FTemplate.CreateFile(I,L,FVariables);
           AFile.SetSourceText(L.Text);

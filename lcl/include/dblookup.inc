@@ -128,11 +128,6 @@ begin
     FControlLink := AControlDataLink;
     FControlItems := AControlItems;
     DoInitialize;
-    if FScrollListDataset
-    and Assigned(FListLink) and Assigned(FListLink.DataSet) and FListLink.DataSet.Active
-    and Assigned(FControlLink) and Assigned(FControlLink.DataSet) and FControlLink.DataSet.Active
-    then
-      FListLink.DataSet.Locate(FKeyFieldNames, FControlLink.DataSet.FieldValues[FDataFieldNames], []);
   finally
     FInitializing := False;
   end;
@@ -408,7 +403,7 @@ begin
     Result := Null;
 end;
 
-procedure TDBLookup.UpdateData(ValueIndex: Integer);
+procedure TDBLookup.UpdateData(ValueIndex: Integer; ScrollDataset: Boolean);
 var
   I: Integer;
   Key: Variant;
@@ -417,7 +412,7 @@ begin
   if (ValueIndex < 0) or (ValueIndex >= Length(FListKeys)) then
     Exit;
   Key := FListKeys[ValueIndex];
-  if FScrollListDataset then
+  if ScrollDataset then
     FListLink.DataSet.Locate(FKeyFieldNames, Key, []);
   if Assigned(FControlLink) and FControlLink.Active then
   begin

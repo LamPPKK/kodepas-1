@@ -28,10 +28,6 @@ msgstr "编辑器宏脚本"
 msgid "Scripting not active. Selftest failed."
 msgstr "Scripting非激活状态.自检失败."
 
-#: emsstrings.emsnotactiveverbose
-msgid "EditorMacroScript failed its self-test and is not active. Some macros may not work."
-msgstr ""
-
 #: emsstrings.emsnotsupported
 msgid "Scripting not active. Not supported on this platform or CPU."
 msgstr "Scripting非活跃状态.不支持这个平台或者CPU."
@@ -45,12 +41,10 @@ msgid "Error in EditorMacroScript"
 msgstr "编辑器宏脚本错误"
 
 #: emsstrings.emsselftestfailed
-#, object-pascal-format
 msgid "The package EditorMacroScript (pascalscript macros) has detected a problem and was deactivated.%0:sThe package failed its selftest with the message:%0:s\"%1:s\""
 msgstr "包EditorMacroScript (pascalscript macros)检测到一个问题并被停用.%0:s包自检失败带有信息:%0:s\"%1:s\""
 
 #: emsstrings.emsselftestfailedlasttime
-#, object-pascal-format
 msgid "The package EditorMacroScript (pascalscript macros) has detected a problem and was deactivated.%0:sThe package selftest was not completed during the last start of the IDE."
 msgstr "包EditorMacroScript (pascalscript macros)检测到一个问题并被停用.%0:s包自检在上次IDE启动时没有完成."
 

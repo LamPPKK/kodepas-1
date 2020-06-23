@@ -130,12 +130,8 @@ type
     procedure RemoveFromRecentOpenFiles(const AFilename: string); virtual; abstract;
     procedure AddToRecentProjectFiles(const AFilename: string); virtual; abstract;
     procedure RemoveFromRecentProjectFiles(const AFilename: string); virtual; abstract;
-    Procedure GetRecentFiles(aType: TIDERecentHandler; aList : TStrings); virtual; abstract;
     procedure AddToRecentPackageFiles(const AFilename: string); virtual; abstract;
     procedure RemoveFromRecentPackageFiles(const AFilename: string); virtual; abstract;
-
-    function GetParsedCompilerFilename: string; virtual; abstract;
-    function GetParsedFppkgConfig: string; virtual; abstract;
 
     procedure AddHandlerAddToRecentOpenFiles(Handler: TOnAddToRecent; const AsFirst: boolean = true); // AsFirst means: first to call
     procedure RemoveHandlerAddToRecentOpenFiles(Handler: TOnAddToRecent);
@@ -198,8 +194,8 @@ const
 
   GroupDebugger     = 400;
     DbgOptionsGeneral            = 100;
-    DbgOptionsClass              = 150;
     DbgOptionsEventLog           = 200;
+    DbgOptionsLanguageExceptions = 300;
     DbgOptionsSignals            = 400;
 
   GroupHelp         = 500;
@@ -215,8 +211,6 @@ const
     ProjectOptionsResources   = 550;
     ProjectOptionsI18N        = 600;
     ProjectOptionsMisc        = 700;
-    ProjectOptionsDebug        = 700;
-    DbgOptionsLanguageExceptions = 900;
 
   GroupPackage      = 200100;
     PackageOptionsUsage        = 100;
@@ -241,8 +235,6 @@ const
     CompilerOptionsCompilation           = 1200;
 
   GroupPkgCompiler  = 200200;
-
-  GroupPackageFile  = 200300;
 
 var
   HasGUI: boolean = true; // lazbuild sets this to false

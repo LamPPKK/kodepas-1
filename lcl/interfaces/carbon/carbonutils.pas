@@ -1,10 +1,10 @@
-{ $Id$
+{ $Id: carbonutils.pas 41387 2013-05-24 18:30:06Z juha $
                   ------------------------------------------
                   carbonutils.pp  -  Common carbon utilities
                   ------------------------------------------
 
  @created(Wed Aug 26st WET 2005)
- @lastmod($Date$)
+ @lastmod($Date: 2013-05-24 20:30:06 +0200 (Fr, 24 Mai 2013) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)
 
  This unit contains common carbon untilities (usable by other projects)

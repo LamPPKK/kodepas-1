@@ -5,9 +5,8 @@ unit sparta_BasicFakeCustom;
 interface
 
 uses
-  Classes, SysUtils,
-  LCLType, LCLIntf, Controls, Forms,
-  sparta_InterfacesMDI, sparta_FormBackgroundForMDI;
+  Classes, SysUtils, Controls, Forms, sparta_InterfacesMDI, LCLIntf,
+  LCLType, sparta_FormBackgroundForMDI;
 
 type
 
@@ -205,7 +204,7 @@ procedure TFormImpl.SetRealBounds(AIndex: Integer; AValue: Integer);
     LFormRect := Rect(0, 0, 0, 0);;
     LCLIntf.GetClientRect(GetForm.Handle, LFormRect);
     LRealValue := GetRealBounds(AIndex);
-    {$IF FPC_FULLVERSION < 30101}
+    {$IF FPC_FULLVERSION < 301010}
     case AIndex of
       0: LValue := LFormRect.Left;
       1: LValue := LFormRect.Top;

@@ -464,7 +464,7 @@ begin
   try
     // don't need to copy Objects, VCL does not support them neither
     // preserve the last line ending
-    Text:=LineBreaksToSystemLineBreaks(TheStrings.Text);
+    Text:=ConvertLineEndings(TheStrings.Text);
   finally
     EndUpdate;
   end;

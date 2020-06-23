@@ -112,7 +112,7 @@ end;
 
 function TPageControl.ChildClassAllowed(ChildClass: TClass): boolean;
 begin
-  Result:=(ChildClass<>nil) and (ChildClass.InheritsFrom(GetPageClass));
+  Result:=(ChildClass<>nil) and (ChildClass.InheritsFrom(PageClass));
   if Widgetset.GetLCLCapability(lcAllowChildControlsInNativeControls) = LCL_CAPABILITY_YES then Result := True;
 end;
 
@@ -189,7 +189,7 @@ end;
 // A Lazarus addition
 function TPageControl.AddTabSheet: TTabSheet;
 begin
-  Result := GetPageClass.Create(Self) as TTabSheet;
+  Result := TTabSheet.Create(Self);
   Result.PageControl := Self;
 end;
 

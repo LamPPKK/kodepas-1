@@ -1,5 +1,5 @@
 {%MainUnit win32int.pp}
-{ $Id$ }
+{ $Id: win32lclintf.inc 58226 2018-06-11 10:09:25Z juha $ }
 {******************************************************************************
                  All GTK interface communication implementations.
                    Initial Revision  : Sun Nov 23 23:53:53 2003
@@ -91,6 +91,16 @@ function TWin32WidgetSet.ExtUTF8Out(DC: HDC; X, Y: Integer; Options: Longint; Re
   Str: PChar; Count: Longint; Dx: PInteger): Boolean;
 begin
   Result := ExtTextOut(DC, X, Y, Options, Rect, Str, Count, Dx);
+end;
+
+{------------------------------------------------------------------------------
+  function FontCanUTF8(Font: HFont): boolean;
+
+  True if font recognizes Unicode UTF8 encoding.
+ ------------------------------------------------------------------------------}
+function TWin32WidgetSet.FontCanUTF8(Font: HFont): boolean;
+begin
+  Result := True;
 end;
 
 type

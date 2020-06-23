@@ -14,9 +14,6 @@ procedure RIRegisterTWinControl(Cl: TPSRuntimeClassImporter);
 procedure RIRegisterTGraphicControl(cl: TPSRuntimeClassImporter);
 procedure RIRegisterTCustomControl(cl: TPSRuntimeClassImporter);
 procedure RIRegister_TDragObject(CL: TPSRuntimeClassImporter);
-{$IFDEF DELPHI4UP}
-procedure RIRegisterTSizeConstraints(cl: TPSRuntimeClassImporter);
-{$ENDIF}
 
 procedure RIRegister_Controls(Cl: TPSRuntimeClassImporter);
 
@@ -235,10 +232,6 @@ begin
   end;
 end;
 
-procedure RIRegisterTSizeConstraints(cl: TPSRuntimeClassImporter);
-begin
-  Cl.Add(TSizeConstraints);
-end;
 
 procedure RIRegister_Controls(Cl: TPSRuntimeClassImporter);
 begin
@@ -247,7 +240,7 @@ begin
   RIRegisterTGraphicControl(cl);
   RIRegisterTCustomControl(cl);
   RIRegister_TDragObject(cl);
-  RIRegisterTSizeConstraints(cl);
+
 end;
 
 // PS_MINIVCL changes by Martijn Laan (mlaan at wintax _dot_ nl)

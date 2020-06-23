@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id$
+$Id: synedittextbuffer.pp 58181 2018-06-08 10:19:06Z martin $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -802,16 +802,7 @@ end;
 
 procedure TSynEditStringList.SetIsUndoing(const AValue: Boolean);
 begin
-  if FIsUndoing = AValue then
-    exit;
-
-  if not AValue then
-    SendNotification(senrEndUndoRedo, Self); // before UNDO ends
-
   FIsUndoing := AValue;
-
-  if AValue then
-    SendNotification(senrBeginUndoRedo, Self); // after UNDO started
 end;
 
 function TSynEditStringList.GetIsUndoing: Boolean;
@@ -821,16 +812,7 @@ end;
 
 procedure TSynEditStringList.SetIsRedoing(const AValue: Boolean);
 begin
-  if FIsRedoing = AValue then
-    exit;
-
-  if not AValue then
-    SendNotification(senrEndUndoRedo, Self); // before UNDO ends
-
   FIsRedoing := AValue;
-
-  if AValue then
-    SendNotification(senrBeginUndoRedo, Self); // after UNDO started
 end;
 
 function TSynEditStringList.GetIsRedoing: Boolean;

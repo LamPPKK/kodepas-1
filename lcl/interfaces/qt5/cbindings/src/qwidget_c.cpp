@@ -26,9 +26,9 @@ int QWidget_devType(QWidgetH handle)
 	return (int) ((QWidget *)handle)->devType();
 }
 
-WId QWidget_winId(QWidgetH handle)
+unsigned int QWidget_winId(QWidgetH handle)
 {
-	return (WId) ((QWidget *)handle)->winId();
+	return (unsigned int) ((QWidget *)handle)->winId();
 }
 
 void QWidget_createWinId(QWidgetH handle)
@@ -36,14 +36,14 @@ void QWidget_createWinId(QWidgetH handle)
 	((QWidget *)handle)->createWinId();
 }
 
-WId QWidget_internalWinId(QWidgetH handle)
+unsigned int QWidget_internalWinId(QWidgetH handle)
 {
-	return (WId) ((QWidget *)handle)->internalWinId();
+	return (unsigned int) ((QWidget *)handle)->internalWinId();
 }
 
-WId QWidget_effectiveWinId(QWidgetH handle)
+unsigned int QWidget_effectiveWinId(QWidgetH handle)
 {
-	return (WId) ((QWidget *)handle)->effectiveWinId();
+	return (unsigned int) ((QWidget *)handle)->effectiveWinId();
 }
 
 QStyleH QWidget_style(QWidgetH handle)
@@ -1214,7 +1214,7 @@ Qt::WindowType QWidget_windowType(QWidgetH handle)
 	return (Qt::WindowType) ((QWidget *)handle)->windowType();
 }
 
-QWidgetH QWidget_find(WId AnonParam1)
+QWidgetH QWidget_find(unsigned int AnonParam1)
 {
 	return (QWidgetH) QWidget::find((WId)AnonParam1);
 }

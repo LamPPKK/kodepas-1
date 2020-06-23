@@ -93,29 +93,31 @@ end;
 
 procedure TAnchorDesktopOpt.Load(Path: String; aXMLCfg: TRttiXMLConfig);
 begin
+  //new version of old "TIDEAnchorDockMaster.LoadUserLayout"
+
   Path := Path + 'AnchorDocking/';
   try
     {$IFDEF VerboseAnchorDocking}
-    DebugLn(['TAnchorDesktopOpt.LoadUserLayout ',Path]);
+    debugln(['TIDEAnchorDockMaster.LoadUserLayout ',Filename]);
     {$ENDIF}
     if aXMLCfg.GetValue(Path+'MainConfig/Nodes/ChildCount',0) > 0 then//config is not empty
     begin
       // loading last layout
       {$IF defined(VerboseAnchorDocking) or defined(VerboseAnchorDockRestore)}
-      DebugLn(['TAnchorDesktopOpt.LoadUserLayout restoring ...']);
+      debugln(['TIDEAnchorDockMaster.LoadUserLayout restoring ...']);
       {$ENDIF}
       LoadLayoutFromConfig(Path,aXMLCfg);
     end else begin
       // loading defaults
       {$IF defined(VerboseAnchorDocking) or defined(VerboseAnchorDockRestore)}
-      DebugLn(['TAnchorDesktopOpt.LoadUserLayout loading default layout ...']);
+      debugln(['TIDEAnchorDockMaster.LoadUserLayout loading default layout ...']);
       {$ENDIF}
       LoadLegacyAnchorDockOptions;
       LoadDefaultLayout;
     end;
   except
     on E: Exception do begin
-      DebugLn(['TAnchorDesktopOpt.LoadUserLayout loading ',aXMLCfg.GetValue(Path+'Name', ''),' failed: ',E.Message]);
+      DebugLn(['TIDEAnchorDockMaster.LoadUserLayout loading ',aXMLCfg.GetValue(Path+'Name', ''),' failed: ',E.Message]);
       Raise;
     end;
   end;
@@ -213,12 +215,12 @@ begin
   Path := Path + 'AnchorDocking/';
   try
     {$IF defined(VerboseAnchorDocking) or defined(VerboseAnchorDockRestore)}
-    DebugLn(['TAnchorDesktopOpt.SaveDefaultLayout ',Path]);
+    debugln(['TIDEAnchorDockMaster.SaveDefaultLayout ',Filename]);
     {$ENDIF}
     SaveLayoutToConfig(Path, aXMLCfg);
   except
     on E: Exception do begin
-      DebugLn(['TAnchorDesktopOpt.SaveDefaultLayout saving ',aXMLCfg.GetValue(Path+'Name', ''),' failed: ',E.Message]);
+      DebugLn(['TIDEAnchorDockMaster.SaveDefaultLayout saving ',aXMLCfg.GetValue(Path+'Name', ''),' failed: ',E.Message]);
       Raise;
     end;
   end;
@@ -270,7 +272,7 @@ begin
         // custom dock site
         LayoutNode:=FTree.NewNode(FTree.Root);
         LayoutNode.NodeType:=adltnCustomSite;
-        LayoutNode.Assign(AForm,false,false);
+        LayoutNode.Assign(AForm);
         // can have one normal dock site
         Site:=TAnchorDockManager(AForm.DockManager).GetChildSite;
         if Site<>nil then begin
@@ -285,7 +287,7 @@ begin
         raise EAnchorDockLayoutError.Create('invalid root control for save: '+DbgSName(AControl));
     end;
     // remove invisible controls
-    FTree.Root.Simplify(VisibleControls,false);
+    FTree.Root.Simplify(VisibleControls);
   finally
     VisibleControls.Free;
     SavedSites.Free;

@@ -3,7 +3,7 @@
                     -----------------------------------------
 
  @created(Wed Aug 26st WET 2005)
- @lastmod($Date$)
+ @lastmod($Date: 2018-09-08 22:04:47 +0200 (Sa, 08 Sep 2018) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)
 
  This unit contains type & const definitions needed in the Carbon <-> LCL interface

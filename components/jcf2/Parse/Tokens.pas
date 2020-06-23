@@ -123,7 +123,6 @@ type
     ttOf,
     ttOperator,
     ttOut,
-    ttOtherwise,
     ttPackage,
     ttPacked,
     ttProcedure,
@@ -618,7 +617,6 @@ begin
   AddKeyword('of', wtReservedWord, ttOf);
   AddKeyword('operator', wtReservedWord, ttOperator);
   AddKeyword('out', wtReservedWordDirective, ttOut);
-  AddKeyword('otherwise', wtReservedWord, ttOtherwise);
   AddKeyword('packed', wtReservedWord, ttPacked);
   AddKeyword('procedure', wtReservedWord, ttProcedure);
   AddKeyword('program', wtReservedWord, ttProgram);

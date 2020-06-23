@@ -1,4 +1,4 @@
-{ $Id$ }
+{ $Id: dbgintfdebuggerbase.pp 61357 2019-06-11 16:08:06Z martin $ }
 {                  -------------------------------------------
                     DebuggerBase.pp  -  Debugger base classes
                    -------------------------------------------
@@ -48,7 +48,7 @@ uses
   // LCL
   LCLProc,
   // LazUtils
-  LazClasses, LazLoggerBase, LazFileUtils, LazStringUtils, Maps, LazMethodList,
+  LazClasses, LazLoggerBase, LazFileUtils, Maps, LazMethodList,
   // DebuggerIntf
   DbgIntfBaseTypes, DbgIntfMiscClasses, DbgIntfPseudoTerminal;
 
@@ -200,7 +200,6 @@ type
   *)
 
   TDebuggerIntf = class;
-  TDebuggerClass = class of TDebuggerIntf;
   TDebuggerDataSupplier = class;
 
   { TDebuggerDataHandler }
@@ -292,8 +291,7 @@ type
   TDBGWatchPointKind = (
     wpkWrite,
     wpkRead,
-    wpkReadWrite,
-    wkpExec
+    wpkReadWrite
   );
 
   { TBaseBreakPoint }
@@ -1021,7 +1019,6 @@ type
     function GetEntryByIdx(AnIndex: Integer): TRegisters;
   protected
   public
-    procedure InvalidateItems;
     property EntriesByIdx[AnIndex: Integer]: TRegisters read GetEntryByIdx;
     property Entries[AThreadId, AStackFrame: Integer]: TRegisters read GetEntry; default;
   end;
@@ -1769,25 +1766,6 @@ type
   end;
   TDebuggerPropertiesClass= class of TDebuggerProperties;
 
-  { TCommonDebuggerProperties
-    properties that all debuggers should/could implement
-  }
-
-  TInternalExceptionBreakPoint = (ieRaiseBreakPoint, ieRunErrorBreakPoint, ieBreakErrorBreakPoint);
-  TInternalExceptionBreakPoints = set of TInternalExceptionBreakPoint;
-
-  TCommonDebuggerProperties = class(TDebuggerProperties)
-  private
-    FInternalExceptionBreakPoints: TInternalExceptionBreakPoints;
-  protected const
-    INTERNALEXCEPTIONBREAKPOINTS_DEFAULT = [ieRaiseBreakPoint, ieRunErrorBreakPoint, ieBreakErrorBreakPoint];
-  protected
-    property InternalExceptionBreakPoints: TInternalExceptionBreakPoints
-      read FInternalExceptionBreakPoints write FInternalExceptionBreakPoints default INTERNALEXCEPTIONBREAKPOINTS_DEFAULT;
-  public
-    constructor Create; override;
-    procedure Assign({%H-}Source: TPersistent); override;
-  end;
 
   {$INTERFACES CORBA} // no ref counting needed
 
@@ -1878,7 +1856,7 @@ type
     procedure DoCurrent(const ALocation: TDBGLocationRec);
     procedure DoDbgOutput(const AText: String);
     procedure DoDbgEvent(const ACategory: TDBGEventCategory; const AEventType: TDBGEventType; const AText: String);
-      deprecated 'switch to EventLogHandler';
+      deprecated 'swich to EventLogHandler';
     procedure DoException(const AExceptionType: TDBGExceptionType;
                           const AExceptionClass: String;
                           const AExceptionLocation: TDBGLocationRec;
@@ -1906,11 +1884,9 @@ type
     procedure LockRelease; virtual;
     procedure UnlockRelease; virtual;
     function GetPseudoTerminal: TPseudoTerminal; virtual;
-    property InternalFilename: string read FFileName write FFileName; //experimental
   public
     class function Caption: String; virtual;         // The name of the debugger as shown in the debuggeroptions
     class function ExePaths: String; virtual;        // The default locations of the exe
-    class function ExePathsMruGroup: TDebuggerClass; virtual;        // The default locations of the exe
     class function HasExePath: boolean; virtual; deprecated; // use NeedsExePath instead
     class function NeedsExePath: boolean; virtual;        // If the debugger needs to have an exe path
     class function RequiredCompilerOpts(ATargetCPU, ATargetOS: String): TDebugCompilerRequirements; virtual;
@@ -1918,7 +1894,7 @@ type
     // debugger properties
     class function CreateProperties: TDebuggerProperties; virtual;         // Creates debuggerproperties
     class function GetProperties: TDebuggerProperties;                     // Get the current properties
-    //class procedure SetProperties(const AProperties: TDebuggerProperties); // Set the current properties
+    class procedure SetProperties(const AProperties: TDebuggerProperties); // Set the current properties
 
     (* TODO:
        This method is a workaround for http://bugs.freepascal.org/view.php?id=21834
@@ -1999,7 +1975,7 @@ type
     property OnCurrent: TDBGCurrentLineEvent read FOnCurrent write FOnCurrent;   // Passes info about the current line being debugged
     property OnDbgOutput: TDBGOutputEvent read FOnDbgOutput write FOnDbgOutput;  // Passes all debuggeroutput
     property OnDbgEvent: TDBGEventNotify read FOnDbgEvent write FOnDbgEvent;     // Passes recognized debugger events, like library load or unload
-      deprecated 'switch to EventLogHandler';
+      deprecated 'swich to EventLogHandler';
     property OnException: TDBGExceptionEvent read FOnException write FOnException;  // Fires when the debugger received an ecxeption
     property OnOutput: TDBGOutputEvent read FOnOutput write FOnOutput;           // Passes all output of the debugged target
     property OnBeforeState: TDebuggerStateChangedEvent read FOnBeforeState write FOnBeforeState;   // Fires when the current state of the debugger changes
@@ -2009,8 +1985,7 @@ type
     property OnFeedback: TDBGFeedbackEvent read FOnFeedback write FOnFeedback;
     property OnIdle: TNotifyEvent read FOnIdle write FOnIdle;                    // Called if all outstanding requests are processed (queue empty)
   end;
-
-  { TBaseDebugManagerIntf }
+  TDebuggerClass = class of TDebuggerIntf;
 
   TBaseDebugManagerIntf = class(TComponent)
   public type
@@ -2021,11 +1996,10 @@ type
     function ValueFormatterKey(const aSymbolKind: TDBGSymbolKind;
       const aTypeName: string): string;
   protected
-    class function GetDebuggerClass(const AIndex: Integer): TDebuggerClass;static;
-    class function GetDebuggerClassByName(const AIndex: String): TDebuggerClass; static;
+    function GetDebuggerClass(const AIndex: Integer): TDebuggerClass;
     function FindDebuggerClass(const Astring: String): TDebuggerClass;
   public
-    class function DebuggerCount: Integer;
+    function DebuggerCount: Integer;
 
     procedure RegisterValueFormatter(const aSymbolKind: TDBGSymbolKind;
       const aTypeName: string; const aFunc: TStringFunction);
@@ -2033,8 +2007,6 @@ type
       const aTypeName, aValue: string): string;
     function FormatValue(const aDBGType: TDBGType;
       const aValue: string): string;
-    class property Debuggers[const AIndex: Integer]: TDebuggerClass read GetDebuggerClass;
-    class property DebuggersByClassName[const AIndex: String]: TDebuggerClass read GetDebuggerClassByName;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -2089,8 +2061,7 @@ var
 
 procedure RegisterDebugger(const ADebuggerClass: TDebuggerClass);
 begin
-  if MDebuggerClasses.IndexOfObject(TObject(Pointer(ADebuggerClass))) < 0 then
-    MDebuggerClasses.AddObject(ADebuggerClass.ClassName, TObject(Pointer(ADebuggerClass)));
+  MDebuggerClasses.AddObject(ADebuggerClass.ClassName, TObject(Pointer(ADebuggerClass)));
 end;
 
 function MinDbgPtr(a, b: TDBGPtr): TDBGPtr;
@@ -2204,21 +2175,6 @@ const
 begin
   Result := Format('[[ Value=%u, Guessed=%u, Offset=%d, Validity=%s ]]',
                    [AnAddr.Value, AnAddr.GuessedValue, AnAddr.Offset, ValidityName[AnAddr.Validity]]);
-end;
-
-{ TCommonDebuggerProperties }
-
-constructor TCommonDebuggerProperties.Create;
-begin
-  FInternalExceptionBreakPoints := INTERNALEXCEPTIONBREAKPOINTS_DEFAULT;
-end;
-
-procedure TCommonDebuggerProperties.Assign(Source: TPersistent);
-begin
-  inherited Assign(Source);
-  if Source is TCommonDebuggerProperties then begin
-    FInternalExceptionBreakPoints := TCommonDebuggerProperties(Source).FInternalExceptionBreakPoints;
-  end;
 end;
 
 { TDBGDisassemblerRangeExtender }
@@ -3364,19 +3320,6 @@ end;
 function TRegistersList.GetEntryByIdx(AnIndex: Integer): TRegisters;
 begin
   Result := TRegisters(inherited EntriesByIdx[AnIndex]);
-end;
-
-procedure TRegistersList.InvalidateItems;
-var
-  i: Integer;
-begin
-  Assert(not Immutable, 'TRegisterList.InvalidateItems Immutable');
-  if Count = 0 then
-    exit;
-  for i := 0 to Count-1 do begin
-    EntriesByIdx[i].DataValidity := ddsUnknown;
-  end;
-  DoCleared;
 end;
 
 { TWatchesBase }
@@ -6100,11 +6043,6 @@ begin
   Result := '';
 end;
 
-class function TDebuggerIntf.ExePathsMruGroup: TDebuggerClass;
-begin
-  Result := Self;
-end;
-
 class function TDebuggerIntf.HasExePath: boolean;
 begin
   Result := NeedsExePath;
@@ -6290,17 +6228,17 @@ begin
   SetState(dsIdle);
 end;
 
-//class procedure TDebuggerIntf.SetProperties(const AProperties: TDebuggerProperties);
-//var
-//  Props: TDebuggerProperties;
-//begin
-//  if AProperties = nil then Exit;
-//  Props := GetProperties;
-//  if Props = AProperties then Exit;
-//
-//  if Props = nil then Exit; // they weren't created ?
-//  Props.Assign(AProperties);
-//end;
+class procedure TDebuggerIntf.SetProperties(const AProperties: TDebuggerProperties);
+var
+  Props: TDebuggerProperties;
+begin
+  if AProperties = nil then Exit;
+  Props := GetProperties;
+  if Props = AProperties then Exit;
+
+  if Props = nil then Exit; // they weren't created ?
+  Props.Assign(AProperties);
+end;
 
 class function TDebuggerIntf.RequiresLocalExecutable: Boolean;
 begin
@@ -6431,7 +6369,7 @@ begin
   FValueFormatterList.Duplicates := dupError;
 end;
 
-class function TBaseDebugManagerIntf.DebuggerCount: Integer;
+function TBaseDebugManagerIntf.DebuggerCount: Integer;
 begin
   Result := MDebuggerClasses.Count;
 end;
@@ -6475,23 +6413,9 @@ begin
     Result := FormatValue(aDBGType.Kind, aDBGType.TypeName, aValue);
 end;
 
-class function TBaseDebugManagerIntf.GetDebuggerClass(const AIndex: Integer): TDebuggerClass;
+function TBaseDebugManagerIntf.GetDebuggerClass(const AIndex: Integer): TDebuggerClass;
 begin
   Result := TDebuggerClass(MDebuggerClasses.Objects[AIndex]);
-end;
-
-class function TBaseDebugManagerIntf.GetDebuggerClassByName(const AIndex: String
-  ): TDebuggerClass;
-var
-  i: Integer;
-begin
-  i := MDebuggerClasses.Count - 1;
-  while i >= 0 do begin
-    if LowerCase(TDebuggerClass(MDebuggerClasses.Objects[i]).ClassName) = LowerCase(AIndex) then
-      exit(TDebuggerClass(MDebuggerClasses.Objects[i]));
-    dec(i);
-  end;
-  Result := nil;
 end;
 
 procedure TBaseDebugManagerIntf.RegisterValueFormatter(

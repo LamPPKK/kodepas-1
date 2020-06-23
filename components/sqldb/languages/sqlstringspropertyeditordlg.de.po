@@ -67,13 +67,9 @@ msgid "Quick SQL check OK"
 msgstr "Schnelle SQL-Prüfung ist OK"
 
 #: sqlstringspropertyeditordlg.ssqlsyntaxerror
-#, object-pascal-format, fuzzy
-#| msgid ""
-#| "Probable syntax error in SQL statement:\n"
-#| "%s\n"
 msgid ""
 "Probable syntax error in SQL statement:\n"
-"%s"
+"%s\n"
 msgstr ""
 "Wahrscheinlicher Syntax-Fehler in SQL-Anweisung:\n"
 "%s\n"

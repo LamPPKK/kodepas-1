@@ -23,10 +23,8 @@ interface
 uses
   // Bindings
   fpguiwsprivate, fpg_main, fpg_button,
-  // RTL
-  SysUtils,
   // LCL
-  Buttons, LCLType, Controls, Graphics, GraphType, ImgList,
+  Buttons, LCLType, Controls, Graphics, GraphType, sysutils,
   // Widgetset
   WSButtons, WSLCLClasses;
 
@@ -83,15 +81,11 @@ var
   lButtonState: TButtonState;
   lIndex: integer;
   lEffect: TGraphicsDrawEffect;
-  lImageRes: TScaledImageListResolution;
 begin
   if not Assigned(AValue.Images) then exit;
   lButton := TFPGUIPrivateButton(ABitBtn.Handle);
-  lButtonState := bsUp;
-
-  AValue.GetImageIndexAndEffect(lButtonState, ABitBtn.Font.PixelsPerInch,
-        ABitBtn.GetCanvasScaleFactor, lImageRes, lIndex, lEffect);
-
+  lButtonState:=bsUp;
+  AValue.GetImageIndexAndEffect(lButtonState,lIndex,lEffect);
   lBitmap:=TBitmap.Create;
   AValue.Images.GetBitmap(lIndex,lBitmap);
   fpgImage:=TfpgImage.Create;

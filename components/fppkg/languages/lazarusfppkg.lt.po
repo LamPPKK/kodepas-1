@@ -53,22 +53,16 @@ msgid "update repository"
 msgstr "naujinti saugyklą"
 
 #: fppkg_mainfrm.serractionfailed
-#, object-pascal-format, fuzzy
-#| msgid ""
-#| "Failed to %s: \n"
-#| "\n"
-#| "%s\n"
 msgid ""
 "Failed to %s: \n"
 "\n"
-"%s"
+"%s\n"
 msgstr ""
 "Nepavyko - %s: \n"
 "\n"
 "%s\n"
 
 #: fppkg_mainfrm.smsgactionsucceeded
-#, object-pascal-format
 msgid "%s succeeded."
 msgstr "Pavyko - %s."
 

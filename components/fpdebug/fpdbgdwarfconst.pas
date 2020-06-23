@@ -1,4 +1,4 @@
-{ $Id$ }
+{ $Id: fpdbgdwarfconst.pas 44586 2014-04-01 23:44:33Z martin $ }
 {
  ---------------------------------------------------------------------------
  fpdbgdwarfconst.pas  -  Freepascal debugger - Dwarf constants
@@ -9,7 +9,7 @@
  ---------------------------------------------------------------------------
 
  @created(Fri Jul 7th WET 2006)
- @lastmod($Date$)
+ @lastmod($Date: 2014-04-02 01:44:33 +0200 (Mi, 02 Apr 2014) $)
  @author(Marc Weustink <marc@@dommelstein.nl>)
 
  *****************************************************************************
@@ -191,8 +191,6 @@ const
   DW_AT_elemental            = $66  ;    // flag
   DW_AT_pure                 = $67  ;    // flag
   DW_AT_recursive            = $68  ;    // flag
-  // -- DWARF 4 --
-  DW_AT_data_bit_offset      = $6b  ;    // constant // block, constant, reference
   // ---  ---
   DW_AT_lo_user              = $2000;    // ---
   DW_AT_hi_user              = $3fff;    // ---

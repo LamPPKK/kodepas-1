@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: calendarpopup.pas 52144 2016-04-07 13:13:15Z bart $}
 {
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

@@ -55,7 +55,7 @@ begin
   begin
 
     LayoutNode.NodeType:=adltnControl;
-    LayoutNode.Assign(Self,false,false);
+    LayoutNode.Assign(Self);
     LayoutNode.Name:={OneControl.}Name;
 
     TAnchorDockHostSite(OneControl).SaveLayout(LayoutTree,LayoutNode);

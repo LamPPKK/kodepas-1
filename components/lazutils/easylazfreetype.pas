@@ -58,8 +58,6 @@ type
   TFreeTypeGlyph = class;
   TFreeTypeFont = class;
 
-  EFreeType = class(Exception);
-
   TFontCollectionItemDestroyProc = procedure() of object;
   TFontCollectionItemDestroyListener = record
     TargetObject: TObject;
@@ -485,7 +483,7 @@ begin
     FreeTypeCannotInitialize := not FreeTypeInitialized;
   end;
   if FreeTypeCannotInitialize then
-    raise EFreeType.Create('FreeType cannot be initialized');
+    raise Exception.Create('FreeType cannot be initialized');
 end;
 
 function GlyphTableOnCompare(Item1, Item2: Pointer): Integer;
@@ -743,7 +741,6 @@ end;
 
 { TFreeTypeGlyph }
 
-{$push}
 {$hints off}
 function TFreeTypeGlyph.GetBounds: TRect;
 var metrics: TT_Glyph_Metrics;
@@ -753,14 +750,18 @@ begin
     result := rect(IncludeFullGrainMin(xMin,64) div 64,IncludeFullGrainMin(-yMax,64) div 64,
        (IncludeFullGrainMax(xMax,64)+1) div 64,(IncludeFullGrainMax(-yMin,64)+1) div 64);
 end;
+{$hints on}
 
+{$hints off}
 function TFreeTypeGlyph.GetAdvance: single;
 var metrics: TT_Glyph_Metrics;
 begin
   TT_Get_Glyph_Metrics(FGlyphData, metrics);
   result := metrics.advance/64;
 end;
+{$hints on}
 
+{$hints off}
 function TFreeTypeGlyph.GetBoundsWithOffset(x, y: single): TRect;
 var metrics: TT_Glyph_Metrics;
 begin
@@ -769,12 +770,12 @@ begin
     result := rect(IncludeFullGrainMin(xMin+round(x*64),64) div 64,IncludeFullGrainMin(-yMax+round(y*64),64) div 64,
        (IncludeFullGrainMax(xMax+round(x*64),64)+1) div 64,(IncludeFullGrainMax(-yMin+round(y*64),64)+1) div 64);
 end;
-{$pop}
+{$hints on}
 
 constructor TFreeTypeGlyph.Create(AFont: TFreeTypeFont; AIndex: integer);
 begin
   if not AFont.CheckFace or (TT_New_Glyph(AFont.FFace, FGlyphData) <> TT_Err_Ok) then
-    raise EFreeType.Create('Cannot create empty glyph');
+    raise Exception.Create('Cannot create empty glyph');
   FLoaded := AFont.LoadGlyphInto(FGlyphData, AIndex);
   FIndex := AIndex;
 end;
@@ -866,22 +867,22 @@ begin
   begin
     errorNum := TT_Open_Face(FStream,False,FFace);
     if errorNum <> TT_Err_Ok then
-      raise EFreeType.Create('Cannot open font (TT_Error ' + intToStr(errorNum)+') <Stream>');
+      raise exception.Create('Cannot open font (TT_Error ' + intToStr(errorNum)+') <Stream>');
   end else
   begin
     if Pos(PathDelim, FName) <> 0 then
     begin
       errorNum := TT_Open_Face(FName,FFace);
       if errorNum <> TT_Err_Ok then
-        raise EFreeType.Create('Cannot open font (TT_Error ' + intToStr(errorNum)+') "'+FName+'"');
+        raise exception.Create('Cannot open font (TT_Error ' + intToStr(errorNum)+') "'+FName+'"');
     end else
     begin
       familyItem := Collection.Family[FName];
       if familyItem = nil then
-        raise EFreeType.Create('Font family not found ("'+FName+'")');
+        raise exception.Create('Font family not found ("'+FName+'")');
       fontItem := familyItem.GetFont(FStyleStr);
       if fontItem = nil then
-        raise EFreeType.Create('Font style not found ("'+FStyleStr+'")');
+        raise exception.Create('Font style not found ("'+FStyleStr+'")');
       FFace := fontItem.QueryFace(FontCollectionItemDestroyListener(self,@OnDestroyFontItem));
       FFaceItem := fontItem;
     end;
@@ -899,7 +900,6 @@ begin
   FaceChanged;
 end;
 
-{$push}
 {$hints off}
 function TFreeTypeFont.GetDPI: integer;
 var metrics: TT_Instance_Metrics;
@@ -916,7 +916,7 @@ begin
       result := FDPI;
   end;
 end;
-{$pop}
+{$hints on}
 
 function TFreeTypeFont.GetFamily: string;
 begin
@@ -1010,7 +1010,6 @@ begin
   result := lGlyph;
 end;
 
-{$push}
 {$hints off}
 function TFreeTypeFont.GetGlyphCount: integer;
 var prop : TT_Face_Properties;
@@ -1034,7 +1033,8 @@ begin
   else
     result := FNamesArray[ord(AIndex)];
 end;
-{$pop}
+
+{$hints on}
 
 function TFreeTypeFont.GetLineFullHeight: single;
 begin
@@ -1196,7 +1196,7 @@ function TFreeTypeFont.LoadGlyphInto(_glyph: TT_Glyph; glyph_index: Word): boole
 var flags: integer;
 begin
   if not CheckInstance then
-    raise EFreeType.Create('No font instance');
+    raise Exception.Create('No font instance');
   flags := TT_Load_Scale_Glyph;
   if FHinted then flags := flags or TT_Load_Hint_Glyph;
   result := (TT_Load_Glyph(FInstance, _glyph, glyph_index, flags) <> TT_Err_Ok);
@@ -1225,7 +1225,7 @@ begin
     UpdateMetrics;
     UpdateCharmap;
   end else
-    raise EFreeType.Create('Cannot create font instance (TT_Error ' + intToStr(errorNum)+')');
+    raise exception.Create('Cannot create font instance (TT_Error ' + intToStr(errorNum)+')');
 end;
 
 procedure TFreeTypeFont.UpdateSizeInPoints;
@@ -1239,7 +1239,7 @@ begin
       charsizex := round(FPointSize*64*FWidthFactor*3);
 
     if TT_Set_Instance_CharSizes(FInstance,charsizex,round(FPointSize*64)) <> TT_Err_Ok then
-      raise EFreeType.Create('Unable to set point size');
+      raise Exception.Create('Unable to set point size');
     FGlyphTable.FreeAndClear;
   end;
 end;
@@ -1838,9 +1838,11 @@ var i,j: integer;
   value,value2: string;
 
 begin
-  setlength(FNamesArray, maxNameIndex+1);
+  // setlength(FNamesArray, maxNameIndex+1);
+  // wp: Move this into the "if" to avoid ignoring font files after reading defective one.
   if CheckFace then
   begin
+    setlength(FNamesArray, maxNameIndex+1);
     for i := 0 to TT_Get_Name_Count(FFace)-1 do
     begin
       if TT_Get_Name_ID(FFace, i, nrPlatformID, nrEncodingID,

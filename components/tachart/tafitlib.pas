@@ -22,11 +22,11 @@ type
 
   TFitParam = record
     Func: TFitFunc;
-    CustomFunc: TFitFunc;
-    CustomFuncName: String;
+    FuncName: String;
     Value: ArbFloat;
     Fixed: Boolean;
   end;
+
   TFitParamArray = array of TFitParam;
 
   TFitErrCode = (

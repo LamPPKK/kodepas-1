@@ -406,6 +406,7 @@ begin
     IconImage.RawImageNeeded(false);
     RawImg := IconImage.FImage;
     IntfImage := TLazIntfImage.Create(IconImage.Width, IconImage.Height, [riqfRGB, riqfAlpha, riqfUpdate]);
+    IntfImage.CreateData;
     try
       SrcImage := TLazIntfImage.Create(RawImg, False);    
       try

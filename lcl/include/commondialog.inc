@@ -104,8 +104,6 @@ class procedure TCommonDialog.WSRegisterClass;
 begin
   inherited WSRegisterClass;
   RegisterCommonDialog;
-  RegisterPropertyToSkip(TCommonDialog, 'Width', 'Property streamed in older Lazarus revision','');
-  RegisterPropertyToSkip(TCommonDialog, 'Height', 'Property streamed in older Lazarus revision','');
 end;
 
 procedure TCommonDialog.SetHeight(const AValue: integer);

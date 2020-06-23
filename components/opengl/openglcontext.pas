@@ -42,16 +42,6 @@ unit OpenGLContext;
     {$DEFINE OpenGLTargetDefined}
   {$ENDIF}
 {$ENDIF}
-{$IFDEF LCLGTK3}
-  {$IF defined(Linux) or defined(FreeBSD)}
-    {$DEFINE UseGtk3GLX}
-    {$DEFINE UsesModernGL}
-    {$DEFINE HasRGBA}
-    {$DEFINE HasRGBBits}
-    {$DEFINE HasDebugContext}
-    {$DEFINE OpenGLTargetDefined}
-  {$ENDIF}
-{$ENDIF}
 {$IFDEF LCLCarbon}
   {$DEFINE UseCarbonAGL}
   {$DEFINE HasRGBA}
@@ -99,9 +89,6 @@ uses
 {$ENDIF}
 {$IFDEF UseGtk2GLX}
   GLGtkGlxContext;
-{$ENDIF}
-{$IFDEF UseGtk3GLX}
-  GLGtk3GlxContext;
 {$ENDIF}
 {$IFDEF UseCarbonAGL}
   GLCarbonAGLContext;

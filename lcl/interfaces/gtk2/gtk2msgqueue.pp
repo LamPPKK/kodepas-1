@@ -22,7 +22,6 @@ interface
 
 uses
   // RTL
-  Classes,
   // LCL
   LazLinkedList, LCLType, LMessages, Gtk2Globals, Gtk2Proc,
   // LazUtils
@@ -51,12 +50,12 @@ type
   TGtkMessageQueue=class(TLinkList)
   private
     FPaintMessages: TDynHashArray; // Hash for paint messages
-    FCritSec: TRTLCriticalSection;
     {$IFNDEF USE_GTK_MAIN_OLD_ITERATION}
     FMainContext: PGMainContext;
     {$ELSE}
-    fLock: integer;
+    FCritSec: TRTLCriticalSection;
     {$ENDIF}
+    fLock: integer;
   protected
     function CreateItem : TLinkListItem;override;
     function CalculateHash(ParWnd : Hwnd):integer;
@@ -122,8 +121,9 @@ begin
   inherited Create;
   FPaintMessages := TDynHashArray.Create(-1);
   FPaintMessages.OwnerHashFunction := @HashPaintMessage;
+  {$IFDEF USE_GTK_MAIN_OLD_ITERATION}
   InitCriticalSection(FCritSec);
-  {$IFNDEF USE_GTK_MAIN_OLD_ITERATION}
+  {$ELSE}
   FMainContext := g_main_context_new;
   g_main_context_ref(FMainContext);
   {$ENDIF}
@@ -133,36 +133,31 @@ destructor TGtkMessageQueue.destroy;
 begin
   inherited Destroy;
   fPaintMessages.destroy;
-  {$IFNDEF USE_GTK_MAIN_OLD_ITERATION}
+  {$IFDEF USE_GTK_MAIN_OLD_ITERATION}
+  DoneCriticalsection(FCritSec);
+  {$ELSE}
   g_main_context_unref(FMainContext);
   FMainContext := nil;
   {$ENDIF}
-  DoneCriticalsection(FCritSec);
 end;
 
 procedure TGtkMessageQueue.Lock;
 begin
-    {$IFDEF USE_GTK_MAIN_OLD_ITERATION}
   if InterlockedIncrement(fLock)=1 then
+    {$IFDEF USE_GTK_MAIN_OLD_ITERATION}
     EnterCriticalsection(FCritSec);
     {$ELSE}
-  if GetCurrentThreadId = MainThreadID then
-    g_main_context_acquire(FMainContext)
-  else
-    EnterCriticalsection(FCritSec);
+    g_main_context_acquire(FMainContext);
     {$ENDIF}
 end;
 
 procedure TGtkMessageQueue.UnLock;
 begin
-    {$IFDEF USE_GTK_MAIN_OLD_ITERATION}
   if InterlockedDecrement(fLock)=0 then
+    {$IFDEF USE_GTK_MAIN_OLD_ITERATION}
     LeaveCriticalsection(FCritSec);
     {$ELSE}
-  if GetCurrentThreadId = MainThreadID then
-    g_main_context_release(FMainContext)
-  else
-    LeaveCriticalsection(FCritSec)
+    g_main_context_release(FMainContext);
     {$ENDIF}
 end;
 

@@ -8,8 +8,8 @@ unit lazprojectgroups;
 interface
 
 uses
-  ProjectGroup, ProjectGroupEditor, RegProjectGroup, ProjectGroupStrConst, 
-  PrjGrpOptionsFrm, PrjGrpInfoFrm, LazarusPackageIntf;
+  ProjectGroupIntf, ProjectGroup, ProjectGroupEditor, RegProjectGroup, 
+  ProjectGroupStrConst, LazarusPackageIntf;
 
 implementation
 

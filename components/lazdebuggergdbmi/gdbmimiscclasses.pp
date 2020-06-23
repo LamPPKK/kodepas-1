@@ -31,11 +31,7 @@ unit GDBMIMiscClasses;
 interface
 
 uses
-  Classes, SysUtils,
-  // DebuggerIntf
-  DbgIntfDebuggerBase,
-  // LazDebuggerGdbmi
-  DebugUtils;
+    Classes, SysUtils, DebugUtils, DbgIntfDebuggerBase;
 
 type
 

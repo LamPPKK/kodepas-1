@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: gtk2wschecklst.pp 58912 2018-09-08 20:04:47Z michl $}
 {
  *****************************************************************************
  *                             Gtk2WSCheckLst.pp                             * 
@@ -172,7 +172,7 @@ begin
 
   if Result = 0 then exit;
 
-  WidgetInfo := GetWidgetInfo(p);
+  WidgetInfo := GetWidgetInfo(p, False);
 
   GTK_WIDGET_UNSET_FLAGS(PGtkScrolledWindow(p)^.hscrollbar, GTK_CAN_FOCUS);
   GTK_WIDGET_UNSET_FLAGS(PGtkScrolledWindow(p)^.vscrollbar, GTK_CAN_FOCUS);
@@ -218,7 +218,7 @@ begin
   gtk_widget_show(TreeViewWidget);
 
   SetMainWidget(p, TreeViewWidget);
-  GetOrCreateWidgetInfo(p)^.CoreWidget := TreeViewWidget;
+  GetWidgetInfo(p, True)^.CoreWidget := TreeViewWidget;
 
   Selection := gtk_tree_view_get_selection(PGtkTreeView(TreeViewWidget));
 

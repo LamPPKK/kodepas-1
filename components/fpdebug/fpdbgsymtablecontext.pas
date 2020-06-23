@@ -16,13 +16,6 @@ uses
 
 type
 
-  { TFpSymbolTableProc }
-
-  TFpSymbolTableProc = class(TFpSymbol)
-  public
-    constructor Create(const AName: String; AnAddr: TDbgPtr);
-  end;
-
   TFpSymbolInfo = class;
 
   { TFpSymbolContext }
@@ -38,7 +31,7 @@ type
     function GetSizeOfAddress: Integer; override;
   public
     constructor Create(AFpSymbolInfo: TFpSymbolInfo);
-    function FindSymbol(const AName: String): TFpValue; override;
+    function FindSymbol(const AName: String): TFpDbgValue; override;
   end;
 
   { TFpSymbolInfo }
@@ -53,22 +46,12 @@ type
     destructor Destroy; override;
     function FindContext(AThreadId, AStackFrame: Integer; AAddress: TDbgPtr = 0): TFpDbgInfoContext; override;
     function FindContext(AAddress: TDbgPtr): TFpDbgInfoContext; override;
-    function FindProcSymbol(const AName: String): TFpSymbol; override; overload;
-    function FindProcSymbol(AnAdress: TDbgPtr): TFpSymbol; overload;
+    function FindSymbol(AAddress: TDbgPtr): TFpDbgSymbol; override;
+    function FindSymbol(const AName: String): TFpDbgSymbol; override;
     property Image64Bit: boolean read FImage64Bit;
   end;
 
 implementation
-
-{ TFpSymbolTableProc }
-
-constructor TFpSymbolTableProc.Create(const AName: String; AnAddr: TDbgPtr);
-begin
-  inherited Create(AName);
-  SetAddress(TargetLoc(AnAddr));
-  SetKind(skProcedure);
-  SetSymbolType(stType);
-end;
 
 { TFpSymbolContext }
 
@@ -102,7 +85,7 @@ begin
     FSizeOfAddress:=4;
 end;
 
-function TFpSymbolContext.FindSymbol(const AName: String): TFpValue;
+function TFpSymbolContext.FindSymbol(const AName: String): TFpDbgValue;
 var
   i: integer;
   val: TFpDbgMemLocation;
@@ -110,10 +93,9 @@ begin
   i := FFpSymbolInfo.FSymbolList.IndexOf(AName);
   if i > -1 then
   begin
-    val := Default(TFpDbgMemLocation);
     val.Address:=FFpSymbolInfo.FSymbolList.Data[i];
     val.MType:=mlfTargetMem;
-    result := TFpValueConstAddress.Create(val);
+    result := TFpDbgValueConstAddress.Create(val);
   end
   else
     result := nil;
@@ -133,8 +115,6 @@ begin
   for i := 0 to ALoaderList.Count-1 do
     ALoaderList[i].ParseSymbolTable(FSymbolList);
   FImage64Bit := ALoaderList.Image64Bit;
-  if FSymbolList.Count > 0 then
-    SetHasInfo;
 end;
 
 destructor TFpSymbolInfo.Destroy;
@@ -147,40 +127,23 @@ end;
 function TFpSymbolInfo.FindContext(AThreadId, AStackFrame: Integer;
   AAddress: TDbgPtr): TFpDbgInfoContext;
 begin
-  assert(False, 'TFpSymbolInfo.FindContext: False');
-  Result:=FContext; // TODO: nil
+  Result:=FContext;
 end;
 
 function TFpSymbolInfo.FindContext(AAddress: TDbgPtr): TFpDbgInfoContext;
 begin
-  assert(False, 'TFpSymbolInfo.FindContext: False');
-  Result:=FContext; // TODO: nil
+  Result:=FContext;
 end;
 
-function TFpSymbolInfo.FindProcSymbol(const AName: String): TFpSymbol;
-var
-  i: integer;
+function TFpSymbolInfo.FindSymbol(AAddress: TDbgPtr): TFpDbgSymbol;
 begin
-  i := FSymbolList.IndexOf(AName);
-  if i >= 0 then
-    Result := TFpSymbolTableProc.Create(AName, FSymbolList.Data[i])
-  else
-    result := nil;
+  Result:=inherited FindSymbol(AAddress);
 end;
 
-function TFpSymbolInfo.FindProcSymbol(AnAdress: TDbgPtr): TFpSymbol;
-var
-  i: integer;
+function TFpSymbolInfo.FindSymbol(const AName: String): TFpDbgSymbol;
 begin
-  Result := nil;
-  i := FSymbolList.Count - 1;
-  while i >= 0 do begin
-    if FSymbolList.Data[i] = AnAdress then begin
-      Result := TFpSymbolTableProc.Create(FSymbolList.Keys[i], FSymbolList.Data[i]);
-      exit;
-    end;
-    dec(i);
-  end;
+  result := nil;
+  //Result:=FContext.FindSymbol(AName);
 end;
 
 end.

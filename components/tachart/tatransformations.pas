@@ -423,7 +423,7 @@ procedure TAxisTransform.ReadState(Reader: TReader);
 begin
   inherited ReadState(Reader);
   if Reader.Parent is TChartAxisTransformations then
-    Transformations := TChartAxisTransformations(Reader.Parent);
+    Transformations := Reader.Parent as TChartAxisTransformations;
 end;
 
 procedure TAxisTransform.SetChart(AChart: TObject);
@@ -575,7 +575,7 @@ end;
 procedure TLinearAxisTransform.Assign(ASource: TPersistent);
 begin
   if ASource is TLinearAxisTransform then
-    with TLinearAxisTransform(ASource) do begin
+    with ASource as TLinearAxisTransform do begin
       Self.FOffset := Offset;
       Self.FScale := Scale;
     end;

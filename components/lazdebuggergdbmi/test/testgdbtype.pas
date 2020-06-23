@@ -528,10 +528,10 @@ begin
   R := ParseTypeFromGdb(T);
   CheckResult(T+LN, R, ptprkClass, [ptprfPointer, ptprfParamByRef], [], '^&TFOO', 'class : public TOBJECT');
 
-  // type = ^TOBJECT = class
-  T := 'type = ^TOBJECT = class '+LN;
+  // type = ^TFOO = class
+  T := 'type = ^TFOO = class '+LN;
   R := ParseTypeFromGdb(T);
-  CheckResult(T, R, ptprkClass, [ptprfPointer, ptprfNoStructure], [], '^TOBJECT', 'class');
+  CheckResult(T, R, ptprkClass, [ptprfPointer, ptprfNoStructure], [], '^TFOO', 'class');
 
   (* empty happens with @ArgProcedure *)
 

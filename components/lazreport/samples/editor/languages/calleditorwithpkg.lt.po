@@ -14,7 +14,6 @@ msgstr ""
 "Language: lt\n"
 
 #: maincalleditor.ceractivereport
-#, object-pascal-format
 msgid "Active report: %s"
 msgstr "Aktyvus pranešimas: %s"
 
@@ -75,7 +74,6 @@ msgid "Index"
 msgstr "Indeksuoti"
 
 #: maincalleditor.cerindexfields
-#, object-pascal-format
 msgid "Index Fields: %s"
 msgstr "Indeksuoti laukus: %s"
 

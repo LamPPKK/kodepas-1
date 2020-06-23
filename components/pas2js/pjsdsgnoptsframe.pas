@@ -14,32 +14,30 @@ uses
   // LCL
   Forms, StdCtrls, Dialogs, Spin,
   // LazUtils
-  LazFileCache, LazFileUtils, FileUtil,
+  LazFileCache, LazFileUtils,
   // IdeIntf
-  IDEOptionsIntf, IDEOptEditorIntf, IDEUtils, IDEDialogs,
+  IDEOptionsIntf, IDEOptEditorIntf, IDEUtils,
   // Pas2Js
-  PJSDsgnOptions, strpas2jsdesign;
+  PJSDsgnOptions;
 
 Type
   { TPas2jsOptionsFrame }
 
   TPas2jsOptionsFrame = class(TAbstractIDEOptionsEditor)
     BBrowserBrowseButton: TButton;
-    BrowserComboBox: TComboBox;
-    BrowserLabel: TLabel;
-    HTTPServerBrowseButton: TButton;
-    HTTPServerCmdLabel: TLabel;
-    HTTPServerComboBox: TComboBox;
     NodeJSBrowseButton: TButton;
+    BrowserComboBox: TComboBox;
     NodeJSComboBox: TComboBox;
-    NodeJSLabel: TLabel;
+    BrowserLabel1: TLabel;
+    HTTPServerBrowseButton: TButton;
+    HTTPServerComboBox: TComboBox;
+    HTTPServerCmdLabel: TLabel;
+    BrowserLabel: TLabel;
+    ServerPortLabel: TLabel;
     Pas2jsPathBrowseButton: TButton;
     Pas2jsPathComboBox: TComboBox;
     Pas2jsPathLabel: TLabel;
-    ServerPortLabel: TLabel;
     ServerPortSpinEdit: TSpinEdit;
-    HTTPServerOptsLabel: TLabel;
-    HTTPServerOptionsMemo: TMemo;
     procedure BBrowserBrowseButtonClick(Sender: TObject);
     procedure HTTPServerBrowseButtonClick(Sender: TObject);
     procedure NodeJSBrowseButtonClick(Sender: TObject);
@@ -56,6 +54,8 @@ Type
 
 implementation
 
+
+
 {$R *.lfm}
 
 { TPas2jsOptionsFrame }
@@ -69,7 +69,7 @@ begin
   try
     //InputHistories.ApplyFileDialogSettings(OpenDialog);
     OpenDialog.Options:=OpenDialog.Options+[ofPathMustExist];
-    OpenDialog.Title:=pjsdSelectPas2jsExecutable;
+    OpenDialog.Title:='Select pas2js executable';
     if OpenDialog.Execute then begin
       AFilename:=CleanAndExpandFilename(OpenDialog.Filename);
       SetComboBoxText(Pas2jsPathComboBox,AFilename,cstFilename,30);
@@ -91,11 +91,11 @@ begin
   try
     //InputHistories.ApplyFileDialogSettings(OpenDialog);
     OpenDialog.Options:=OpenDialog.Options+[ofPathMustExist];
-    OpenDialog.Title:=SafeFormat(pjsdSelectXExecutable,[PJSDefaultWebServer]);
+    OpenDialog.Title:='Select simpleserver executable';
     if OpenDialog.Execute then begin
       AFilename:=CleanAndExpandFilename(OpenDialog.Filename);
       SetComboBoxText(HTTPServerComboBox,AFilename,cstFilename,30);
-      PJSOptions.WebServerFileName:=AFileName;
+      PJSOptions.HTTPServerFileName:=AFileName;
     end;
   finally
     OpenDialog.Free;
@@ -112,7 +112,7 @@ begin
   try
     //InputHistories.ApplyFileDialogSettings(OpenDialog);
     OpenDialog.Options:=OpenDialog.Options+[ofPathMustExist];
-    OpenDialog.Title:=pjsdSelectNodeJSExecutable;
+    OpenDialog.Title:='Select browser executable';
     if OpenDialog.Execute then begin
       AFilename:=CleanAndExpandFilename(OpenDialog.Filename);
       SetComboBoxText(NodeJSComboBox,AFilename,cstFilename,30);
@@ -134,7 +134,7 @@ begin
   try
     //InputHistories.ApplyFileDialogSettings(OpenDialog);
     OpenDialog.Options:=OpenDialog.Options+[ofPathMustExist];
-    OpenDialog.Title:=pjsdSelectBrowserExecutable;
+    OpenDialog.Title:='Select browser executable';
     if OpenDialog.Execute then begin
       AFilename:=CleanAndExpandFilename(OpenDialog.Filename);
       SetComboBoxText(BrowserComboBox,AFilename,cstFilename,30);
@@ -148,31 +148,15 @@ end;
 function TPas2jsOptionsFrame.CheckCompiler(Buttons: TMsgDlgButtons): boolean;
 
 var
-  NewExe, ErrMsg: string;
+  NewExe: string;
 
 begin
   NewExe:=Pas2jsPathComboBox.Text;
   if NewExe=PJSOptions.CompilerFilename then exit(true);
   Result:=false;
   PJSOptions.CompilerFilename:=NewExe;
-  NewExe:=PJSOptions.GetParsedCompilerFilename;
-  if (NewExe='') or not FileExistsUTF8(NewExe) then
-    ErrMsg:='Unable to find pas2js at "'+PJSOptions.CompilerFilename+'"'
-  else if not FileIsExecutable(NewExe) then
-    ErrMsg:='pas2js is not executable at "'+PJSOptions.CompilerFilename+'"'
-  else
-    ErrMsg:='';
-  if ErrMsg<>'' then
-  begin
-    IDEMessageDialog('Error',ErrMsg,mtError,[mbOk]);
-    exit(false);
-  end;
-  if Pos('pas2js',lowercase(ExtractFileNameOnly(NewExe)))<1 then
-  begin
-    IDEMessageDialog('Warning','The pas2js executable filename "'+NewExe+'" does not look like pas2js',mtWarning,[mbOk]);
-    exit(true);
-  end;
-  // todo: run and check if this pas2js returns macros
+  // ToDo: check file
+  //NewExe:=PJSOptions.GetParsedCompilerExe;
 end;
 
 function TPas2jsOptionsFrame.GetTitle: String;
@@ -181,50 +165,46 @@ begin
 end;
 
 procedure TPas2jsOptionsFrame.Setup(ADialog: TAbstractOptionsEditorDialog);
+
 var
-  DefPas2jsExe: String;
+  ExeName: String;
+  ServerName : String;
+  //BrowserName : String;
+
 begin
-  DefPas2jsExe:=GetStandardPas2jsExe;
-  Pas2jsPathLabel.Caption:=SafeFormat(pjsdPathOfXMacroPas2js, ['pas2js'+GetExeExt]);
-  Pas2jsPathLabel.Hint:=Format(
-    pjsdYouCanUseIDEMacrosLikeMakeExeWithoutAFullPathIsSea, [DefPas2jsExe]);
-  Pas2jsPathBrowseButton.Hint:=pjsdBrowse;
-
-  HTTPServerCmdLabel.Caption:=SafeFormat(pjsdPathOfXMacroPas2JSWebServer, [
-    PJSDefaultWebServerName+GetExeExt]);
-  HTTPServerCmdLabel.Hint:=SafeFormat(
-    pjsdYouCanUseIDEMacrosLikeMakeExeWithoutAFullPathIsSea, [PJSDefaultWebServerName]);
-  HTTPServerBrowseButton.Hint:=pjsdBrowse;
-
-  ServerPortLabel.Caption:=pjsdPortNumberToStartAllocatingFrom;
-  ServerPortLabel.Hint:=pjsdServerInstancesWillBeStartedWithAPortStartingFromT;
-
-  BrowserLabel.Caption:=pjsdBrowserToOpenHTMLPage;
-  BrowserLabel.Hint:=pjsdUseThisBrowserWhenOpeningTheURLOrHTMLFileOfAWebBro;
-
-  NodeJSLabel.Caption:=pjsdPathOfNodeJsExecutable;
-  HTTPServerOptsLabel.Caption:=pjsdHTTPServerOptsLabelCaption;
-  HTTPServerOptsLabel.Hint:=pjsdHTTPServerOptsLabelHint;
+  ExeName:=GetStandardPas2jsExe;
+  ServerName:=GetStandardHTTPServer;
+  //BrowserName:=GetStandardBrowser;
+  Pas2jsPathLabel.Caption:='Path of '+ExeName;
+  Pas2jsPathLabel.Hint:='You can use IDE macros like $MakeExe(). Without a full path, '+ExeName+' is searched in PATH.';
+  Pas2jsPathBrowseButton.Caption:='...';
+  Pas2jsPathBrowseButton.Hint:='Browse';
+  HTTPServerCmdLabel.Caption:='Path of '+ServerName;
+  HTTPServerCmdLabel.Hint:='You can use IDE macros like $MakeExe(). Without a full path, '+ServerName+' is searched in PATH.';
+  HTTPServerBrowseButton.Caption:='...';
+  HTTPServerBrowseButton.Hint:='Browse';
+  ServerPortLabel.Caption:='Port numbers to start allocating from '+ServerName;
+  ServerPortLabel.Hint:='Server instances will be started with a port starting from this number, increasing per new project';
+  BrowserLabel.Caption:='Browser to use when opening HTML page';
+  BrowserLabel.Hint:='Use this browser when opening the URL or HTML file of a web browser project';
 end;
 
 procedure TPas2jsOptionsFrame.ReadSettings(AOptions: TAbstractIDEOptions);
 begin
   SetComboBoxText(Pas2jsPathComboBox,PJSOptions.CompilerFilename,cstFilename,30);
-  SetComboBoxText(HTTPServerComboBox,PJSOptions.WebServerFileName,cstFilename,30);
-  ServerPortSpinEdit.Value:=PJSOptions.StartAtPort;
-   SetComboBoxText(BrowserComboBox,PJSOptions.BrowserFileName,cstFilename,30);
+  SetComboBoxText(HTTPServerComboBox,PJSOptions.HTTPServerFileName,cstFilename,30);
+  SetComboBoxText(BrowserComboBox,PJSOptions.BrowserFileName,cstFilename,30);
   SetComboBoxText(NodeJSComboBox,PJSOptions.NodejsFileName,cstFilename,30);
-  HTTPServerOptionsMemo.Lines:=PJSOptions.HTTPServerOpts;
+  ServerPortSpinEdit.Value:=PJSOptions.StartAtPort;
 end;
 
 procedure TPas2jsOptionsFrame.WriteSettings(AOptions: TAbstractIDEOptions);
 begin
   PJSOptions.CompilerFilename:=Pas2jsPathComboBox.Text;
-  PJSOptions.WebServerFileName:=HTTPServerComboBox.Text;
-  PJSOptions.StartAtPort:=ServerPortSpinEdit.Value;
+  PJSOptions.HTTPServerFileName:=HTTPServerComboBox.Text;
   PJSOptions.BrowserFileName:=BrowserComboBox.Text;
   PJSOptions.NodeJSFileName:=NodeJSComboBox.Text;
-  PJSOptions.HTTPServerOpts:=HTTPServerOptionsMemo.Lines;
+  PJSOptions.StartAtPort:=ServerPortSpinEdit.Value;
   If PJSOptions.Modified then
     PJSOptions.Save;
 end;

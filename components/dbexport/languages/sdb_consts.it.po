@@ -13,7 +13,6 @@ msgstr ""
 "POT-Creation-Date: \n"
 
 #: sdb_consts.scancelrecordsexported
-#, object-pascal-format
 msgid "Exported %d before user canceled."
 msgstr "Esportati %d prima della terminazione."
 
@@ -70,7 +69,6 @@ msgid "DataExporter has no Dataset assigned."
 msgstr "DataExporter non ha Dataset assegnati."
 
 #: sdb_consts.serropeningdataset
-#, object-pascal-format
 msgid "Could not open dataset for exporting: %s"
 msgstr "Non posso aprire il Dataset %s per l'export"
 
@@ -79,12 +77,10 @@ msgid "Execute ..."
 msgstr "Esegui..."
 
 #: sdb_consts.snrecordsexported
-#, object-pascal-format
 msgid "Successfully exported %d records."
 msgstr "Esportati %d record con successo."
 
 #: sdb_consts.sprogress
-#, object-pascal-format
 msgid "Exporting %d records"
 msgstr "Esportazione di %d record"
 

@@ -21,10 +21,8 @@ uses
 const
   PJSDsgnOptsFile = 'pas2jsdsgnoptions.xml';
   PJSDefaultCompiler = '$MakeExe(IDE,pas2js)';
-  PJSDefaultWebServerName = 'compileserver';
-  PJSDefaultWebServer = '$MakeExe(IDE,'+PJSDefaultWebServerName+')';
-  PJSDefaultStartAtPort = 3000; // compileserver default port
-  PJSDefaultHTTPServerParams = '-s -p $()';
+  PJSDefaultHTTPServer = '$MakeExe(IDE,simpleserver)';
+  PJSDefaultStartAtPort = 4000; // Simpleserver default
   PJSDefaultBrowser = '$MakeExe(IDE,firefox)';
   PJSDefaultNodeJS = '$MakeExe(IDE,nodejs)';
 
@@ -33,19 +31,10 @@ Type
     p2jcoCompilerFilename,
     p2jcoBrowserFilename,
     p2jcoHTTPServerFilename,
-    p2jcoHTTPServerPort,
     p2jcoNodeJSFilename
     );
   TPas2jsCachedOptions = set of TPas2jsCachedOption;
-const
-  p2jcoFilenames = [
-    p2jcoCompilerFilename,
-    p2jcoBrowserFilename,
-    p2jcoHTTPServerFilename,
-    p2jcoNodeJSFilename
-  ];
 
-type
   TPas2jsCachedValue = record
     RawValue: string;
     Stamp: int64;
@@ -59,20 +48,16 @@ type
   private
     FCachedOptions: array[TPas2jsCachedOption] of TPas2jsCachedValue;
     FChangeStamp: int64;
-    FHTTPServerOpts: TStrings;
     FSavedStamp: int64;
     FStartAtPort: Word;
-    procedure DoOptsChanged(Sender: TObject);
     function GetBrowserFileName: String;
     function GetCompilerFilename: string;
-    function GetStartAtPort: Word;
-    function GetWebServerFileName: string;
+    function GetHTTPServerFileName: string;
     function GetModified: boolean;
     function GetNodeJSFileName: string;
     function GetParsedOptionValue(Option: TPas2jsCachedOption): string;
     procedure SetBrowserFileName(AValue: String);
-    procedure SetWebServerFileName(AValue: string);
-    procedure SetHTTPServerOpts(AValue: TStrings);
+    procedure SetHTTPServerFileName(AValue: string);
     procedure SetModified(AValue: boolean);
     procedure SetCompilerFilename(AValue: string);
     procedure SetNodeJSFileName(AValue: string);
@@ -86,18 +71,16 @@ type
     procedure Save;
     function GetParsedBrowserFilename: string;
     function GetParsedCompilerFilename: string;
-    function GetParsedWebServerFilename: string;
-    function GetParsedWebServerPort: string;
+    function GetParsedHTTPServerFilename: string;
     function GetParsedNodeJSFilename: string;
     procedure LoadFromConfig(Cfg: TConfigStorage);
     procedure SaveToConfig(Cfg: TConfigStorage);
   public
     property CompilerFilename: string read GetCompilerFilename write SetCompilerFilename;
-    Property WebServerFileName : string Read GetWebServerFileName Write SetWebServerFileName;
-    Property HTTPServerOpts : TStrings Read FHTTPServerOpts Write SetHTTPServerOpts;
+    Property HTTPServerFileName : string Read GetHTTPServerFileName Write SetHTTPServerFileName;
     Property NodeJSFileName : string Read GetNodeJSFileName Write SetNodeJSFileName;
     Property BrowserFileName : String Read GetBrowserFileName Write SetBrowserFileName;
-    Property StartAtPort : Word Read GetStartAtPort Write SetStartAtPort;
+    Property StartAtPort : Word Read FStartAtPort Write SetStartAtPort;
     property ChangeStamp: int64 read FChangeStamp;
     property Modified: boolean read GetModified write SetModified;
   end;
@@ -106,15 +89,12 @@ var
   PJSOptions: TPas2jsOptions = nil;
 
 function GetStandardPas2jsExe: string;
-function GetStandardWebServerExe: string;
+function GetStandardHTTPServer: string;
 function GetStandardBrowser: string;
 function GetStandardNodeJS: string;
 function GetPas2jsQuality(Filename: string; out Msg: string): boolean;
 
 implementation
-
-uses
-  strpas2jsdesign;
 
 function GetStandardPas2jsExe: string;
 begin
@@ -131,12 +111,12 @@ begin
     Result:='nodejs'+GetExeExt;
 end;
 
-function GetStandardWebServerExe: string;
+function GetStandardHTTPServer: string;
 
 begin
-  Result:=PJSDefaultWebServer;
+  Result:=PJSDefaultHTTPServer;
   if not IDEMacros.SubstituteMacros(Result) then
-    Result:='PJSDefaultHTTPServerCmd'+GetExeExt;
+    Result:='simpleserver'+GetExeExt;
 end;
 
 function GetStandardBrowser: string;
@@ -168,24 +148,24 @@ begin
   Msg:='';
   Filename:=TrimFilename(Filename);
   if (Filename='') then begin
-    Msg:=pjsdMissingPathToPas2js;
+    Msg:='missing path to pas2js';
     exit(false);
   end;
   if not FileExistsCached(Filename) then begin
-    Msg:=SafeFormat(pjsdFileNotFound, [Filename]);
+    Msg:='file "'+Filename+'" not found';
     exit(false);
   end;
   if not DirPathExistsCached(ExtractFilePath(Filename)) then begin
-    Msg:=SafeFormat(pjsdDirectoryNotFound, [ExtractFilePath(Filename)]);
+    Msg:='directory "'+ExtractFilePath(Filename)+'" not found';
     exit(false);
   end;
   if not FileIsExecutable(Filename) then begin
-    Msg:=SafeFormat(pjsdFileNotExecutable, [Filename]);
+    Msg:='file "'+Filename+'" not executable';
     exit(false);
   end;
   ShortFile:=ExtractFileNameOnly(Filename);
   if not CompareText(LeftStr(ShortFile,length('pas2js')),'pas2js')<>0 then begin
-    Msg:=pjsdFileNameDoesNotStartWithPas2js;
+    Msg:='file name does not start with "pas2js"';
     exit(false);
   end;
   // run it
@@ -212,22 +192,12 @@ begin
   Result:=FCachedOptions[p2jcoBrowserFilename].RawValue;
 end;
 
-procedure TPas2jsOptions.DoOptsChanged(Sender: TObject);
-begin
-  Self.Modified:=True;
-end;
-
 function TPas2jsOptions.GetCompilerFilename: string;
 begin
   Result:=FCachedOptions[p2jcoCompilerFilename].RawValue;
 end;
 
-function TPas2jsOptions.GetStartAtPort: Word;
-begin
-  Result:=StrToIntDef(FCachedOptions[p2jcoHTTPServerPort].RawValue,PJSDefaultStartAtPort);
-end;
-
-function TPas2jsOptions.GetWebServerFileName: string;
+function TPas2jsOptions.GetHTTPServerFileName: string;
 begin
   Result:=FCachedOptions[p2jcoHTTPServerFilename].RawValue;
 end;
@@ -255,18 +225,15 @@ var
 begin
   FChangeStamp:=LUInvalidChangeStamp64;
   FCachedOptions[p2jcoCompilerFilename].RawValue:=PJSDefaultCompiler;
-  FCachedOptions[p2jcoHTTPServerFilename].RawValue:=PJSDefaultWebServer;
+  FCachedOptions[p2jcoHTTPServerFilename].RawValue:=PJSDefaultHTTPServer;
   FCachedOptions[p2jcoNodeJSFilename].RawValue:=PJSDefaultNodeJS;
   FCachedOptions[p2jcoBrowserFilename].RawValue:=PJSDefaultBrowser;
   for o in TPas2jsCachedOption do
     FCachedOptions[o].Stamp:=LUInvalidChangeStamp64;
-  FHTTPServerOpts:=TStringList.Create;
-  TStringList(FHTTPServerOpts).OnChange:=@DoOptsChanged;
 end;
 
 destructor TPas2jsOptions.Destroy;
 begin
-  FreeAndNil(FHTTPServerOpts);
   inherited Destroy;
 end;
 
@@ -302,7 +269,6 @@ end;
 Const
   KeyCompiler = 'compiler/value';
   KeyHTTPServer = 'webserver/value';
-  KeyHTTPServerOptions = 'webserver/extraoptions/value';
   KeyBrowser = 'webbrowser/value';
   KeyNodeJS = 'nodejs/value';
   KeyStartPortAt = 'webserver/startatport/value';
@@ -311,11 +277,10 @@ procedure TPas2jsOptions.LoadFromConfig(Cfg: TConfigStorage);
 
 begin
   CompilerFilename:=Cfg.GetValue(KeyCompiler,PJSDefaultCompiler);
-  WebServerFileName:=Cfg.GetValue(KeyHTTPServer,PJSDefaultWebServer);
+  HTTPServerFileName:=Cfg.GetValue(KeyHTTPServer,PJSDefaultHTTPServer);
   BrowserFileName:=Cfg.GetValue(KeyBrowser,PJSDefaultBrowser);
   NodeJSFileName:=Cfg.GetValue(KeyNodeJS,PJSDefaultNodeJS);
   StartAtPort :=Cfg.GetValue(KeyStartPortAt,PJSDefaultStartAtPort);
-  Cfg.GetValue(KeyHTTPServerOptions,FHTTPServerOpts);
   Modified:=false;
 end;
 
@@ -323,11 +288,10 @@ procedure TPas2jsOptions.SaveToConfig(Cfg: TConfigStorage);
 
 begin
   Cfg.SetDeleteValue(KeyCompiler,CompilerFilename,PJSDefaultCompiler);
-  Cfg.SetDeleteValue(KeyHTTPServer,WebServerFileName,PJSDefaultWebServer);
+  Cfg.SetDeleteValue(KeyHTTPServer,HTTPServerFileName,PJSDefaultHTTPServer);
   Cfg.SetDeleteValue(KeyStartPortAt,StartAtPort,PJSDefaultStartAtPort);
   Cfg.SetDeleteValue(KeyNodeJS,NodeJSFileName,PJSDefaultNodeJS);
   Cfg.SetDeleteValue(KeyBrowser,BrowserFileName,PJSDefaultBrowser);
-  Cfg.SetValue(KeyHTTPServerOptions,FHTTPServerOpts);
   Modified:=false;
 end;
 
@@ -336,14 +300,9 @@ begin
   Result:=GetParsedOptionValue(p2jcoCompilerFilename);
 end;
 
-function TPas2jsOptions.GetParsedWebServerFilename: string;
+function TPas2jsOptions.GetParsedHTTPServerFilename: string;
 begin
   Result:=GetParsedOptionValue(p2jcoHTTPServerFilename);
-end;
-
-function TPas2jsOptions.GetParsedWebServerPort: string;
-begin
-  Result:=GetParsedOptionValue(p2jcoHTTPServerPort);
 end;
 
 function TPas2jsOptions.GetParsedNodeJSFilename: string;
@@ -355,7 +314,6 @@ function TPas2jsOptions.GetParsedOptionValue(Option: TPas2jsCachedOption
   ): string;
 var
   p: PPas2jsCachedValue;
-  IsFilename: Boolean;
 begin
   p:=@FCachedOptions[Option];
   if p^.Stamp<>IDEMacros.BaseTimeStamp then
@@ -363,30 +321,25 @@ begin
     p^.Stamp:=IDEMacros.BaseTimeStamp;
     p^.ParsedValue:=p^.RawValue;
     IDEMacros.SubstituteMacros(p^.ParsedValue);
-    IsFilename:=Option in p2jcoFilenames;
-    if IsFilename then
+    p^.ParsedValue:=TrimFilename(p^.ParsedValue);
+    if (p^.ParsedValue<>'')
+    and not FilenameIsAbsolute(p^.ParsedValue) then
     begin
-      p^.ParsedValue:=TrimFilename(p^.ParsedValue);
-      if (p^.ParsedValue<>'')
-          and not FilenameIsAbsolute(p^.ParsedValue) then
-      begin
-        if ExtractFilePath(p^.ParsedValue)='' then
-          p^.ParsedValue:=FindDefaultExecutablePath(p^.ParsedValue)
-        else
-          p^.ParsedValue:=''; // not found
-      end;
+      if ExtractFilePath(p^.ParsedValue)='' then
+        p^.ParsedValue:=FindDefaultExecutablePath(p^.ParsedValue)
+      else
+        p^.ParsedValue:=''; // not found
     end;
     if p^.ParsedValue='' then
     begin
       case Option of
         p2jcoCompilerFilename: p^.ParsedValue:=GetStandardPas2jsExe;
         p2jcoBrowserFilename: p^.ParsedValue:=GetStandardBrowser;
-        p2jcoHTTPServerFilename: p^.ParsedValue:=GetStandardWebServerExe;
-        p2jcoHTTPServerPort: p^.ParsedValue:=IntToStr(PJSDefaultStartAtPort);
+        p2jcoHTTPServerFilename: p^.ParsedValue:=GetStandardHTTPServer;
         p2jcoNodeJSFilename: p^.ParsedValue:=GetStandardNodeJS;
       end;
-      if IsFilename and (p^.ParsedValue<>'')
-          and not FilenameIsAbsolute(p^.ParsedValue) then
+      if (p^.ParsedValue<>'')
+      and not FilenameIsAbsolute(p^.ParsedValue) then
       begin
         if ExtractFilePath(p^.ParsedValue)='' then
           p^.ParsedValue:=FindDefaultExecutablePath(p^.ParsedValue)
@@ -409,16 +362,10 @@ begin
   SetCachedOption(p2jcoBrowserFilename,AValue);
 end;
 
-procedure TPas2jsOptions.SetWebServerFileName(AValue: string);
+procedure TPas2jsOptions.SetHTTPServerFileName(AValue: string);
 begin
   AValue:=TrimFilename(AValue);
   SetCachedOption(p2jcoHTTPServerFilename,AValue);
-end;
-
-procedure TPas2jsOptions.SetHTTPServerOpts(AValue: TStrings);
-begin
-  if FHTTPServerOpts=AValue then Exit;
-  FHTTPServerOpts.Assign(AValue);
 end;
 
 procedure TPas2jsOptions.SetStartAtPort(AValue: Word);

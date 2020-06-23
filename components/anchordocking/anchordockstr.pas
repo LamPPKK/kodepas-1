@@ -8,7 +8,6 @@ interface
 
 resourcestring
   adrsClose = 'Close';
-  adrsMinimize = 'Minimize';
   adrsQuit = 'Quit %s';
   adrsTabPosition = 'Tab position';
   adrsMovePageRight = 'Move page right';
@@ -83,7 +82,6 @@ resourcestring
   adrsFilledHeadersHint = 'Fill headers of docked controls';
   adrsHighlightFocused = 'Highlight focused';
   adrsHighlightFocusedHint = 'Highlight header of focused docked control';
-  adrsAllowDockSitesToBeMinimized = 'Allow dock sites to be minimized';
 
 implementation
 

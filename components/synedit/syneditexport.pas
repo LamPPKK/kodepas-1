@@ -29,7 +29,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id$
+$Id: syneditexport.pas 53362 2016-11-12 16:31:17Z bart $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -210,8 +210,6 @@ type
     property UseBackground: boolean read fUseBackground write fUseBackground;
   end;
 
-  ESynExport = class(Exception);
-
 implementation
 
 uses
@@ -311,17 +309,16 @@ var
   TheLines: TSynEditStringsBase;
 begin
   // abort if not all necessary conditions are met
-  if not Assigned(ALines) or not Assigned(Highlighter) then
-    Raise ESynExport.Create('TSynCustomExporter.ExportAll: no lines or highlighter assigned.');
-
-  if (ALines.Count = 0) or (Start.Y > ALines.Count) or (Start.Y > Stop.Y) then
-    Exit; //simply terminate (and export nothing), no reason to raise an exception here
+  if not Assigned(ALines) or not Assigned(Highlighter) or (ALines.Count = 0)
+    or (Start.Y > ALines.Count) or (Start.Y > Stop.Y)
+  then
+    Abort;
 
   Stop.Y := Max(1, Min(Stop.Y, ALines.Count));
   Stop.X := Max(1, Min(Stop.X, Length(ALines[Stop.Y - 1]) + 1));
   Start.X := Max(1, Min(Start.X, Length(ALines[Start.Y - 1]) + 1));
   if (Start.Y = Stop.Y) and (Start.X >= Stop.X) then
-    Exit;
+    Abort;
 
   if ALines is TSynEditStringsBase then
     TheLines := TSynEditStringsBase(ALines)

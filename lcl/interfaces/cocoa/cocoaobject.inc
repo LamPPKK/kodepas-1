@@ -291,10 +291,9 @@ begin
     lcModalWindow,
     {$endif}
     lcFormIcon,
-    lcAntialiasingEnabledByDefault,
-    lcTransparentWindow,
-    lcCanDrawHidden:
+    lcAntialiasingEnabledByDefault:
       Result := LCL_CAPABILITY_YES;
+    lcTransparentWindow: Result := LCL_CAPABILITY_YES;
   else
     Result := inherited;
   end;

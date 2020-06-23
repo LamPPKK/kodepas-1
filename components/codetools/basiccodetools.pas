@@ -107,7 +107,7 @@ procedure GetIdentStartEndAtPosition(const Source:string; Position:integer;
     out IdentStart,IdentEnd:integer);
 function GetIdentStartPosition(const Source:string; Position:integer): integer;
 function GetIdentLen(Identifier: PChar): integer;
-function GetIdentifier(Identifier: PChar; const aSkipAmp: Boolean = True): string;
+function GetIdentifier(Identifier: PChar): string;
 function FindNextIdentifier(const Source: string; StartPos, MaxPos: integer): integer;
 function FindNextIdentifierSkipStrings(const Source: string;
     StartPos, MaxPos: integer): integer;
@@ -4719,22 +4719,17 @@ begin
          +'Actual:   '+dbgstr(Actual,1,d-1)+'|'+dbgstr(Actual,d,length(Actual));
 end;
 
-function GetIdentifier(Identifier: PChar; const aSkipAmp: Boolean): string;
+function GetIdentifier(Identifier: PChar): string;
 var len: integer;
 begin
   if (Identifier=nil) then begin
     Result:='';
     exit;
   end;
-  if IsIdentStartChar[Identifier^] or ((Identifier^='&') and (IsIdentStartChar[Identifier[1]])) then begin
+  if (Identifier^='&') and (IsIdentChar[Identifier[1]]) then
+    inc(Identifier);
+  if IsIdentStartChar[Identifier^] then begin
     len:=0;
-    if (Identifier^='&') then
-    begin
-      if aSkipAmp then
-        inc(Identifier)
-      else
-        inc(len);
-    end;
     while (IsIdentChar[Identifier[len]]) do inc(len);
     SetLength(Result,len);
     if len>0 then

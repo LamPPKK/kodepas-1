@@ -107,17 +107,12 @@ begin
   for i := 1 to 10 do begin
     s := TLineSeries.Create(chFast);
     s.SeriesColor := clRed;
-    if cb3D.Checked then
-      s.Depth := 15 - s.Depth;
-    s.AxisIndexY := Ord(cbRotated.Checked);
-    s.AxisIndexX := 1 - s.AxisIndexY;
-    s.ListSource.Sorted := cbSorted.Checked;
     for j := 1 to POINTS_PER_SERIE do
       s.AddXY(j, Random * 5 + chFast.SeriesCount * 10);
     chFast.AddSeries(s);
   end;
   lblPointsCount.Caption :=
-    Format('Points: %.0n', [chFast.SeriesCount * POINTS_PER_SERIE * 1.0]);
+    Format('Points: %.2e', [chFast.SeriesCount * POINTS_PER_SERIE * 1.0]);
 end;
 
 procedure TForm1.btnRefreshClick(Sender: TObject);
@@ -167,8 +162,6 @@ begin
     ls.AxisIndexY := Ord(cbRotated.Checked);
     ls.AxisIndexX := 1 - ls.AxisIndexY;
   end;
-  chFastConstantLine1.LineStyle := TLineStyle(cbRotated.Checked);
-  chFastConstantLine1.AxisIndex := Ord(cbRotated.Checked);
 end;
 
 procedure TForm1.cbSortedChange(Sender: TObject);
@@ -194,8 +187,6 @@ var
   x, y: Double;
   clr: TColor;
 begin
-  lblPointsCount.Caption := '';
-
   // Populate the series for the PointerStyle demo
   for st in TSeriesPointerStyle do begin
     ls := TLineSeries.Create(Self);

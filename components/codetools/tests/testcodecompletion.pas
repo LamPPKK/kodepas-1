@@ -707,7 +707,6 @@ begin
     'type',
     '  TBird<T> = class',
     '  public',
-    '    function Fly(w: TArray<T>): TArray<T>;',
     '    property Wing: string;',
     '  end;',
     'implementation',
@@ -725,7 +724,6 @@ begin
     '    fWing: string;',
     '    procedure SetWing(AValue: string);',
     '  public',
-    '    function Fly(w: TArray<T>): TArray<T>;',
     '    property Wing: string read fWing write SetWing;',
     '  end;',
     'implementation',
@@ -733,9 +731,6 @@ begin
     'begin',
     '  if fWing=AValue then Exit;',
     '  fWing:=AValue;',
-    'end;',
-    'function TBird<T>.Fly(w: TArray<T>): TArray<T>;',
-    'begin',
     'end;',
     'end.']);
 end;

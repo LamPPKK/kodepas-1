@@ -247,8 +247,7 @@ type
     pfLRSFilesInOutputDirectory, // put .lrs files in output directory
     pfUseDefaultCompilerOptions, // load users default compiler options
     pfSaveJumpHistory,
-    pfSaveFoldState,
-    pfCompatibilityMode // use legacy file format to maximize compatibility with old Lazarus versions
+    pfSaveFoldState
     );
   TProjectFlags = set of TProjectFlag;
 
@@ -275,8 +274,7 @@ const
       'LRSInOutputDirectory',
       'UseDefaultCompilerOptions',
       'SaveJumpHistory',
-      'SaveFoldState',
-      'CompatibilityMode'
+      'SaveFoldState'
     );
   ProjectSessionStorageNames: array[TProjectSessionStorage] of string = (
     'InProjectInfo',
@@ -530,7 +528,6 @@ type
     procedure SetSessionStorage(const AValue: TProjectSessionStorage); virtual;
     procedure SetTitle(const AValue: String); virtual;
     procedure SetUseManifest(AValue: boolean); virtual; abstract;
-    function GetCurrentDebuggerBackend: String; virtual; abstract;
   public
     constructor Create({%H-}ProjectDescription: TProjectDescriptor); virtual; reintroduce;
     destructor Destroy; override;
@@ -589,7 +586,6 @@ type
     property Resources: TObject read FResources; // TAbstractProjectResources
     property UseManifest: boolean read GetUseManifest write SetUseManifest;
     property RunParameters: TAbstractRunParamsOptions read FRunParameters;
-    property CurrentDebuggerBackend: String read GetCurrentDebuggerBackend;
   end;
 
   TLazProjectClass = class of TLazProject;
@@ -634,8 +630,7 @@ const
                          pfRunnable,
                          pfLRSFilesInOutputDirectory,
                          pfSaveJumpHistory,
-                         pfSaveFoldState
-                         ];
+                         pfSaveFoldState];
   DefaultProjectFlags = DefaultProjectNoApplicationFlags+[
                          pfMainUnitHasCreateFormStatements,
                          pfMainUnitHasTitleStatement,
@@ -1024,7 +1019,7 @@ end;
 procedure TProjectFileDescriptor.Release;
 begin
   //debugln('TProjectFileDescriptor.Release A ',Name,' ',dbgs(FReferenceCount));
-  if FReferenceCount<=0 then
+  if FReferenceCount=0 then
     raise Exception.Create('');
   dec(FReferenceCount);
   if FReferenceCount=0 then Free;

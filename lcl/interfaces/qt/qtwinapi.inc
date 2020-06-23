@@ -1,5 +1,5 @@
 {%MainUnit qtint.pp}
-{ $Id$ }
+{ $Id: qtwinapi.inc 59724 2018-12-03 22:36:47Z maxim $ }
 {******************************************************************************
   All QT Winapi implementations.
   This are the implementations of the overrides of the QT Interface for the
@@ -1512,7 +1512,8 @@ begin
   if not IsValidDC(DC) then Exit(False);
   R := NormalizeRect(Rect(X1, Y1, X2, Y2));
   if IsRectEmpty(R) then Exit(True);
-  TQtDeviceContext(DC).drawEllipse(R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top);
+
+  TQtDeviceContext(DC).drawEllipse(R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top{ - 1});
   Result := True;
 end;
 

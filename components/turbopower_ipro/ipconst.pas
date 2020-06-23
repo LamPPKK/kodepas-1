@@ -2,7 +2,7 @@
 {*         IPCONST.PAS - Miscellaneous String Constants           *}
 {******************************************************************}
 
-{ $Id$ }
+{ $Id: ipconst.pas 46744 2014-11-03 15:13:08Z reiniero $ }
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1

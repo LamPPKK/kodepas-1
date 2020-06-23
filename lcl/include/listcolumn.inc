@@ -1,5 +1,5 @@
 {%MainUnit ../comctrls.pp}
-{ $Id$
+{ $Id: listcolumn.inc 62667 2020-02-24 04:12:44Z dmitry $
 
  *****************************************************************************
   This file is part of the Lazarus Component Library (LCL)

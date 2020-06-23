@@ -406,11 +406,9 @@ type
           out aScanner: TLinkScanner): boolean;
 
     // compiler directives
-    {$IFDEF GuessMisplacedIfdef}
     function GuessMisplacedIfdefEndif(Code: TCodeBuffer; X,Y: integer;
           out NewCode: TCodeBuffer;
           out NewX, NewY, NewTopLine: integer): boolean;
-    {$ENDIF}
     // find include directive of include file at position X,Y
     function FindEnclosingIncludeDirective(Code: TCodeBuffer; X,Y: integer;
           out NewCode: TCodeBuffer;
@@ -2786,7 +2784,7 @@ begin
     Result:=true;
     exit;
   end;
-  if not LazIsValidIdent(NewIdentifier,True,True) then exit;
+  if not IsValidIdent(NewIdentifier) then exit;
 
   ClearCurCodeTool;
   SourceChangeCache.Clear;
@@ -3249,7 +3247,6 @@ begin
   end;
 end;
 
-{$IFDEF GuessMisplacedIfdef}
 function TCodeToolManager.GuessMisplacedIfdefEndif(Code: TCodeBuffer; X,
   Y: integer; out NewCode: TCodeBuffer; out NewX, NewY, NewTopLine: integer
   ): boolean;
@@ -3276,7 +3273,6 @@ begin
     on e: Exception do Result:=HandleException(e);
   end;
 end;
-{$ENDIF}
 
 function TCodeToolManager.FindEnclosingIncludeDirective(Code: TCodeBuffer; X,
   Y: integer; out NewCode: TCodeBuffer; out NewX, NewY, NewTopLine: integer

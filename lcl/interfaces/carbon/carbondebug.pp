@@ -4,7 +4,7 @@
                      -------------------------------------
  
  @created(Mon Jun 18th WET 2007)
- @lastmod($Date$)
+ @lastmod($Date: 2016-07-15 21:10:10 +0200 (Fr, 15 Jul 2016) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)                       
 
  This unit contains utility functions to show the contents of graphics

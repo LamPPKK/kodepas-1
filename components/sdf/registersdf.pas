@@ -1,4 +1,4 @@
-{  $Id$  }
+{  $Id: registersdf.pas 43098 2013-10-05 04:32:53Z paul $  }
 {
  *****************************************************************************
   See the file COPYING.modifiedLGPL.txt, included in this distribution,

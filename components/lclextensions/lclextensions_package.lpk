@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="5">
+  <Package Version="4">
     <Name Value="lclextensions_package"/>
     <Author Value="Luiz Americo Pereira Câmara"/>
     <CompilerOptions>
@@ -14,9 +14,6 @@
           <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>
-      <Other>
-        <CustomOptions Value="$(IDEBuildOptions)"/>
-      </Other>
     </CompilerOptions>
     <Description Value="LCL Extensions provides additional functions to be used together with LCL
 "/>
@@ -47,6 +44,7 @@
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
     </PublishOptions>
     <CustomOptions Items="ExternHelp" Version="2">
       <_ExternHelp Items="Count"/>

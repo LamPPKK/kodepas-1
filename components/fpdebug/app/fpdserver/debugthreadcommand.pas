@@ -26,7 +26,7 @@ uses
   strutils,
   debugthread,
   CustApp,
-  Maps, LazLoggerBase,
+  Maps,
   SysUtils;
 
 type
@@ -306,10 +306,11 @@ end;
 function TFpDebugLocalsCommand.Execute(AController: TFpServerDbgController; out DoProcessLoop: boolean): boolean;
 var
   AContext: TFpDbgInfoContext;
-  ProcVal: TFpValue;
+  ProcVal: TFpDbgValue;
   i: Integer;
-  m: TFpValue;
+  m: TFpDbgValue;
   n, v: String;
+  Reg: TDBGPtr;
   PrettyPrinter: TFpPascalPrettyPrinter;
 begin
   result := false;
@@ -317,7 +318,8 @@ begin
      (AController.CurrentProcess.DbgInfo = nil) then
     exit;
 
-  AContext := AController.CurrentProcess.FindContext(AController.CurrentThread.ID, 0);
+  Reg := AController.CurrentThread.GetInstructionPointerRegisterValue;
+  AContext := AController.CurrentProcess.DbgInfo.FindContext(AController.CurrentThread.ID, 0, Reg);
 
   if (AContext = nil) or (AContext.SymbolAtAddress = nil) then
     exit;
@@ -344,7 +346,6 @@ begin
         PrettyPrinter.PrintValue(v, m);
         FWatchEntryArray[i].TextValue := v;
         FWatchEntryArray[i].Expression := n;
-        m.ReleaseReference;
         end;
       end;
   finally
@@ -352,7 +353,6 @@ begin
   end;
 
   AContext.ReleaseReference;
-  ProcVal.ReleaseReference;
   DoProcessLoop:=false;
   result := true;
 end;
@@ -393,9 +393,9 @@ function TFpDebugThreadDisassembleCommand.Execute(AController: TFpServerDbgContr
 
   function {$ifndef disassemblernestedproc}TFpDebugThreadDisassembleCommand.{$endif}OnAdjustToKnowFunctionStart(var AStartAddr: TDisassemblerAddress): Boolean;
   var
-    Sym: TFpSymbol;
+    Sym: TFpDbgSymbol;
   begin
-    Sym := {$ifndef disassemblernestedproc}FController{$else}AController{$endif}.CurrentProcess.FindProcSymbol(AStartAddr.GuessedValue);
+    Sym := {$ifndef disassemblernestedproc}FController{$else}AController{$endif}.CurrentProcess.FindSymbol(AStartAddr.GuessedValue);
     if assigned(Sym) and (Sym.Kind in [skProcedure, skFunction]) then
       begin
       AStartAddr.Value:=Sym.Address.Address;
@@ -419,7 +419,7 @@ function TFpDebugThreadDisassembleCommand.Execute(AController: TFpServerDbgContr
     ASrcFileName: string;
     ASrcFileLine: cardinal;
     i,j: Integer;
-    Sym: TFpSymbol;
+    Sym: TFpDbgSymbol;
     StatIndex: integer;
     FirstIndex: integer;
     AResultList: TDBGDisassemblerEntryRange;
@@ -443,7 +443,7 @@ function TFpDebugThreadDisassembleCommand.Execute(AController: TFpServerDbgContr
       AnEntry.Addr:=AnAddr;
       if not {$ifndef disassemblernestedproc}FController{$else}AController{$endif}.CurrentProcess.ReadData(AnAddr, sizeof(CodeBin),CodeBin) then
         begin
-        DebugLn(Format('Disassemble: Failed to read memory at %s.', [FormatAddress(AnAddr)]));
+        Log(Format('Disassemble: Failed to read memory at %s.', [FormatAddress(AnAddr)]), dllDebug);
         AnEntry.Statement := 'Failed to read memory';
         inc(AnAddr);
         end
@@ -452,7 +452,7 @@ function TFpDebugThreadDisassembleCommand.Execute(AController: TFpServerDbgContr
         p := @CodeBin;
         FpDbgDisasX86.Disassemble(p, {$ifndef disassemblernestedproc}FController{$else}AController{$endif}.CurrentProcess.Mode=dm64, ADump, AStatement);
 
-        Sym := {$ifndef disassemblernestedproc}FController{$else}AController{$endif}.CurrentProcess.FindProcSymbol(AnAddr);
+        Sym := {$ifndef disassemblernestedproc}FController{$else}AController{$endif}.CurrentProcess.FindSymbol(AnAddr);
 
         // If this is the last statement for this source-code-line, fill the
         // SrcStatementCount from the prior statements.
@@ -520,7 +520,7 @@ begin
   DoProcessLoop:=false;
   if not assigned(AController.CurrentProcess) then
     begin
-    debugln('Failed to dissasemble: No process');
+    log('Failed to dissasemble: No process', dllInfo);
     exit;
     end;
 
@@ -614,7 +614,7 @@ begin
   DoProcessLoop:=false;
   if not assigned(AController.CurrentProcess) then
     begin
-    debugln('Failed to get call stack: No process');
+    log('Failed to get call stack: No process', dllInfo);
     exit;
     end;
 
@@ -661,6 +661,7 @@ function TFpDebugThreadEvaluateCommand.Execute(AController: TFpServerDbgControll
 var
   AContext: TFpDbgInfoContext;
   APasExpr: TFpPascalExpression;
+  ADbgInfo: TDbgInfo;
   Res: Boolean;
   APrettyPrinter: TFpPascalPrettyPrinter;
   ATypeInfo: TDBGType;
@@ -670,11 +671,12 @@ begin
   DoProcessLoop:=false;
   if not assigned(AController.CurrentProcess) then
     begin
-    debugln('Failed to evaluate expression: No process');
+    log('Failed to evaluate expression: No process', dllInfo);
     exit;
     end;
 
-  AContext := AController.CurrentProcess.FindContext(AController.CurrentThread.ID, 0);
+  ADbgInfo := AController.CurrentProcess.DbgInfo;
+  AContext := ADbgInfo.FindContext(AController.CurrentThread.ID, 0, AController.CurrentThread.GetInstructionPointerRegisterValue);
   if AContext = nil then
     begin
     FValidity:=ddsInvalid;
@@ -746,24 +748,23 @@ end;
 
 function TFpDebugThreadRemoveBreakpointCommand.Execute(AController: TFpServerDbgController; out DoProcessLoop: boolean): boolean;
 var
-  Brk: TFpDbgBreakpoint;
+  Brk: TFpInternalBreakpoint;
 begin
   result := false;
   DoProcessLoop:=false;
   if not assigned(AController.CurrentProcess) then
     begin
-    debugln('Failed to remove breakpoint: No process');
+    log('Failed to remove breakpoint: No process', dllInfo);
     exit;
     end;
   if (FBreakpointServerIdr<>0) then begin
     Brk := AController.GetInternalBreakPointFromId(FBreakpointServerIdr);
-    result := true;
-    AController.CurrentProcess.RemoveBreak(Brk);
+    result := AController.CurrentProcess.RemoveBreak(Brk);
     Brk.Free; // actually removes it from target process
     AController.RemoveInternalBreakPoint(FBreakpointServerIdr);
   end
   else
-    debugln('Failed to remove breakpoint: No location given');
+    log('Failed to remove breakpoint: No location given', dllInfo);
 end;
 
 class function TFpDebugThreadRemoveBreakpointCommand.TextName: string;
@@ -881,14 +882,14 @@ end;
 
 function TFpDebugThreadGetLocationInfoCommand.Execute(AController: TFpServerDbgController; out DoProcessLoop: boolean): boolean;
 var
-  sym, symproc: TFpSymbol;
+  sym, symproc: TFpDbgSymbol;
 begin
   DoProcessLoop:=false;
   result := false;
 
   if not assigned(AController.CurrentProcess) then
     begin
-    debugln('Failed to get location info: No process');
+    log('Failed to get location info: No process', dllInfo);
     exit;
     end
   else
@@ -903,7 +904,7 @@ begin
     else
       FLocationRec.Address := FAddressValue;
 
-    sym := AController.CurrentProcess.FindProcSymbol(FLocationRec.Address);
+    sym := AController.CurrentProcess.FindSymbol(FLocationRec.Address);
     if sym = nil then
       Exit;
 
@@ -942,7 +943,7 @@ begin
   DoProcessLoop:=false;
   if not assigned(AController.CurrentProcess) then
     begin
-    debugln('Failed to add breakpoint: No process');
+    log('Failed to add breakpoint: No process', dllInfo);
     exit;
     end;
   if (Filename<>'') and (line>-1) then
@@ -953,7 +954,7 @@ begin
       FBreakServerId := AController.AddInternalBreakPointToId(FBreakPoint);
     end
   else
-    debugln('Failed to add breakpoint: No filename and line-number given');
+    log('Failed to add breakpoint: No filename and line-number given', dllInfo);
 end;
 
 class function TFpDebugThreadAddBreakpointCommand.TextName: string;

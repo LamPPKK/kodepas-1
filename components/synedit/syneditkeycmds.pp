@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id$
+$Id: syneditkeycmds.pp 58193 2018-06-08 21:44:44Z martin $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -258,17 +258,10 @@ const
   ecCut             = 603;  // Cut selection to clipboard
   ecPaste           = 604;  // Paste clipboard to current position
 
-  ecCopyAdd            = 605; // add selection to existing clipboard (space separated, unless whitespace exists)
-  ecCutAdd             = 606; //
-  ecCopyCurrentLine    = 607; // copy current line (or all covered at least partly by selection) to clipboard
-  ecCopyAddCurrentLine = 608; // add to existing clipboard
-  ecCutCurrentLine     = 609; //
-  ecCutAddCurrentLine  = 610; //
-
-  ecBlockIndent     = 615;  // Indent selection
-  ecBlockUnindent   = 616;  // Unindent selection
-  ecTab             = 617;  // Tab key
-  ecShiftTab        = 618;  // Shift+Tab key
+  ecBlockIndent     = 610;  // Indent selection
+  ecBlockUnindent   = 611;  // Unindent selection
+  ecTab             = 612;  // Tab key
+  ecShiftTab        = 613;  // Shift+Tab key
 
   ecUpperCase       = 620; // apply to the current or previous word
   ecLowerCase       = 621;
@@ -278,18 +271,7 @@ const
   ecLowerCaseBlock  = 626;
   ecToggleCaseBlock = 627;
 
-  ecMoveLineUp      = 630; // Moves current line (or selection) one line up
-  ecMoveLineDown    = 631; // Moves current line (or selection) one line down
-  ecDuplicateLine   = 632; // Line or selection (full lines)
-
-  ecMoveSelectUp      = 633; // Moves selection one line up
-  ecMoveSelectDown    = 634; // Moves selection one line down
-  ecMoveSelectLeft    = 635; // Moves selection one line up
-  ecMoveSelectRight   = 636; // Moves selection one line down
-  ecDuplicateSelection= 637;
-
-
-  ecString          = 640;  //Insert a whole string
+  ecString          = 630;  //Insert a whole string
 
   ecAutoCompletion  = 650;
 
@@ -513,7 +495,7 @@ end;
 { Command mapping routines }
 
 const
-  EditorCommandStrs: array[0..171] of TIdentMapEntry = (
+  EditorCommandStrs: array[0..157] of TIdentMapEntry = (
     (Value: ecNone; Name: 'ecNone'),
     (Value: ecLeft; Name: 'ecLeft'),
     (Value: ecRight; Name: 'ecRight'),
@@ -602,20 +584,6 @@ const
     (Value: ecCut; Name: 'ecCut'),
     (Value: ecCopy; Name: 'ecCopy'),
     (Value: ecPaste; Name: 'ecPaste'),
-    (Value: ecCopyAdd; Name: 'ecCopyAdd'),
-    (Value: ecCutAdd; Name: 'ecCutAdd'),
-    (Value: ecCopyCurrentLine; Name: 'ecCopyCurrentLine'),
-    (Value: ecCopyAddCurrentLine; Name: 'ecCopyAddCurrentLine'),
-    (Value: ecCutCurrentLine; Name: 'ecCutCurrentLine'),
-    (Value: ecCutAddCurrentLine; Name: 'ecCutAddCurrentLine'),
-    (Value: ecMoveLineUp; Name: 'ecMoveLineUp'),
-    (Value: ecMoveLineDown; Name: 'ecMoveLineDown'),
-    (Value: ecMoveSelectUp; Name: 'ecMoveSelectUp'),
-    (Value: ecMoveSelectDown; Name: 'ecMoveSelectDown'),
-    (Value: ecMoveSelectLeft; Name: 'ecMoveSelectLeft'),
-    (Value: ecMoveSelectRight; Name: 'ecMoveSelectRight'),
-    (Value: ecDuplicateLine; Name: 'ecDuplicateLine'),
-    (Value: ecDuplicateSelection; Name: 'ecDuplicateSelection'),
     (Value: ecScrollUp; Name: 'ecScrollUp'),
     (Value: ecScrollDown; Name: 'ecScrollDown'),
     (Value: ecScrollLeft; Name: 'ecScrollLeft'),

@@ -59,12 +59,9 @@ type
 
   TGtk3WSOpenDialog = class(TWSOpenDialog)
   protected
-    class function CreateOpenDialogFilter(OpenDialog: TOpenDialog;
-      Chooser: PGtkFileChooser): string; virtual;
-    class procedure CreateOpenDialogHistory(OpenDialog: TOpenDialog;
-      SelWidget: PGtkWidget); virtual;
-    class procedure CreatePreviewDialogControl(PreviewDialog: TPreviewFileDialog;
-      Chooser: PGtkFileChooser); virtual;
+    class function CreateOpenDialogFilter(OpenDialog: TOpenDialog; SelWidget: PGtkWidget): string; virtual;
+    class procedure CreateOpenDialogHistory(OpenDialog: TOpenDialog; SelWidget: PGtkWidget); virtual;
+    class procedure CreatePreviewDialogControl(PreviewDialog: TPreviewFileDialog; SelWidget: PGtkWidget); virtual;
   published
     class function CreateHandle(const ACommonDialog: TCommonDialog): THandle; override;
   end;
@@ -233,7 +230,7 @@ var
     end;
   end;
 
-  procedure AddEntries(const Desc: string; const MultiMask: string);
+  procedure AddEntries(const Desc: string; MultiMask: string);
   var i: integer;
     CurDesc: string;
   begin
@@ -1085,7 +1082,8 @@ end;
 { TGtk3WSOpenDialog }
 
 class function TGtk3WSOpenDialog.CreateOpenDialogFilter(
-  OpenDialog: TOpenDialog; Chooser: PGtkFileChooser): string;
+  OpenDialog: TOpenDialog; SelWidget: PGtkWidget): string;
+
 var
   ListOfFileSelFilterEntry: TFPList;
   i, j, k: integer;
@@ -1113,7 +1111,7 @@ begin
         gtk_file_filter_add_pattern(GtkFilter, PgChar(MaskList.Strings[k]));
       gtk_file_filter_set_name(GtkFilter, PgChar(FilterEntry.Description));
 
-      gtk_file_chooser_add_filter(Chooser, GtkFilter);
+      gtk_file_chooser_add_filter(PGtkFileChooser(SelWidget), GtkFilter);
 
       if j = FilterIndex then
         GtkSelFilter := GtkFilter;
@@ -1125,10 +1123,10 @@ begin
   end;
 
   FreeListOfFileSelFilterEntry(ListOfFileSelFilterEntry);
-  //g_object_set_data(PGObject(Chooser), 'LCLFilterList', ListOfFileSelFilterEntry);
+  //g_object_set_data(PGObject(SelWidget), 'LCLFilterList', ListOfFileSelFilterEntry);
 
   if GtkSelFilter <> nil then
-    gtk_file_chooser_set_filter(Chooser, GtkSelFilter);
+    gtk_file_chooser_set_filter(PGtkFileChooser(SelWidget), GtkSelFilter);
 
   Result := 'hm'; { Don't use '' as null return as this is used for *.* }
 end;
@@ -1210,17 +1208,25 @@ begin
 end;
 
 class procedure TGtk3WSOpenDialog.CreatePreviewDialogControl(
-  PreviewDialog: TPreviewFileDialog; Chooser: PGtkFileChooser);
+  PreviewDialog: TPreviewFileDialog; SelWidget: PGtkWidget);
 var
   PreviewWidget: PGtkWidget;
   AControl: TPreviewFileControl;
+  FileChooser: PGtkFileChooser;
 begin
   AControl := PreviewDialog.PreviewFileControl;
   if AControl = nil then Exit;
+
+  FileChooser := PGtkFileChooser(SelWidget);
+
   PreviewWidget := TGtk3CustomControl(AControl.Handle).Widget;
-  g_object_set_data(PGObject(PreviewWidget),'LCLPreviewFixed',PreviewWidget);
+
+  g_object_set_data(PGObject(PreviewWidget),'LCLPreviewFixed',
+                      PreviewWidget);
   gtk_widget_set_size_request(PreviewWidget,AControl.Width,AControl.Height);
-  gtk_file_chooser_set_preview_widget(Chooser, PreviewWidget);
+
+  gtk_file_chooser_set_preview_widget(FileChooser, PreviewWidget);
+
   gtk_widget_show(PreviewWidget);
 end;
 
@@ -1238,49 +1244,53 @@ end;
 }
 class function TGtk3WSOpenDialog.CreateHandle(const ACommonDialog: TCommonDialog): THandle;
 var
+  FileSelWidget: PGtkFileChooser;
   OpenDialog: TOpenDialog absolute ACommonDialog;
   HelpButton: PGtkWidget;
   InitialFilename: String;
-  Dlg: TGtk3Dialog;
-  Chooser: PGtkFileChooser;
   //FrameWidget: PGtkWidget;
   //HBox: PGtkWidget;
   //FileDetailLabel: PGtkWidget;
 begin
-  Dlg := TGtk3FileDialog.Create(ACommonDialog);
-  Result := THandle(Dlg);
-  Chooser := PGtkFileChooser(Dlg.Widget);
-  TGtk3WSFileDialog.SetCallbacks(Dlg.Widget, Dlg);
+  Result := THandle(TGtk3FileDialog.Create(ACommonDialog));
+  TGtk3WSFileDialog.SetCallbacks(TGtk3Dialog(Result).Widget, TGtk3Dialog(Result));
+
+  FileSelWidget := PGtkFileChooser(TGtk3FileDialog(Result).Widget);
 
   if OpenDialog.InheritsFrom(TSaveDialog) then
+  begin
     if OpenDialog.InitialDir <> '' then
-      gtk_file_chooser_set_current_folder(Chooser, Pgchar(OpenDialog.InitialDir));
-
+      gtk_file_chooser_set_current_folder(FileSelWidget, Pgchar(OpenDialog.InitialDir));
+  end;
+  
   // Help button
   if (ofShowHelp in OpenDialog.Options) then
   begin
-    HelpButton := gtk_dialog_add_button(PGtkDialog(Dlg.Widget), GTK_STOCK_HELP, GTK_RESPONSE_NONE);
-    g_signal_connect_data(HelpButton, 'clicked', TGCallback(@gtkDialogHelpclickedCB), Dlg, nil, 0);
+    HelpButton := gtk_dialog_add_button(PGtkDialog(FileSelWidget), GTK_STOCK_HELP, GTK_RESPONSE_NONE);
+
+    g_signal_connect_data(HelpButton,
+      'clicked', TGCallback(@gtkDialogHelpclickedCB), TGtk3Dialog(Result), nil, 0);
   end;
 
   if ofAllowMultiSelect in OpenDialog.Options then
-    gtk_file_chooser_set_select_multiple(Chooser, True);
+    gtk_file_chooser_set_select_multiple(FileSelWidget, True);
 
   // History List - a frame with an option menu
-  CreateOpenDialogHistory(OpenDialog, Dlg.Widget);
+  CreateOpenDialogHistory(OpenDialog, PGtkWidget(FileSelWidget));
 
   // Filter
-  CreateOpenDialogFilter(OpenDialog, Chooser);
+  CreateOpenDialogFilter(OpenDialog, PGtkWidget(FileSelWidget));
 
   // connect change event
-  g_signal_connect_data(Dlg.Widget,
-    'selection-changed', TGCallback(@gtkFileChooserSelectionChangedCB), Dlg, nil, 0);
+  g_signal_connect_data(FileSelWidget,
+    'selection-changed', TGCallback(@gtkFileChooserSelectionChangedCB),
+    TGtk3Dialog(Result), nil, 0);
 
   // Sets the dialog options
 
   // ofForceShowHidden
   if (ofForceShowHidden in OpenDialog.Options) then
-    gtk_file_chooser_set_show_hidden(Chooser, True);
+    gtk_file_chooser_set_show_hidden(FileSelWidget, True);
 
   (*  TODO
   // Details - a frame with a label
@@ -1288,10 +1298,10 @@ begin
 
     // create the frame around the information
     FrameWidget:=gtk_frame_new(PChar(rsFileInformation));
-    //gtk_box_pack_start(GTK_BOX(Dlg.Widget^.main_vbox),
+    //gtk_box_pack_start(GTK_BOX(FileSelWidget^.main_vbox),
     //                   FrameWidget,false,false,0);
-    gtk_box_pack_start(GTK_BOX(gtk_file_chooser_get_extra_widget(Chooser)),
-                       FrameWidget,false,false,0);
+    gtk_box_pack_start(GTK_BOX(gtk_file_chooser_get_extra_widget(
+             PGtkFileChooser(SelWidget))), FrameWidget,false,false,0);
     gtk_widget_show(FrameWidget);
     // create a HBox, so that the information is left justified
     HBox:=gtk_hbox_new(false,0);
@@ -1302,11 +1312,12 @@ begin
     gtk_widget_show_all(HBox);
   end else
     FileDetailLabel:=nil;
-  g_object_set_data(PGObject(SelWidget), 'FileDetailLabel', FileDetailLabel);
+  g_object_set_data(PGObject(SelWidget), 'FileDetailLabel',
+                      FileDetailLabel);
   *)
   // preview
   if (OpenDialog is TPreviewFileDialog) then
-    CreatePreviewDialogControl(TPreviewFileDialog(OpenDialog), Chooser);
+    CreatePreviewDialogControl(TPreviewFileDialog(OpenDialog), PGtkWidget(FileSelWidget));
 
   // set initial filename (gtk expects an absolute filename)
   InitialFilename := TrimFilename(OpenDialog.FileName);
@@ -1316,11 +1327,11 @@ begin
       InitialFilename := TrimFilename(OpenDialog.InitialDir + PathDelim + InitialFilename);
     if not FilenameIsAbsolute(InitialFilename) then
       InitialFilename := CleanAndExpandFilename(InitialFilename);
-    gtk_file_chooser_set_filename(Chooser, PChar(InitialFilename));
+    gtk_file_chooser_set_filename(FileSelWidget, PChar(InitialFilename));
   end;
 
   //if InitialFilter <> 'none' then
-  //  PopulateFileAndDirectoryLists(Dlg.Widget, InitialFilter);
+  //  PopulateFileAndDirectoryLists(FileSelWidget, InitialFilter);
 
 end;
 
@@ -1416,7 +1427,7 @@ var
 begin
   (*
   Color := TColor(ColorToRGB(Color));
-  SelectionColor := TColorToTGDKColor(Color);
+  SelectionColor := TColortoTGDKColor(Color);
   colorSel := PGtkColorSelection(ColorSelection^.colorsel);
   gtk_color_selection_set_current_color(colorSel, @SelectionColor);
   gtk_color_selection_set_previous_color(colorSel, @SelectionColor);
@@ -1443,7 +1454,7 @@ var
     for i := 0 to Palette.Count - 1 do
       if ExtractColorIndexAndColor(Palette, i, AIndex, AColor) then
         if AIndex < colors_len then
-          colors[AIndex] := TColorToTGDKColor(AColor);
+          colors[AIndex] := TColortoTGDKColor(AColor);
   end;
   *)
 begin

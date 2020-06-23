@@ -1,5 +1,5 @@
 {%MainUnit win32int.pp}
-{ $Id$ }
+{ $Id: win32winapi.inc 60279 2019-02-02 18:39:33Z mattias $ }
 
 {******************************************************************************
                          All Windows API implementations.
@@ -849,16 +849,16 @@ begin
   FontName := LogFont.lfFaceName;
 
   TempLogFont := LogFont;
-  if IsFontNameDefault(FontName) then
+  if SameText(FontName, DefFontData.Name) then
   begin
     TempLogFontW.lfFaceName := UTF8ToUTF16(FMetrics.lfMessageFont.lfFaceName); // FMetrics must be UTF16
+    if TempLogFont.lfHeight = 0 then
+      TempLogFont.lfHeight := FMetrics.lfMessageFont.lfHeight;
   end
   else
   begin
     TempLogFontW.lfFaceName := UTF8ToUTF16(FontName);
   end;
-  if TempLogFont.lfHeight = 0 then
-    TempLogFont.lfHeight := FMetrics.lfMessageFont.lfHeight;
   Result := Windows.CreateFontIndirectW(@TempLogFontW);
 end;
 
@@ -1437,62 +1437,6 @@ begin
     DebugLn('TWin32WidgetSet.ExtCreatePen returns 0. Reason = ' + GetLastErrorText(Windows.GetLastError));
 end;
 
-function IsCharSurrogateHigh(ch: WideChar): Boolean; inline;
-begin
-  Result := (ch>=#$D800) and (ch<=#$DBFF);
-end;
-
-function IsCharSurrogateLow(ch: WideChar): Boolean; inline;
-begin
-  Result := (ch>=#$DC00) and (ch<=#$DFFF);
-end;
-
-function SFindFirstCharSurrogate(const S: WideString): Integer; inline;
-var
-  i: Integer;
-begin
-  for i := 1 to Length(S) do
-    if IsCharSurrogateHigh(S[i]) then Exit(i);
-  Result := 0;
-end;
-
-type
-  _TIntArray = array of LongInt;
-
-procedure SConvertDxArrayFromUTF8ToWide(const S: WideString;
-  Dx: PInteger; DxCount: integer; var Res: _TIntArray; nFirstIndex: Integer);
-var
-  iSrc, iDest: Integer;
-begin
-  SetLength(Res, Length(S));
-
-  if nFirstIndex > DxCount then
-    nFirstIndex := DxCount;
-
-  for iDest := 0 to Length(S)-1 do
-    if iDest < nFirstIndex-1 then
-      Res[iDest] := (Dx+iDest)^
-    else
-      Res[iDest] := 0;
-
-  iSrc := nFirstIndex-1;
-  for iDest := nFirstIndex-1 to Length(S)-1 do
-  begin
-    if iSrc>=DxCount then Break;
-    if IsCharSurrogateLow(S[iDest+1]) then
-    begin
-      // 2nd char of surrogate pair: skip it, ie set size=0
-      Res[iDest] := 0;
-    end
-    else
-    begin
-      // normal char or 1st char of surrogate pair: use its size
-      Res[iDest] := (Dx+iSrc)^;
-      Inc(iSrc);
-    end;
-  end;
-end;
-
 {------------------------------------------------------------------------------
   Method:  ExtTextOut
   Params:  DC      - handle to device context
@@ -1512,32 +1456,18 @@ function TWin32WidgetSet.ExtTextOut(DC: HDC; X, Y: Integer; Options: LongInt;
 var
   s: AnsiString;
   w: WideString;
-  DxWide: _TIntArray;
-  nIndex: Integer;
 begin
   // use temp buffer, if count is set, there might be no null terminator
   if count = -1 then
-    s := Str
+   s := str
   else
   begin
     SetLength(s, count);
     move(str^, PChar(s)^, count);
   end;
-
+  // the length of utf8 vs Wide/Ansi the strings differ, so recalc.
+  // TODO: use the real number of chars (and not the lenght)
   W := UTF8ToUTF16(S);
-
-  // support surrogate chars in WideString
-  if Dx<>nil then
-  begin
-    nIndex := SFindFirstCharSurrogate(W);
-    if nIndex > 0 then
-    begin
-      SConvertDxArrayFromUTF8ToWide(W, Dx, Count, DxWide, nIndex);
-      Result := Windows.ExtTextOutW(DC, X, Y, Options, LPRECT(Rect), PWideChar(W), Length(W), @DxWide[0]);
-      Exit;
-    end;
-  end;
-
   Result := Windows.ExtTextOutW(DC, X, Y, Options, LPRECT(Rect), PWideChar(W), Length(W), Dx);
 end;
 
@@ -3375,9 +3305,7 @@ begin
   ScrollInfo.cbSize:=sizeof(ScrollInfo);
   if (ScrollInfo.fMask and SIF_Range > 0) then
     ScrollInfo.nMax := Max(ScrollInfo.nMin, ScrollInfo.nMax - 1);
-  { ~bk passing BRedraw True/False might change the windows visual enabled state
-        that would not be reflected in TScollBar.Enabled property }
-  Result := Windows.SetScrollInfo(Handle, SBStyle, @ScrollInfo, BRedraw and WidgetSet.IsWindowEnabled(Handle));
+  Result := Windows.SetScrollInfo(Handle, SBStyle, @ScrollInfo, BRedraw);
 end;
 
 {------------------------------------------------------------------------------

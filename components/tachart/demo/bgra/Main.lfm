@@ -9,7 +9,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
-  LCLVersion = '2.1.0.0'
+  LCLVersion = '1.1'
   object Splitter1: TSplitter
     Left = 0
     Height = 481
@@ -27,12 +27,12 @@ object Form1: TForm1
     TabOrder = 1
     object tsSimple: TTabSheet
       Caption = 'Simple'
-      ClientHeight = 453
+      ClientHeight = 455
       ClientWidth = 708
       object Panel1: TPanel
         Left = 0
         Height = 34
-        Top = 419
+        Top = 421
         Width = 708
         Align = alBottom
         ClientHeight = 34
@@ -40,27 +40,27 @@ object Form1: TForm1
         TabOrder = 0
         object cbAntialiasing: TCheckBox
           Left = 8
-          Height = 19
+          Height = 17
           Top = 8
-          Width = 82
+          Width = 74
           Caption = 'Antialiasing'
           OnChange = cbAntialiasingChange
           TabOrder = 0
         end
         object cbPie: TCheckBox
           Left = 104
-          Height = 19
+          Height = 17
           Top = 8
-          Width = 36
+          Width = 34
           Caption = 'Pie'
           OnChange = cbPieChange
           TabOrder = 1
         end
         object cbUseConnector: TCheckBox
           Left = 164
-          Height = 19
+          Height = 17
           Top = 8
-          Width = 185
+          Width = 172
           Caption = 'Use BGRA for standard drawing'
           OnChange = cbUseConnectorChange
           TabOrder = 2
@@ -68,7 +68,7 @@ object Form1: TForm1
       end
       object chSimple: TChart
         Left = 0
-        Height = 419
+        Height = 421
         Top = 0
         Width = 354
         AntialiasingMode = amOff
@@ -76,17 +76,13 @@ object Form1: TForm1
           item
             Marks.LabelFont.Height = 13
             Marks.LabelFont.Orientation = 400
-            Marks.LabelBrush.Style = bsClear
             Minors = <>
             Title.LabelFont.Orientation = 900
-            Title.LabelBrush.Style = bsClear
           end        
           item
             Alignment = calBottom
             Marks.LabelFont.Height = 13
-            Marks.LabelBrush.Style = bsClear
             Minors = <>
-            Title.LabelBrush.Style = bsClear
           end>
         BackColor = clMoneyGreen
         Foot.Brush.Color = clBtnFace
@@ -103,6 +99,7 @@ object Form1: TForm1
         Align = alLeft
         Color = clGreen
         DoubleBuffered = True
+        ParentColor = False
         object chSimpleLineSeries1: TLineSeries
           ZPosition = 10
           LinePen.Color = clMaroon
@@ -129,7 +126,7 @@ object Form1: TForm1
       end
       object PaintBox1: TPaintBox
         Left = 354
-        Height = 419
+        Height = 421
         Top = 0
         Width = 354
         Align = alClient
@@ -165,7 +162,7 @@ object Form1: TForm1
           ChildSizing.ShrinkVertical = crsScaleChilds
           ChildSizing.Layout = cclLeftToRightThenTopToBottom
           ChildSizing.ControlsPerLine = 1
-          ClientHeight = 65
+          ClientHeight = 67
           ClientWidth = 116
           ItemIndex = 0
           Items.Strings = (
@@ -313,7 +310,7 @@ object Form1: TForm1
           ChildSizing.ShrinkVertical = crsScaleChilds
           ChildSizing.Layout = cclLeftToRightThenTopToBottom
           ChildSizing.ControlsPerLine = 1
-          ClientHeight = 65
+          ClientHeight = 67
           ClientWidth = 116
           ItemIndex = 0
           Items.Strings = (
@@ -332,17 +329,13 @@ object Form1: TForm1
         Width = 586
         AxisList = <        
           item
-            Marks.LabelBrush.Style = bsClear
             Minors = <>
             Title.LabelFont.Orientation = 900
-            Title.LabelBrush.Style = bsClear
           end        
           item
             Grid.Visible = False
             Alignment = calBottom
-            Marks.LabelBrush.Style = bsClear
             Minors = <>
-            Title.LabelBrush.Style = bsClear
           end>
         BackColor = clBlack
         Foot.Brush.Color = clBtnFace
@@ -358,11 +351,12 @@ object Form1: TForm1
         )
         Align = alClient
         DoubleBuffered = True
+        ParentColor = False
         object chBarEffectsBarSeries1: TBarSeries
           BarBrush.Color = 2183646
           BarBrush.Style = bsClear
           BarPen.Style = psClear
-          OnCustomDrawBar = chBarEffectsBarSeries1CustomDrawBar
+          OnBeforeDrawBar = chBarEffectsBarSeries1BeforeDrawBar
         end
       end
     end

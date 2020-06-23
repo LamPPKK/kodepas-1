@@ -28,7 +28,7 @@ interface
 
 uses
   LCLType, LCLIntf, {keep both before windows}
-  Windows, Classes, SysUtils, GraphType;
+  Windows, Classes, SysUtils, Maps, GraphType;
 
 type
   DrawStateProc = function(
@@ -46,9 +46,9 @@ const
   DSS_DISABLED  = $0020;
   DSS_MONO      = $0080;
   DSS_RIGHT     = $8000;
-  DSS_DEFAULT   = $0040;  { Make it bold }
-  DSS_HIDEPREFIX= $0200;
-  DSS_PREFIXONLY= $0400;
+  DSS_DEFAULT   =$0040;  { Make it bold }
+  DSS_HIDEPREFIX=$0200;
+  DSS_PREFIXONLY=$0400;
   
   { missing progress bar styles }
   PBS_SMOOTH=01;
@@ -102,7 +102,7 @@ var
 implementation
 
 uses
-  WinCEProc;
+  WinCeProc;
   
 const
   wPattern55AA: array[1..8] of word = ($5555, $aaaa, $5555, $aaaa, $5555, $aaaa, $5555, $aaaa);
@@ -125,7 +125,8 @@ begin
   
   case opcode of
     DST_TEXT, DST_PREFIXTEXT:
-      Result := DrawTextW(dc, PWideChar(lp), wp, rc, dtflags) <> 0;
+      Result := DrawTextW(dc, PWideChar(lp), wp,
+       {$ifdef win32}rc^{$else}rc{$endif}, dtflags) <> 0;
   
     DST_ICON:
       Result := DrawIcon(dc, rc^.left, rc^.top, lp);
@@ -179,7 +180,7 @@ var
   opcode:UINT;
   len:integer;
   tmp : boolean;
-  sz:SIZE;
+  s:SIZE;
   //ici:^CURSORICONINFO;
   bm:BITMAP;
   fg, bg : COLORREF;
@@ -194,8 +195,8 @@ begin
   opcode := flags and $f;
   len := wp;
 
-  if  ((opcode = DST_TEXT) or (opcode = DST_PREFIXTEXT)) and (len=0) then
-    len := Length(WideString(PWideChar(lp))); // The string is '\0' terminated
+  if  ((opcode = DST_TEXT) or (opcode = DST_PREFIXTEXT)) and (len=0) 
+  then len := length(widestring(PWideChar(lp))); // The string is '\0' terminated 
 
   { Find out what size the image has if not given by caller }
   if (cx=0) or (cy=0) then
@@ -203,7 +204,8 @@ begin
     case opcode of
       DST_TEXT, DST_PREFIXTEXT:
         begin
-          if not GetTextExtentPoint32W(dc, PWideChar(lp), len, sz) then Exit;
+          if not GetTextExtentPoint32W(dc, PWideChar(lp), len, s)
+          then Exit;
         end;
 
       {DST_ICON:
@@ -219,16 +221,16 @@ begin
         begin
           if GetObject(lp, sizeof(bm), @bm) = 0 
           then Exit;
-          sz.cx := bm.bmWidth;
-          sz.cy := bm.bmHeight;
+          s.cx := bm.bmWidth;
+          s.cy := bm.bmHeight;
         end;
 
       DST_COMPLEX: {/* cx and cy must be set in this mode */}
         Exit;
     end;
 
-    if cx = 0 then cx := sz.cx;
-    if cy = 0 then cy := sz.cy;
+    if cx = 0 then cx := s.cx;
+    if cy = 0 then cy := s.cy;
   end;
 
   rc.left   := x;
@@ -236,15 +238,15 @@ begin
   rc.right  := x + cx;
   rc.bottom := y + cy;
 
-  if (flags and DSS_RIGHT) <> 0 then { This one is not documented in the win32.hlp file }
-    dtflags := dtflags or DT_RIGHT;
+  if (flags and DSS_RIGHT) <> 0 { This one is not documented in the win32.hlp file }
+  then dtflags := dtflags or DT_RIGHT;
   
-  if opcode = DST_TEXT then
-    dtflags := dtflags or DT_NOPREFIX;
+  if opcode = DST_TEXT 
+  then dtflags := dtflags or DT_NOPREFIX;
 
   { For DSS_NORMAL we just jam in the image and return }
-  if (flags and $7ff0) = DSS_NORMAL then
-    Exit(DrawStateJam(dc, opcode, func, lp, len, @rc, dtflags));
+  if (flags and $7ff0) = DSS_NORMAL 
+  then Exit(DrawStateJam(dc, opcode, func, lp, len, @rc, dtflags));
 
   { For all other states we need to convert the image to B/W in a local bitmap
     before it is displayed }

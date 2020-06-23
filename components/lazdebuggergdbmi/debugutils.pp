@@ -1,10 +1,10 @@
-{ $Id$ }
+{ $Id: debugutils.pp 56692 2017-12-11 19:44:22Z juha $ }
 {                   -------------------------------------------
                      dbgutils.pp  -  Debugger utility routines
                     -------------------------------------------
 
  @created(Sun Apr 28st WET 2002)
- @lastmod($Date$)
+ @lastmod($Date: 2017-12-11 20:44:22 +0100 (Mo, 11 Dez 2017) $)
  @author(Marc Weustink <marc@@dommelstein.net>)
 
  This unit contains a collection of debugger support routines.
@@ -35,11 +35,7 @@ unit DebugUtils;
 interface 
 
 uses
-  Classes,
-  // LazUtils
-  LazLoggerBase, LazUTF8,
-  // DebuggerIntf
-  DbgIntfBaseTypes;
+  DbgIntfBaseTypes, Classes, LCLProc, LazUTF8;
 
 type
 
@@ -50,7 +46,6 @@ type
 
   TGdbUnEscapeFlags = set of (uefOctal, uefTab, uefNewLine);
 
-function IsSehFinallyFuncName(AName: String): Boolean;
 function GetLine(var ABuffer: String): String;
 function ConvertToCString(const AText: String): String;
 function ConvertPathDelims(const AFileName: String): String;
@@ -86,14 +81,6 @@ var
   LastSmartWritelnStr: string;
   LastSmartWritelnCount: integer;
   LastSmartWritelnTime: double;
-
-function IsSehFinallyFuncName(AName: String): Boolean;
-var
-  i: SizeInt;
-begin
-  i := pos('fin$', AName);
-  Result := (i > 0) and (i <= 3);
-end;
 
 procedure SmartWriteln(const s: string);
 var

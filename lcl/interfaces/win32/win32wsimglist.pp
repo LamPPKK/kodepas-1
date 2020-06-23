@@ -1,4 +1,4 @@
-{ $Id$}
+{ $Id: win32wsimglist.pp 57164 2018-01-27 18:12:35Z ondrej $}
 {
  *****************************************************************************
  *                             Win32WSImgList.pp                             * 
@@ -253,12 +253,11 @@ begin
       FLAGS := ILC_COLOR or ILC_MASK;
     end;
   end;
-  {$PUSH}
   {$WARNINGS OFF}
   Result._Init(ImageList_Create(AWidth, AHeight, Flags, ACount, AGrow));
   if Result.Allocated and (ACount > 0) then
     AddData(Result._Handle, ACount, -1, AWidth, AHeight, AData);
-  {$POP}
+  {$WARNINGS ON}
 end;
 
 class procedure TWin32WSCustomImageListResolution.Delete(

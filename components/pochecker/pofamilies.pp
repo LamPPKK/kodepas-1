@@ -9,7 +9,7 @@ interface
 uses
   Classes, SysUtils, ContNrs, Math,
   // LCL
-  LCLProc,
+  LCLProc, Masks,
   // LazUtils
   FileUtil, LazFileUtils, Translations, StringHashList,
   // PoChecker
@@ -20,6 +20,9 @@ Type
   TPoTestType = (pttCheckNrOfItems, pttCheckFormatArgs, pttCheckMissingIdentifiers,
                  pttCheckMismatchedOriginals);
   TPoTestTypes = Set of TPoTestType;
+
+  TPoTestOption = (ptoFindAllChildren);
+  TPoTestOptions = set of TPoTestOption;
 
 const
     optRunAllTests: TPoTestTypes = [];
@@ -41,7 +44,6 @@ Type
 
   TPoFamily = class
   private
-    FLangID: TLangID;
     FMaster: TPOFile;
     FChild: TPOFile;
     FMasterName: String;
@@ -49,6 +51,7 @@ Type
     FOnTestStart: TTestStartEvent;
     FOnTestEnd: TTestEndEvent;
     FPoFamilyStats: TPoFamilyStats;
+    FTestOptions: TPoTestOptions;
     FTestTypes: TPoTestTypes;
     procedure SetChildName(AValue: String);
     procedure SetMasterName(AValue: String);
@@ -58,7 +61,9 @@ Type
     procedure DoTestStart(const ATestName, APoFileName: String);
     procedure DoTestEnd(const ATestName: String; const ErrorCount: Integer);
   public
-    constructor Create(const AMasterName, AChildName: String; ALangID: TLangID);
+    constructor Create;
+    constructor Create(const MasterName: String);
+    constructor Create(const AMasterName, AChildName: String);
     destructor Destroy; override;
 
   protected
@@ -78,6 +83,7 @@ Type
     property MasterName: String read FMasterName write SetMasterName;
     property ChildName: String read FChildName write SetChildName;
     property TestTypes: TPoTestTypes read FTestTypes write FTestTypes;
+    property TestOptions: TPoTestOptions read FTestOptions write FTestOptions;
     property PoFamilyStats: TPoFamilyStats read FPoFamilyStats;
     property ShortMasterName: String read  GetShortMasterName;
     property ShortChildName: String read GetShortChildName;
@@ -98,7 +104,7 @@ Type
     FNrFuzzy: Integer;
     FNrErrors: Integer;
   public
-    constructor Create(APoName: String; ANrTranslated, ANrUntranslated, ANrFuzzy, ANrErrors: Integer);
+    constructor Create(APoName: String; ANrTotal, ANrTranslated, ANrUntranslated, ANrFuzzy, ANrErrors: Integer);
     function ShortPoName: String;
     property PoName: string read FPoName;
     property NrTotal: Integer read FNrTotal;
@@ -121,7 +127,7 @@ Type
     function GetItems(Index: Integer): TStat;
   public
     procedure Clear;
-    procedure Add(AName: String; ANrTranslated, ANrUnTranslated, ANrFuzzy, ANrErrors: Integer);
+    procedure Add(AName: String; ANrTotal, ANrTranslated, ANrUnTranslated, ANrFuzzy, ANrErrors: Integer);
     procedure AddItemsTo(APoFamilyStats: TPoFamilyStats);
     constructor Create;
     destructor Destroy; override;
@@ -131,7 +137,9 @@ Type
     property Count: Integer read GetCount;
   end;
 
+function IsMasterPoName(const Fn: String): Boolean;
 function ExtractMasterNameFromChildName(const AChildName: String): String;
+function ExtractLanguageFromChildName(const AChildName: string): TLangID;
 procedure LocalizePoTestTypeNames;
 
 const
@@ -141,8 +149,13 @@ implementation
 
 const
   sCommentIdentifier = '#: ';
+  //sCharSetIdentifier = '"Content-Type: text/plain; charset=';
   sMsgID = 'msgid "';
   sMsgStr = 'msgstr "';
+  //sMsgCtxt = 'msgctxt "';
+  //sFlags = '#, ';
+  //sPrevMsgID = '#| msgid "';
+  //sPrevStr = '#| "';
 
   Divider = '-------------------------------------------------------';
 
@@ -160,18 +173,63 @@ const
 
 //Helper functions
 
+
+function IsMasterPoName(const Fn: String): Boolean;
+//Returns True if Fn is like '[Path/To/]somename.po'
+var
+  Ext: String;
+  FnOnly: String;
+  IsInValidFn: Boolean;
+begin
+  FnOnly := ExtractFileNameOnly(Fn);
+  //check if filename is like 'af_ZA.po', which is an invalid name for a master po-file
+  //a bit crude, but will do now (at least for Lazarus)
+  IsInValidFn := MatchesMaskList(FnOnly, '??;??_??',';',False);
+  Ext := ExtractFileExt(Fn);
+  Result := not IsInValidFn and
+            (Length(FnOnly) > 0) and
+            (CompareText(Ext, ExtensionSeparator + 'po') = 0) and
+            (Pos(ExtensionSeparator, FnOnly) = 0);
+end;
+
 function ExtractMasterNameFromChildName(const AChildName: String): String;
 {
-  Input: AChildName is like: somename.some_language_specifier.po
-  Output: Result  = somename.pot
+  Pre condition: AChildName is like: somename.some_language_specifier.po
+  Post condition: Result  = somename.po
 }
 var
-  CurUnitName: String;
-  CurLang: String;
+  Ext: String;
+  EndSep: Set of Char;
+  Len: Integer;
 begin
-  Result := '';
-  if GetPOFilenameParts(AChildName, CurUnitName, CurLang) then
-    Result := CurUnitName + ExtensionSeparator + 'pot';
+  EndSep := AllowDirectorySeparators + AllowDriveSeparators + [ExtensionSeparator];
+  Ext := ExtractFileExt(AChildName);
+  Result := Copy(AChildName, 1, Length(AChildName) - Length(Ext));
+  Len := Length(Result);
+  While (Len > 0) and (not (Result[Len] in EndSep)) do Dec(Len);
+
+  //debugln('Len = ',DbgS(Len));
+  //debugln('Length(Result) = ',DbgS(Length(result)));
+  //if Len > 0 then debugln('Result[Len] = ',Result[len]);
+
+  if (Len > 1) and (Len < Length(Result)) and (Result[Len] = ExtensionSeparator) then
+    Result := Copy(Result, 1, Len - 1) + Ext
+  else
+    Result := '';
+end;
+
+function ExtractLanguageFromChildName(const AChildName: string): TLangID;
+Var
+  Mn, Abbr: string;
+  P1,P2: Integer;
+begin
+  Mn := ExtractMasterNameFromChildName(AChildName);
+  Mn := ExtractFileNameWithoutExt(Mn);
+  P1 := Length(Mn);
+  P2 := Length(AChildName);
+  Abbr := Copy(AChildName,P1+2,P2-(P1+1));
+  Abbr := ExtractFileNameWithoutExt(Abbr);
+  Result := LangAbbrToLangId(Abbr);
 end;
 
 procedure LocalizePoTestTypeNames;
@@ -184,10 +242,10 @@ end;
 
 { TStat }
 
-constructor TStat.Create(APoName: String; ANrTranslated, ANrUntranslated, ANrFuzzy, ANrErrors: Integer);
+constructor TStat.Create(APoName: String; ANrTotal, ANrTranslated, ANrUntranslated, ANrFuzzy, ANrErrors: Integer);
 begin
   FPoName := APoName;
-  FNrTotal := ANrTranslated + ANrUntranslated + ANrFuzzy;
+  FNrTotal := ANrTotal;
   FNrTranslated := ANrTranslated;
   FNrUntranslated := ANrUntranslated;
   FNrFuzzy := ANrFuzzy;
@@ -246,9 +304,9 @@ begin
   FList.Clear;
 end;
 
-procedure TPoFamilyStats.Add(AName: String; ANrTranslated, ANrUnTranslated, ANrFuzzy, ANrErrors: Integer);
+procedure TPoFamilyStats.Add(AName: String; ANrTotal, ANrTranslated, ANrUnTranslated, ANrFuzzy, ANrErrors: Integer);
 begin
-  FList.Add(TStat.Create(AName, ANrTranslated, ANrUntranslated, ANrFuzzy, ANrErrors));
+  FList.Add(TStat.Create(AName, ANrTotal, ANrTranslated, ANrUntranslated, ANrFuzzy, ANrErrors));
 end;
 
 procedure TPoFamilyStats.AddItemsTo(APoFamilyStats: TPoFamilyStats);
@@ -259,7 +317,7 @@ begin
   for i := 0 to FList.Count - 1 do
   begin
     AStat := GetItems(i);
-    APoFamilyStats.Add(AStat.PoName, AStat.NrTranslated,
+    APoFamilyStats.Add(AStat.PoName, AStat.NrTotal, AStat.NrTranslated,
                        AStat.NrUntranslated, AStat.NrFuzzy, AStat.NrErrors);
   end;
 end;
@@ -314,7 +372,7 @@ begin
   FMaster.Free;
   FMaster := nil;
   FMasterName := '';
-  if (AValue <> '') then FMaster := TPOFile.Create(AValue, True);
+  if (AValue <> '') then FMaster := TPOFile.Create(AValue, True, False);
   FMasterName := AValue;
 end;
 
@@ -345,25 +403,34 @@ begin
   FChild.Free;
   FChild := nil;
   FChildName := '';
-  if (AValue <> '') then FChild := TPOFile.Create(AValue, True);
+  if (AValue <> '') then FChild := TPOFile.Create(AValue, True, False);
   FChildName := AValue;
 end;
 
-constructor TPoFamily.Create(const AMasterName, AChildName: String; ALangID: TLangID);
+constructor TPoFamily.Create;
+begin
+  Create('','');
+end;
+
+constructor TPoFamily.Create(const MasterName: String);
+begin
+  Create(MasterName, '');
+end;
+
+constructor TPoFamily.Create(const AMasterName, AChildName: String);
 begin
   if (AMasterName <> '') then
   begin
-    FMaster := TPOFile.Create(AMasterName, True);
+    FMaster := TPOFile.Create(AMasterName, True, False);
     FMasterName := AMasterName;
     //debugln('TPoFamily.Create: created ',FMasterName);
   end;
   if (AChildName <> '') then
   begin
-    FChild := TPOFile.Create(AChildName, True);
+    FChild := TPOFile.Create(AChildName, True, False);
     FChildName := AChildName;
     //debugln('TPoFamily.Create: created ',FChildName);
   end;
-  FLangID := ALangID;
   FPoFamilyStats := TPoFamilyStats.Create;
 end;
 
@@ -404,6 +471,7 @@ procedure TPoFamily.CheckFormatArgs(out ErrorCount, NonFuzzyErrorCount: Integer
 var
   i: Integer;
   CPoItem: TPOFileItem;
+  IsFuzzy: Boolean;
   IsBadFormat: Boolean;
 begin
   //debugln('TPoFamily.CheckFormatArgs');
@@ -412,14 +480,16 @@ begin
   NonFuzzyErrorCount := NoError;
   for i := 0 to FChild.Count - 1 do
   begin
+    //debugln('  i = ',DbgS(i));
+    //MPoItem := FMaster.PoItems[i];
     CPoItem := FChild.PoItems[i];
+    //CPoItem := FChild.FindPoItem(MPoItem.IdentifierLow);
     if Assigned(CPoItem) then
     begin
+      IsFuzzy := (Pos(sFuzzyFlag, CPoItem.Flags) > 0);
       IsBadFormat := (Pos(sBadFormatFlag, CPoItem.Flags) > 0);
-      //Check only non-virtual translations.
-      //Virtual translations can have formatting errors if copied from an item with no-object-pascal-format flag set.
-      //These translations will not be used anyway (they are fuzzy) and are physically missing in translation file.
-      if (CPoItem.VirtualTranslation = false) and (Length(CPoItem.Translation) > 0) and IsBadFormat then
+      //if (IgnoreFuzzyStrings and IsFuzzy) then debugln('Skipping fuzzy translation: ',CPoItem.Translation);
+      if (Length(CPoItem.Translation) > 0) and IsBadFormat then
       begin
         if (ErrorCount = 0) then
         begin
@@ -430,14 +500,13 @@ begin
           ErrorLog.Add('');
         end;
         Inc(ErrorCount);
-        if CPoItem.InitialFuzzyState = false then
+        if not IsFuzzy then
           Inc(NonFuzzyErrorCount);
         ErrorLog.Add(Format(sIncompatibleFormatArgs,[CPoItem.LineNr]));
         ErrorLog.Add(Format(sFormatArgsID,[sCommentIdentifier, CPoItem.IdentifierLow]));
         ErrorLog.Add(Format(sFormatArgsValues,[sMsgID,CPoItem.Original,sOriginal]));
         ErrorLog.Add(Format(sFormatArgsValues,[sMsgStr,CPoItem.Translation,sTranslation]));
-        if CPoItem.InitialFuzzyState = true then
-          ErrorLog.Add(sNoteTranslationIsFuzzy);
+        if IsFuzzy then ErrorLog.Add(sNoteTranslationIsFuzzy);
         ErrorLog.Add('');
       end;
     end;
@@ -638,7 +707,7 @@ begin
   NrTotal := NrTranslated + NrUntranslated + NrFuzzy;
   if (NrTotal > 0) then
   begin
-    FPoFamilyStats.Add(ChildName, NrTranslated, NrUntranslated, NrFuzzy, ErrorCnt);
+    FPoFamilyStats.Add(ChildName, NrTotal, NrTranslated, NrUntranslated, NrFuzzy, ErrorCnt);
   end;
   //debugln('TPoFamily.CheckIncompatibleFormatArgs: ',Dbgs(ErrorCount),' Errors');
 end;
@@ -690,7 +759,7 @@ begin
     end
   end;
 
-  if FLangID = lang_all then
+  if (ptoFindAllChildren in FTestOptions) then
   begin
     SL := FindAllTranslatedPoFiles(FMasterName);
     //We want current Child (if currently assigned) at index 0

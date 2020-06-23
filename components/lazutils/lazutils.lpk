@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="5">
+  <Package Version="4">
     <Name Value="LazUtils"/>
     <Type Value="RunAndDesignTime"/>
-    <BuildMethod Value="Both"/>
     <Author Value="Lazarus Team"/>
     <CompilerOptions>
       <Version Value="11"/>
@@ -17,7 +16,7 @@
     <Description Value="Useful units for Lazarus packages."/>
     <License Value="Modified LGPL-2"/>
     <Version Major="1"/>
-    <Files Count="103">
+    <Files Count="102">
       <Item1>
         <Filename Value="LazLoggerImpl.inc"/>
         <Type Value="Include"/>
@@ -426,24 +425,16 @@
         <Filename Value="lazutf8sysutils.pas"/>
         <UnitName Value="LazUTF8SysUtils"/>
       </Item102>
-      <Item103>
-        <Filename Value="objectlists.pas"/>
-        <UnitName Value="ObjectLists"/>
-      </Item103>
     </Files>
     <LazDoc Paths="../../docs/xml/lazutils"/>
     <i18n>
       <EnableI18N Value="True"/>
       <OutDir Value="languages"/>
     </i18n>
-    <RequiredPkgs Count="2">
+    <RequiredPkgs Count="1">
       <Item1>
-        <PackageName Value="fcl-image"/>
-        <DependencyType Value="FPMake"/>
-      </Item1>
-      <Item2>
         <PackageName Value="FCL"/>
-      </Item2>
+      </Item1>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>

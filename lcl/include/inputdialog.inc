@@ -25,7 +25,7 @@ var
   Form: TForm;
   Prompt: TLabel;
   Edit: TEdit;
-  MinEditWidth, NSpacing: integer;
+  MinEditWidth: integer;
   AMonitor: TMonitor;
 begin
   Result := False;
@@ -38,7 +38,6 @@ begin
     BorderStyle := bsDialog;
     Caption := InputCaption;
     Position := poScreenCenter;
-    NSpacing := Scale96ToScreen(6);
     Prompt := TLabel.Create(Form);
     with Prompt do
     begin
@@ -53,12 +52,12 @@ begin
       Parent := Form;
       Top := Prompt.Height;
       Align := alTop;
-      BorderSpacing.Top := NSpacing div 2;
+      BorderSpacing.Top := 3;
       AMonitor := _InputQueryActiveMonitor;
       // check that edit is smaller than our monitor, it must be smaller at least
       // by 6 * 2 pixels (spacing from window borders) + window border
       MinEditWidth := Min(AMonitor.Width - 20,
-        Max(Scale96ToScreen(cInputQueryEditSizePixels),
+        Max(cInputQueryEditSizePixels,
             AMonitor.Width * cInputQueryEditSizePercents div 100));
       Constraints.MinWidth := MinEditWidth;
       Text := Value;
@@ -84,8 +83,8 @@ begin
       Align := alTop;
     end;
 
-    ChildSizing.TopBottomSpacing := NSpacing;
-    ChildSizing.LeftRightSpacing := NSpacing;
+    ChildSizing.TopBottomSpacing := 6;
+    ChildSizing.LeftRightSpacing := 6;
     AutoSize := True;
 
     // upon show, the edit control will be focused for editing, because it's

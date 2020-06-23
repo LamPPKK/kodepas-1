@@ -1,10 +1,10 @@
-{ $Id$ }
+{ $Id: qtproc.pp 56639 2017-12-05 21:30:51Z juha $ }
 {
                   ----------------------------------
                    qtproc.pp  -  qt interface procs
                   ----------------------------------
 
- @lastmod($Date$)
+ @lastmod($Date: 2017-12-05 22:30:51 +0100 (Di, 05 Dez 2017) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)
 
  This unit contains procedures/functions needed for the qt <-> LCL interface

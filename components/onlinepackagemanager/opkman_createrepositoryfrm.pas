@@ -28,7 +28,7 @@ unit opkman_createrepositoryfrm;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, fpjson, laz.VirtualTrees,
+  Classes, SysUtils, FileUtil, fpjson, VirtualTrees,
   // LCL
   Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, Buttons, Menus,
@@ -37,7 +37,7 @@ uses
   // LazUtils
   LazFileUtils, LazUTF8,
   // OpkMan
-  opkman_serializablepackages, opkman_maindm;
+  opkman_serializablepackages;
 
 type
 
@@ -58,6 +58,7 @@ type
     bDelete: TBitBtn;
     bOpen: TButton;
     bCreate: TButton;
+    imTree: TImageList;
     miRepDetails: TMenuItem;
     ODRep: TOpenDialog;
     pnButtons: TPanel;
@@ -78,8 +79,8 @@ type
     procedure pnButtonsResize(Sender: TObject);
     procedure tmWaitTimer(Sender: TObject);
   private
-    FVSTPackages: TLazVirtualStringTree;
-    FVSTDetails: TLazVirtualStringTree;
+    FVSTPackages: TVirtualStringTree;
+    FVSTDetails: TVirtualStringTree;
     FRepository: TRepository;
     FSortDirection: TSortDirection;
     FSerializablePackages: TSerializablePackages;
@@ -167,12 +168,8 @@ begin
   bOpen.Hint := rsCreateRepositoryFrm_bOpen_Hint;
   bAdd.Caption := rsCreateRepositoryFrm_bAdd_Caption;
   bAdd.Hint := rsCreateRepositoryFrm_bAdd_Hint;
-  bAdd.Images := MainDM.Images;
-  bAdd.ImageIndex := IMG_PKG_PLUS;
   bDelete.Caption := rsCreateRepositoryFrm_bDelete_Caption;
   bDelete.Hint := rsCreateRepositoryFrm_bDelete_Hint;
-  bDelete.Images := MainDM.Images;
-  bDelete.ImageIndex := IMG_PKG_MINUS;
   bCancel.Caption := rsCreateRepositoryFrm_bCancel_Caption;
   bCancel.Hint := rsCreateRepositoryFrm_bCancel_Hint;
   miRepDetails.Caption := rsCreateRepositoryFrm_miRepDetails_Caption;
@@ -181,25 +178,25 @@ begin
   ShowHideControls(0);
 
   FSerializablePackages := TSerializablePackages.Create;
-  FVSTPackages := TLazVirtualStringTree.Create(nil);
+  FVSTPackages := TVirtualStringTree.Create(nil);
   with FVSTPackages do
   begin
     NodeDataSize := SizeOf(TData);
     Parent := pnPackages;
     Align := alClient;
-    Images := MainDM.Images;
+    Images := imTree;
     if not Options.UseDefaultTheme then
       Color := clBtnFace;
-    DefaultNodeHeight := Scale96ToForm(25);
-    Indent := Scale96ToForm(15);
+    DefaultNodeHeight := 25;
+    Indent := 15;
     TabOrder := 1;
     DefaultText := '';
     Header.AutoSizeIndex := 0;
-    Header.Height := Scale96ToForm(25);
+    Header.Height := 25;
     Colors.BorderColor := clBlack;
     with Header.Columns.Add do begin
       Position := 0;
-      Width := Scale96ToForm(300);
+      Width := 300;
       Text := rsCreateRepositoryFrm_VSTPackages_Column0;
     end;
     Header.Options := [hoAutoResize, hoColumnResize, hoRestrictDrag, hoVisible, hoAutoSpring];
@@ -222,30 +219,30 @@ begin
     OnFreeNode := @VSTPackagesFreeNode;
   end;
 
-  FVSTDetails := TLazVirtualStringTree.Create(nil);
+  FVSTDetails := TVirtualStringTree.Create(nil);
   with FVSTDetails do
   begin
     NodeDataSize := SizeOf(TData);
     Parent := pnDetails;
     Align := alClient;
-    Images := MainDM.Images;
+    Images := imTree;
     if not Options.UseDefaultTheme then
       Color := clBtnFace;
-    DefaultNodeHeight := Scale96ToForm(25);
-    Indent := Scale96ToForm(15);
+    DefaultNodeHeight := 25;
+    Indent := 15;
     TabOrder := 0;
     DefaultText := '';
     Header.AutoSizeIndex := 1;
-    Header.Height := Scale96ToForm(25);
+    Header.Height := 25;
     Colors.BorderColor := clBlack;
     with Header.Columns.Add do begin
       Position := 0;
-      Width := Scale96ToForm(200);
+      Width := 200;
       Text := rsCreateRepositoryFrm_VSTDetails_Column0;
     end;
     with Header.Columns.Add do begin
       Position := 1;
-      Width := Scale96ToForm(250);
+      Width := 250;
       Text := rsCreateRepositoryFrm_VSTDetails_Column1;
     end;
     Header.Options := [hoAutoResize, hoColumnResize, hoRestrictDrag, hoVisible, hoAutoSpring];
@@ -825,14 +822,14 @@ begin
       if (SortColumn = NoColumn) or (SortColumn <> HitInfo.Column) then
       begin
         SortColumn    := HitInfo.Column;
-        SortDirection := laz.VirtualTrees.sdAscending;
+        SortDirection := VirtualTrees.sdAscending;
       end
       else
       begin
-        if SortDirection = laz.VirtualTrees.sdAscending then
-          SortDirection := laz.VirtualTrees.sdDescending
+        if SortDirection = VirtualTrees.sdAscending then
+          SortDirection := VirtualTrees.sdDescending
         else
-          SortDirection := laz.VirtualTrees.sdAscending;
+          SortDirection := VirtualTrees.sdAscending;
       end;
       SortTree(SortColumn, SortDirection, False);
       FSortDirection := SortDirection;

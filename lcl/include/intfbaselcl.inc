@@ -1,5 +1,5 @@
 {%MainUnit ../interfacebase.pp}
-{ $Id$
+{ $Id: intfbaselcl.inc 58530 2018-07-15 10:23:43Z martin $
  ******************************************************************************
                                   TWidgetSet
 
@@ -331,6 +331,12 @@ end;
 function TWidgetSet.TextUTF8Out(DC: HDC; X, Y: Integer; Str: PChar; Count: Longint): Boolean;
 begin
   Result:=TextOut(DC,X,Y,Str,Count);
+end;
+
+
+function TWidgetSet.FontCanUTF8(Font: HFont): boolean;
+begin
+  Result:=false;
 end;
 
 function TWidgetSet.FontIsMonoSpace(Font: HFont): boolean;

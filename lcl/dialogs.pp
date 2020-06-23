@@ -978,6 +978,9 @@ initialization
   InterfaceBase.PromptDialogFunction := @DefaultPromptDialog;
   InterfaceBase.QuestionDialogFunction := @DefaultQuestionDialog;
 
+  RegisterPropertyToSkip(TCommonDialog, 'Width', 'Property streamed in older Lazarus revision','');
+  RegisterPropertyToSkip(TCommonDialog, 'Height', 'Property streamed in older Lazarus revision','');
+
 finalization
   InterfaceBase.InputDialogFunction := nil;
   InterfaceBase.QuestionDialogFunction := nil;

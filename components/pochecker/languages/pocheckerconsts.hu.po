@@ -120,7 +120,6 @@ msgid "All Languages"
 msgstr "Minden nyelv"
 
 #: pocheckerconsts.scannotwritefileyoucanpressretrytorefreshthistransl
-#, object-pascal-format
 msgid "Cannot write file%s%s%s%sYou can press \"Retry\" to refresh this translation family again and continue."
 msgstr "Nem lehet írni a fájlt:%s%s%s%sAz \"Újra\" gombot megnyomva ismét frissítheti ezt a fordításcsaládot és folytathatja."
 
@@ -149,22 +148,18 @@ msgid "&Copy"
 msgstr "Másolás"
 
 #: pocheckerconsts.screatingiconxofy
-#, object-pascal-format
 msgid "Creating icon nr. %d of %d"
 msgstr "Ikon létrehozása: %d / %d"
 
 #: pocheckerconsts.scurrenttest
-#, object-pascal-format
 msgid "Test: %s on %s"
 msgstr "Tesztelés: %s --> %s"
 
 #: pocheckerconsts.sduplicatelinenrwithvalue
-#, object-pascal-format
 msgid "[Line %d] %s"
 msgstr "[Sor: %d] %s"
 
 #: pocheckerconsts.sduplicateoriginals
-#, object-pascal-format
 msgid "Original value \"%s\" is used for more than 1 entry:"
 msgstr "Az eredeti érték (\"%s\") egynél több bejegyzésben szerepel:"
 
@@ -172,31 +167,45 @@ msgstr "Az eredeti érték (\"%s\") egynél több bejegyzésben szerepel:"
 msgid "Duplicate Originals"
 msgstr "Ismétlődő eredeti szövegek"
 
+#: pocheckerconsts.serroroncleanup
+msgid ""
+"An unrecoverable error occurred\n"
+"%s\n"
+"Please close the program\n"
+msgstr ""
+"Helyrehozhatatlan hiba történt\n"
+"%s\n"
+"Zárja be a programot!\n"
+
+#: pocheckerconsts.serroroncreate
+msgid ""
+"Error creating an instance of TPoFamily:\n"
+"%s\n"
+msgstr ""
+"Nem sikerült létrehozni egy TPoFamily példányt:\n"
+"%s\n"
+
 #: pocheckerconsts.serrorsbytest
-#, object-pascal-format
 msgid "Errors / warnings reported by %s for:"
 msgstr "A(z) %s hibákat / figyelmeztetéseket jelzett ezzel kapcsolatban:"
 
 #: pocheckerconsts.sfile
-#, object-pascal-format
 msgid "File %s"
 msgstr "Fájl: %s"
 
 #: pocheckerconsts.sfilesnotfoundandremoved
-#, object-pascal-format
 msgid ""
 "The following non-existent files were removed from the list:\n"
-"%s"
+"%s\n"
 msgstr ""
 "A következő nem létező fájlok el lettek távolítva a listából:\n"
-"%s"
+"%s\n"
 
 #: pocheckerconsts.sfuzzystrings
 msgid "Fuzzy strings"
 msgstr "Bizonytalan szövegek"
 
 #: pocheckerconsts.sfuzzystringstotal
-#, object-pascal-format
 msgid "Fuzzy strings (total: %s)"
 msgstr "Bizonytalan szövegek (összesen: %s)"
 
@@ -213,12 +222,10 @@ msgid "GUI Po-file checking tool"
 msgstr "GUI PO-fájl ellenőrző eszköz"
 
 #: pocheckerconsts.sidentifiernotfoundin
-#, object-pascal-format
 msgid "Identifier [%s] not found in %s"
 msgstr "A(z) %s azonosító nem található ebben: %s"
 
 #: pocheckerconsts.sincompatibleformatargs
-#, object-pascal-format
 msgid "[Line: %d] Incompatible and/or invalid format() arguments for:"
 msgstr "[Sor: %d] Nem megfelelő és/vagy érvénytelen format() paraméterek a következőben:"
 
@@ -231,19 +238,20 @@ msgid "Last search path:"
 msgstr "Legutóbbi keresési útvonal:"
 
 #: pocheckerconsts.slineinfilename
-#, object-pascal-format
 msgid "[Line %d] in %s:"
 msgstr "[Sor %d] ebben: %s:"
 
 #: pocheckerconsts.slinenr
-#, object-pascal-format
 msgid "[Line: %d]"
 msgstr "[Sor: %d]"
 
 #: pocheckerconsts.smissingmasteridentifier
-#, object-pascal-format
 msgid "Identifier [%s] found in %s, but it does not exist in %s"
 msgstr "A(z) [%s] azonosító megtalálható itt: %s, de nem található meg itt: %s"
+
+#: pocheckerconsts.snofileslefttocheck
+msgid "There are no files left to check."
+msgstr "Nincsenek további ellenőrzendő fájlok."
 
 #: pocheckerconsts.snotestselected
 msgid "There are no tests selected."
@@ -254,7 +262,6 @@ msgid "Note: translation is fuzzy"
 msgstr "Megjegyzés: a fordítás bizonytalan"
 
 #: pocheckerconsts.snrerrorsfound
-#, object-pascal-format
 msgid "Found %d errors."
 msgstr "%d hiba."
 
@@ -263,36 +270,32 @@ msgid "Mismatch in number of items for master and child"
 msgstr "Az használt elemek száma nem egyezik meg az eredetivel"
 
 #: pocheckerconsts.snrofitemsmismatchd
-#, object-pascal-format
 msgid "%s: %d items"
 msgstr "%s: %d elem"
 
 #: pocheckerconsts.snrwarningsfound
-#, object-pascal-format
 msgid "Found %d warnings."
 msgstr "%d figyelmeztetés."
 
 #: pocheckerconsts.sopenfail
-#, object-pascal-format
 msgid ""
 "Unable to open file:\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 "A fájl nem nyitható meg:\n"
-"\"%s\""
+"\"%s\"\n"
 
 #: pocheckerconsts.sopenfailexternal
-#, object-pascal-format
 msgid ""
 "Unable to open file\n"
 "\"%s\"\n"
 "in external editor\n"
-"\"%s\""
+"\"%s\"\n"
 msgstr ""
 "A fájl nem nyitható meg a külső szerkesztőben:\n"
 "\"%s\"\n"
 "Külső szerkesztő:\n"
-"\"%s\""
+"\"%s\"\n"
 
 #: pocheckerconsts.sopenfileinexternaleditor
 msgid "Open file in external editor"
@@ -311,17 +314,14 @@ msgid "Original"
 msgstr "Eredeti"
 
 #: pocheckerconsts.spercfuzzy
-#, object-pascal-format
 msgid "%s: %5.1f%% fuzzy strings."
 msgstr "%s: %5.1f%% bizonytalan szöveg."
 
 #: pocheckerconsts.sperctranslated
-#, object-pascal-format
 msgid "%s: %5.1f%% translated strings."
 msgstr "%s: %5.1f%% lefordított szöveg."
 
 #: pocheckerconsts.spercuntranslated
-#, object-pascal-format
 msgid "%s: %5.1f%% untranslated strings."
 msgstr "%s: %5.1f%% lefordítatlan szöveg."
 
@@ -330,7 +330,6 @@ msgid "Processing translation family..."
 msgstr "Fordításcsalád feldolgozása..."
 
 #: pocheckerconsts.sprocessingtranslationfamilyof
-#, object-pascal-format
 msgid "Processing translation family %s of %s"
 msgstr "Fordításcsalád feldolgozása: %s / %s"
 
@@ -355,13 +354,12 @@ msgid "Save &As ..."
 msgstr "Mentés másként..."
 
 #: pocheckerconsts.ssaveerror
-#, object-pascal-format
 msgid ""
 "Error saving file:\n"
-"%s"
+"%s\n"
 msgstr ""
 "Hiba a fájl mentésekor:\n"
-"%s"
+"%s\n"
 
 #: pocheckerconsts.sscandir
 msgid "Scan a folder"
@@ -379,10 +377,6 @@ msgstr "Minden fájl kijelölése"
 msgid "Select &All"
 msgstr "Összes kijelölése"
 
-#: pocheckerconsts.sselectedtranslationsarenotavailable
-msgid "Selected translations are not available."
-msgstr ""
-
 #: pocheckerconsts.sselecttesttypes
 msgid "Select test types"
 msgstr "Teszt típusok kiválasztása"
@@ -392,55 +386,46 @@ msgid "Show statistics graph"
 msgstr "Statisztika grafikus megjelenítése"
 
 #: pocheckerconsts.sstathint
-#, object-pascal-format
 msgid ""
 "Translated: %d (%.1f%%)\n"
 "Untranslated: %d (%.1f%%)\n"
 "Fuzzy: %d (%.1f%%)\n"
-"Errors in selected tests: %d"
+"Errors in selected tests: %d\n"
 msgstr ""
 "Lefordítva: %d (%.1f%%)\n"
 "Nincs lefordítva: %d (%.1f%%)\n"
 "Bizonytalan: %d (%.1f%%)\n"
-"Hibák száma a kiválasztott tesztekben: %d"
+"Hibák száma a kiválasztott tesztekben: %d\n"
 
 #: pocheckerconsts.sthefollowingmissingmasterpofileswereremoved
-#, object-pascal-format
 msgid "The following %s missing master .po file(s) were removed from the list:"
 msgstr "A következő %s hiányzó mester .po fájl el lett távolítva a listából:"
 
 #: pocheckerconsts.sthefollowingorphanedpofilesfound
-#, object-pascal-format
 msgid "The following %s orphaned .po file(s) found:"
 msgstr "A következő %s elárvult .po fájl található:"
 
 #: pocheckerconsts.stotalerrors
-#, object-pascal-format
 msgid "Total errors: %d"
 msgstr "Összes hiba: %d"
 
 #: pocheckerconsts.stotalerrorsnonfuzzy
-#, object-pascal-format
 msgid "Total errors: %d (formatting errors in non-fuzzy strings: %d)"
 msgstr "Összes hiba: %d (formázási hibák a bizonytalan szövegekben: %d)"
 
 #: pocheckerconsts.stotalfuzzystrings
-#, object-pascal-format
 msgid "Total fuzzy strings: %s"
 msgstr "Összes bizonytalan szöveg: %s"
 
 #: pocheckerconsts.stotaltranslatedstrings
-#, object-pascal-format
 msgid "Total translated strings: %s (%.1f%%)"
 msgstr "Összes lefordított szöveg: %s (%.1f%%)"
 
 #: pocheckerconsts.stotaluntranslatedstrings
-#, object-pascal-format
 msgid "Total untranslated strings: %s"
 msgstr "Összes lefordítatlan szöveg: %s"
 
 #: pocheckerconsts.stotalwarnings
-#, object-pascal-format
 msgid "Total warnings: %d"
 msgstr "Összes figyelmeztetés: %d"
 
@@ -449,7 +434,6 @@ msgid "Translated strings"
 msgstr "Lefordított szövegek"
 
 #: pocheckerconsts.stranslatedstringstotal
-#, object-pascal-format
 msgid "Translated strings (total: %s [%.1f%%])"
 msgstr "Lefordított szövegek (összesen: %s [%.1f%%])"
 
@@ -478,7 +462,6 @@ msgid "Untranslated strings"
 msgstr "Lefordítatlan szövegek"
 
 #: pocheckerconsts.suntranslatedstringstotal
-#, object-pascal-format
 msgid "Untranslated strings (total: %s)"
 msgstr "Lefordítatlan szövegek (összesen: %s)"
 

@@ -1,11 +1,11 @@
-{ $Id$ }
+{ $Id: sshgdbmidebugger.pas 58283 2018-06-15 19:23:52Z martin $ }
 {              ----------------------------------------------
                 SSHGDBDebugger.pp  -  Debugger class for GDB
                                       through SSH
                ----------------------------------------------
 
  @created(Wed Jul 23rd WET 2003)
- @lastmod($Date$)
+ @lastmod($Date: 2018-06-15 21:23:52 +0200 (Fr, 15 Jun 2018) $)
  @author(Marc Weustink <marc@@lazarus.dommelstein.net>)
 
  This unit contains the debugger class for the GDB/MI debugger through SSH.
@@ -37,23 +37,14 @@ unit SSHGDBMIDebugger;
 interface
 
 uses
-  Classes, SysUtils,
-  // LCL
-  Dialogs, Controls, Graphics,
-  // LazUtils
-  LazStringUtils,
-  // IdeIntf
-  PropEdits,
-  // DebuggerIntf
-  DbgIntfDebuggerBase,
-  // LazDebuggerGdbmi
-  GDBMIDebugger, GdbmiStringConstants;
-
+  Classes, SysUtils, Dialogs, Controls, GDBMIDebugger, PropEdits,
+  DbgIntfDebuggerBase, Graphics, LCLProc, GdbmiStringConstants;
+  
 type
 
   { TSSHGDBMIDebugger }
 
-  TSSHGDBMIDebugger = class(TGDBMIDebuggerBase)
+  TSSHGDBMIDebugger = class(TGDBMIDebugger)
   private
   protected
     function ParseInitialization: Boolean; override;
@@ -101,7 +92,6 @@ type
     property InternalStartBreak;
     property UseNoneMiRunCommands;
     property DisableLoadSymbolsForLibraries;
-    property DisableForcedBreakpoint;
     //property WarnOnSetBreakpointError;
     property CaseSensitivity;
     property GdbValueMemLimit;
@@ -109,9 +99,6 @@ type
     property AssemblerStyle;
     property DisableStartupShell;
     property FixStackFrameForFpcAssert;
-    property FixIncorrectStepOver;
-    property InternalExceptionBreakPoints;
-    property InternalExceptionBrkSetMethod;
   end;
 
 procedure Register;

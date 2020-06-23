@@ -1,18 +1,19 @@
 unit FpPascalBuilder;
 
 {$mode objfpc}{$H+}
-{$TYPEDADDRESS on}
 
 interface
 
 uses
-  Classes, SysUtils, DbgIntfBaseTypes, DbgIntfDebuggerBase, FpDbgInfo,
-  FpdMemoryTools, FpErrorMessages, FpDbgDwarfDataClasses, FpDbgDwarf,
-  LazLoggerBase, LazUTF8, LazClasses;
+  Classes, SysUtils, DbgIntfBaseTypes, DbgIntfDebuggerBase, FpDbgInfo, FpdMemoryTools,
+  FpErrorMessages, LazLoggerBase, LazUTF8;
 
 type
   TTypeNameFlag = (
-    tnfOnlyDeclared    // do not return a substitute with ^ symbol
+    tnfOnlyDeclared,    // do not return a substitute with ^ symbol
+    tnfIncludeOneRef    // If it is a pointer, and the pointed-to name is known, return ^TXxx
+                        //   without tnfOnlyDeclared, may return ^^^TXxx if needed
+
   );
   TTypeNameFlags = set of TTypeNameFlag;
 
@@ -52,7 +53,7 @@ type
     FAddressSize: Integer;
     FMemManager: TFpDbgMemManager;
     function InternalPrintValue(out APrintedValue: String;
-                                AValue: TFpValue;
+                                AValue: TFpDbgValue;
                                 AnAddressSize: Integer;
                                 AFlags: TFpPrettyPrintValueFlags;
                                 ANestLevel: Integer; AnIndent: String;
@@ -64,14 +65,14 @@ type
   public
     constructor Create(AnAddressSize: Integer);
     function PrintValue(out APrintedValue: String;
-                        AValue: TFpValue;
+                        AValue: TFpDbgValue;
                         ADisplayFormat: TWatchDisplayFormat = wdfDefault;
                         ARepeatCount: Integer = -1;
                         AOptions: TFpPrettyPrintOptions = []
                        ): Boolean;
     function PrintValue(out APrintedValue: String;
                         out ADBGTypeInfo: TDBGType;
-                        AValue: TFpValue;
+                        AValue: TFpDbgValue;
                         ADisplayFormat: TWatchDisplayFormat = wdfDefault;
                         ARepeatCount: Integer = -1
                        ): Boolean;
@@ -81,25 +82,24 @@ type
 
 
 
-function GetTypeName(out ATypeName: String; ADbgSymbol: TFpSymbol; AFlags: TTypeNameFlags = []): Boolean;
-function GetTypeAsDeclaration(out ATypeDeclaration: String; ADbgSymbol: TFpSymbol;
+function GetTypeName(out ATypeName: String; ADbgSymbol: TFpDbgSymbol; AFlags: TTypeNameFlags = []): Boolean;
+function GetTypeAsDeclaration(out ATypeDeclaration: String; ADbgSymbol: TFpDbgSymbol;
   AFlags: TTypeDeclarationFlags = []; AnIndent: Integer = 0): Boolean;
 
 function QuoteText(AText: Utf8String): UTf8String;
 
 implementation
 
-function GetTypeName(out ATypeName: String; ADbgSymbol: TFpSymbol;
+function GetTypeName(out ATypeName: String; ADbgSymbol: TFpDbgSymbol;
   AFlags: TTypeNameFlags): Boolean;
 var
   s: String;
-  sym: TFpSymbol;
 begin
   ATypeName := '';
   Result := ADbgSymbol <> nil;
   if not Result then
     exit;
-  if (ADbgSymbol.SymbolType = stValue) then begin
+  if ADbgSymbol.SymbolType = stValue then begin
     ADbgSymbol := ADbgSymbol.TypeInfo;
     Result := ADbgSymbol <> nil;
     if not Result then
@@ -109,55 +109,31 @@ begin
   ATypeName := ADbgSymbol.Name;
   Result := ATypeName <> '';
 
-  if Result then
-    exit;
-
-  ATypeName := '';
-  sym := ADbgSymbol;
-  while (sym.Kind = skPointer) and (sym.TypeInfo <> nil) do begin
-    ATypeName := ATypeName + '^';
-    sym := sym.TypeInfo;
-    s := sym.Name;
-    if s <> '' then begin
-      ATypeName := ATypeName + s;
-      Result := True;
-      exit;
-    end;
-  end;
-
-  Result := True;
-  case ADbgSymbol.Kind of
-    skInstance:     ATypeName := '{class}';
-    skProcedure:    ATypeName := '{procedure}';
-    skFunction:     ATypeName := '{function}';
-    skProcedureRef: ATypeName := '{procedure}';
-    skFunctionRef:  ATypeName := '{function}';
-    skPointer:      ATypeName := '{pointer}';
-    skInteger:      ATypeName := '{signed int}';
-    skCardinal:     ATypeName := '{unsigned int}';
-    skBoolean:      ATypeName := '{boolean}';
-    skChar:         ATypeName := '{char}';
-    skFloat:        ATypeName := '{float}';
-    skString:       ATypeName := '{string}';
-    skAnsiString:   ATypeName := '{string}';
-    skCurrency:     ATypeName := '{currency}';
-    skVariant:      ATypeName := '{variant}';
-    skWideString:   ATypeName := '{widestring}';
-    skEnum:         ATypeName := '{enum}';
-    skSet:          ATypeName := '{set}';
-    skRecord:       ATypeName := '{record}';
-    skObject:       ATypeName := '{object}';
-    skClass:        ATypeName := '{class}';
-    skInterface:    ATypeName := '{interface}';
-    else begin
-        ATypeName := '';
-        Result := False;
+  if (tnfIncludeOneRef in AFlags) or
+     ((not Result) and (not (tnfOnlyDeclared in AFlags)))
+  then begin
+    ATypeName := '^';
+    while ADbgSymbol.Kind = skPointer do begin
+      ADbgSymbol := ADbgSymbol.TypeInfo;
+      s := ADbgSymbol.Name;
+      if s <> '' then begin
+        ATypeName := ATypeName + s;
+        Result := True;
+        exit;
       end;
+
+      if (tnfOnlyDeclared in AFlags) then // only one level
+        exit;
+      ATypeName := ATypeName + '^';
+    end;
+
+    ATypeName := '';
+    Result := False;
   end;
 
 end;
 
-function GetTypeAsDeclaration(out ATypeDeclaration: String; ADbgSymbol: TFpSymbol;
+function GetTypeAsDeclaration(out ATypeDeclaration: String; ADbgSymbol: TFpDbgSymbol;
   AFlags: TTypeDeclarationFlags; AnIndent: Integer): Boolean;
 var
   IndentString: String;
@@ -206,26 +182,23 @@ var
 
   var
     c, i: Integer;
-    m: TFpSymbol;
+    m: TFpDbgSymbol;
     s: String;
-    r: Boolean;
   begin
     Result := True;
     AText := '';
     ANewFlags := ANewFlags + AFlags;
-    c := ADbgSymbol.NestedSymbolCount;
+    c := ADbgSymbol.MemberCount;
     i := 0;
     while (i < c) and Result do begin
-      m := ADbgSymbol.NestedSymbol[i];
+      m := ADbgSymbol.Member[i];
       AddVisibility(m.MemberVisibility, i= 0);
       if tdfStopAfterPointer in ANewFlags then
-        r := GetTypeName(s, m)
+        Result := GetTypeName(s, m)
       else
-        r := GetTypeAsDeclaration(s, m, [tdfIncludeVarName, tdfStopAfterPointer] + ANewFlags, AnIndent + 4);
-      if r then
-        AText := AText + GetIndent + s + ';' + LineEnding
-      else
-        AText := AText + m.Name + ': <unknown>;' + LineEnding;
+        Result := GetTypeAsDeclaration(s, m, [tdfIncludeVarName, tdfStopAfterPointer] + ANewFlags, AnIndent + 4);
+      if Result then
+        AText := AText + GetIndent + s + ';' + LineEnding;
       inc(i);
     end;
   end;
@@ -255,27 +228,26 @@ var
   function GetBaseType(out ADeclaration: String): Boolean;
   var
     s1, s2: String;
-    hb, lb: Int64;
   begin
     if sfSubRange in ADbgSymbol.Flags then begin
       case ADbgSymbol.Kind of
         // TODO: check bound are in size
         skInteger: begin
-            Result := ADbgSymbol.GetValueBounds(nil, lb, hb);
-            if Result then ADeclaration := Format('%d..%d', [lb, hb]);
+            Result := ADbgSymbol.HasBounds;
+            if Result then ADeclaration := Format('%d..%d', [ADbgSymbol.OrdLowBound, ADbgSymbol.OrdHighBound]);
           end;
         skCardinal: begin
-            Result := ADbgSymbol.GetValueBounds(nil, lb, hb);
-            if Result then ADeclaration := Format('%u..%u', [QWord(lb), QWord(hb)]);
+            Result := ADbgSymbol.HasBounds;
+            if Result then ADeclaration := Format('%u..%u', [QWord(ADbgSymbol.OrdLowBound), QWord(ADbgSymbol.OrdHighBound)]);
           end;
         skChar: begin
-            Result := ADbgSymbol.GetValueBounds(nil, lb, hb);
-            if (lb >= 32) and (hb <= 126)
-            then s1 := '''' + chr(lb) + ''''
-            else s1 := '#'+IntToStr(lb);
-            if (hb >= 32) and (hb <= 126)
-            then s2 := '''' + chr(hb) + ''''
-            else s2 := '#'+IntToStr(hb);
+            Result := ADbgSymbol.HasBounds;
+            if (ADbgSymbol.OrdLowBound >= 32) and (ADbgSymbol.OrdLowBound <= 126)
+            then s1 := '''' + chr(ADbgSymbol.OrdLowBound) + ''''
+            else s1 := '#'+IntToStr(ADbgSymbol.OrdLowBound);
+            if (ADbgSymbol.OrdHighBound >= 32) and (ADbgSymbol.OrdHighBound <= 126)
+            then s2 := '''' + chr(ADbgSymbol.OrdHighBound) + ''''
+            else s2 := '#'+IntToStr(ADbgSymbol.OrdHighBound);
             if Result then ADeclaration := Format('%s..%s', [s1, s2]);
           end;
         else
@@ -286,53 +258,21 @@ var
       Result := GetTypeName(ADeclaration, ADbgSymbol, []);
   end;
 
-  function GetParameterList(out ADeclaration: String): Boolean;
-  var
-    i: Integer;
-    m: TFpSymbol;
-    name, lname: String;
-  begin
-    ADeclaration := '';
-    lname := '';
-    for i := 0 to ADbgSymbol.NestedSymbolCount - 1 do begin
-      m := ADbgSymbol.NestedSymbol[i];
-      if (m <> nil) and (sfParameter in m.Flags) then begin
-        GetTypeName(name, m, [tnfOnlyDeclared]);
-        if (lname <> '') then begin
-          if (lname = name) then
-            ADeclaration := ADeclaration + ', '
-          else
-            ADeclaration := ADeclaration + ': ' + lname + '; ';
-        end
-        else
-        if ADeclaration <> '' then
-          ADeclaration := ADeclaration + '; ';
-        ADeclaration := ADeclaration + m.Name;
-        lname := name;
-      end;
-    end;
-    if (lname <> '') then
-      ADeclaration := ADeclaration + ': ' + lname;
-    Result := True;
-  end;
-
   function GetFunctionType(out ADeclaration: String): Boolean;
   var
-    s, p: String;
+    s: String;
   begin
+    // Todo param
     GetTypeAsDeclaration(s, ADbgSymbol.TypeInfo, AFlags);
-    GetParameterList(p);
-    ADeclaration := 'function ' + '(' + p + '): ' + s + '';
+    ADeclaration := 'function ' + ADbgSymbol.Name + ' () : ' + s + '';
     if sfVirtual in ADbgSymbol.Flags then ADeclaration := ADeclaration + '; virtual';
     Result := true;
   end;
 
   function GetProcedureType(out ADeclaration: String): Boolean;
-  var
-    p: String;
   begin
-    GetParameterList(p);
-    ADeclaration := 'procedure ' + '(' + p + ')';
+    // Todo param
+    ADeclaration := 'procedure ' + ADbgSymbol.Name + ' ()';
     if sfVirtual in ADbgSymbol.Flags then ADeclaration := ADeclaration + '; virtual';
     Result := true;
   end;
@@ -375,14 +315,14 @@ var
   function GetEnumType(out ADeclaration: String): Boolean;
   var
     i, j, val: Integer;
-    m: TFpSymbol;
+    m: TFpDbgSymbol;
   begin
     // TODO assigned value (a,b:=3,...)
     Result := True;
     ADeclaration := '(';
     j := 0;
-    for i := 0 to ADbgSymbol.NestedSymbolCount - 1 do begin
-      m := ADbgSymbol.NestedSymbol[i];
+    for i := 0 to ADbgSymbol.MemberCount - 1 do begin
+      m := ADbgSymbol.Member[i];
       if i > 0 then ADeclaration := ADeclaration + ', ';
       ADeclaration := ADeclaration + m.Name;
       if m.HasOrdinalValue then begin
@@ -400,9 +340,8 @@ var
 
   function GetSetType(out ADeclaration: String): Boolean;
   var
-    t: TFpSymbol;
+    t: TFpDbgSymbol;
     s: String;
-    lb, hb: Int64;
   begin
     // TODO assigned value (a,b:=3,...)
     t := ADbgSymbol.TypeInfo;
@@ -411,12 +350,12 @@ var
 
     case t.Kind of
       skInteger: begin
-          Result := t.GetValueBounds(nil, lb, hb);
-          ADeclaration := format('set of %d..%d', [lb, hb]);
+          Result := t.HasBounds;
+          ADeclaration := format('set of %d..%d', [t.OrdLowBound, t.OrdHighBound]);
         end;
       skCardinal: begin
-          Result := t.GetValueBounds(nil, lb, hb);
-          ADeclaration := format('set of %u..%u', [QWord(lb), QWord(hb)]);
+          Result := t.HasBounds;
+          ADeclaration := format('set of %u..%u', [QWord(t.OrdLowBound), QWord(t.OrdHighBound)]);
         end;
       skEnum: begin
           if t.Name <> '' then begin
@@ -434,10 +373,9 @@ var
 
   function GetArrayType(out ADeclaration: String): Boolean;
   var
-    t: TFpSymbol;
+    t: TFpDbgSymbol;
     s: String;
     i: Integer;
-    lb, hb: Int64;
   begin
     // TODO assigned value (a,b:=3,...)
     t := ADbgSymbol.TypeInfo;
@@ -461,14 +399,13 @@ var
     end
     else begin
       ADeclaration := 'array [';
-      for i := 0 to ADbgSymbol.NestedSymbolCount - 1 do begin
+      for i := 0 to ADbgSymbol.MemberCount - 1 do begin
         if i > 0 then
           ADeclaration := ADeclaration + ', ';
-        t := ADbgSymbol.NestedSymbol[i];
-        t.GetValueBounds(nil, lb, hb);
+        t := ADbgSymbol.Member[i];
         if t.Kind = skCardinal
-        then ADeclaration := ADeclaration + Format('%u..%u', [QWord(lb), QWord(hb)])
-        else ADeclaration := ADeclaration + Format('%d..%d', [lb, hb]);
+        then ADeclaration := ADeclaration + Format('%u..%u', [QWord(t.OrdLowBound), QWord(t.OrdHighBound)])
+        else ADeclaration := ADeclaration + Format('%d..%d', [t.OrdLowBound, t.OrdHighBound]);
       end;
       ADeclaration := ADeclaration + '] of ' + s;
     end;
@@ -481,7 +418,9 @@ begin
   if not Result then
     exit;
   VarName := '';
-  if (ADbgSymbol.SymbolType = stValue) then begin
+  if (ADbgSymbol.SymbolType = stValue) and
+     not((ADbgSymbol.Kind = skProcedure) or (ADbgSymbol.Kind = skFunction))
+  then begin
     if tdfIncludeVarName in AFlags then
       VarName := ADbgSymbol.Name;
     ADbgSymbol := ADbgSymbol.TypeInfo;
@@ -494,8 +433,8 @@ begin
     skPointer:   Result := GetPointerType(ATypeDeclaration);
     skInteger, skCardinal, skBoolean, skChar, skFloat:
                  Result := GetBaseType(ATypeDeclaration);
-    skFunction, skFunctionRef:  Result := GetFunctionType(ATypeDeclaration);
-    skProcedure, skProcedureRef: Result := GetProcedureType(ATypeDeclaration);
+    skFunction:  Result := GetFunctionType(ATypeDeclaration);
+    skProcedure: Result := GetProcedureType(ATypeDeclaration);
     skClass:     Result := GetClassType(ATypeDeclaration);
     skRecord:    Result := GetRecordType(ATypeDeclaration);
     skEnum:      Result := GetEnumType(ATypeDeclaration);
@@ -507,74 +446,6 @@ begin
     ATypeDeclaration := VarName + ': ' + ATypeDeclaration;
   if (AnIndent <> 0) and not(tdfNoFirstLineIndent in AFlags) then
     ATypeDeclaration := GetIndent + ATypeDeclaration;
-end;
-
-function QuoteWideText(AText: WideString): WideString;
-const
-  HEXCHR: array [0..15] of char = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-var
-  Len: Integer;
-  c: WideChar;
-  RPos, SPos, SEnd, QPos: PWideChar;
-begin
-  if AText = '' then
-    exit('''''');
-
-  Len := Length(AText);
-
-  SetLength(Result, Len * 4); // This is the maximal length result can get
-  RPos := @Result[1];
-  SPos := @AText[1];
-  SEnd := @AText[Len] + 1;
-
-  repeat
-    RPos^ := ''''; inc(RPos);
-    QPos := RPos;
-
-
-    repeat
-      c := SPos^;
-      case c of
-        #0..#31, #127, #$80..#$9F:
-          break;
-        '''': begin
-          RPos^ := c; inc(RPos);
-          RPos^ := c; inc(RPos);
-          inc(SPos);
-        end;
-        else begin
-          RPos^ := c; inc(RPos);
-          inc(SPos);
-        end;
-      end;
-
-      c := SPos^;
-    until False;;
-
-    if RPos = QPos then
-      dec(RPos)
-    else begin
-      RPos^ := ''''; inc(RPos);
-    end;
-
-    repeat
-      c := SPos^;
-      if (c = #0) and (SPos >= SEnd) then begin
-        // END OF TEXT
-        Assert(RPos-1 <= @Result[Length(Result)], 'RPos-1 <= @Result[Length(Result)]');
-        SetLength(Result, RPos - @Result[1]);
-        exit;
-      end;
-
-      RPos^ := '#'; inc(RPos);
-      RPos^ := '$'; inc(RPos);
-      RPos^ := HEXCHR[Byte(c) >> 4]; inc(RPos);
-      RPos^ := HEXCHR[Byte(c) and 15]; inc(RPos);
-      inc(SPos);
-      c := SPos^;
-    until not(c in [#0..#31, #127, #$80..#$9F]);
-
-  until False;
 end;
 
 function QuoteText(AText: Utf8String): UTf8String;
@@ -687,7 +558,7 @@ end;
 { TFpPascalPrettyPrinter }
 
 function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
-  AValue: TFpValue; AnAddressSize: Integer; AFlags: TFpPrettyPrintValueFlags;
+  AValue: TFpDbgValue; AnAddressSize: Integer; AFlags: TFpPrettyPrintValueFlags;
   ANestLevel: Integer; AnIndent: String; ADisplayFormat: TWatchDisplayFormat;
   ARepeatCount: Integer; ADBGTypeInfo: PDBGType; AOptions: TFpPrettyPrintOptions): Boolean;
 
@@ -699,7 +570,7 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
     then
       Result := '';
   end;
-  function ResTypeName(AVal : TFpValue): String;
+  function ResTypeName(AVal : TFpDbgValue): String;
   begin
     if not((AVal.TypeInfo<> nil) and
            GetTypeName(Result, AVal.TypeInfo, []))
@@ -744,10 +615,7 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
 
     if ADisplayFormat = wdfPointer then exit; // no data
     if svfString in AValue.FieldFlags then
-      APrintedValue := APrintedValue + ' ' + QuoteText(AValue.AsString)
-    else
-    if svfWideString in AValue.FieldFlags then
-      APrintedValue := APrintedValue + ' ' + QuoteWideText(AValue.AsWideString);
+      APrintedValue := APrintedValue + ' ' + QuoteText(AValue.AsString);
 
     Result := True;
   end;
@@ -763,89 +631,15 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
     Result := True;
   end;
 
-  procedure DoType;
-  begin
-    if GetTypeAsDeclaration(APrintedValue, AValue.DbgSymbol) then
-      APrintedValue := 'type ' + APrintedValue
-    else
-      DoUnknown;
-    Result := True;
-  end;
-
-  procedure DoFunction;
-  var
-    s: String;
-    proc, procref: TFpSymbolDwarf;
-    t, sym: TFpSymbol;
-    par: TFpValueDwarf;
-    v: TFpDbgMemLocation;
-    va: TDBGPtr;
-  begin
-    proc := nil;
-    procref := nil;
-    v := AValue.DataAddress;
-    va := v.Address;
-    if (ppvCreateDbgType in AFlags) then begin
-      ADBGTypeInfo^ := TDBGType.Create(AValue.Kind, '');
-      if AValue.Kind in [skFunctionRef, skProcedureRef] then
-        ADBGTypeInfo^.Value.AsPointer := Pointer(va);  // TODO: no cut off
-    end;
-
-    // TODO: depending on verbosity: TypeName($0123456)
-    if AValue.Kind in [skFunctionRef, skProcedureRef] then begin
-      if va = 0 then
-        APrintedValue := 'nil'
-      else
-        APrintedValue := '$'+IntToHex(va, AnAddressSize*2);
-
-      t := AValue.TypeInfo;
-      sym := AValue.DbgSymbol;
-      if (sym is TFpSymbolDwarfDataProc) then begin
-        proc := TFpSymbolDwarf(sym);
-      end
-      else begin
-        proc := TFpSymbolDwarf(TDbgDwarfSymbolBase(t).CompilationUnit.Owner.FindProcSymbol(va));
-        procref := proc;
-      end;
-      if proc <> nil then begin
-        s := proc.Name;
-        if (proc is TFpSymbolDwarfDataProc) then begin
-          par := TFpSymbolDwarfDataProc(proc).GetSelfParameter; // Has no Context set, but we only need TypeInfo.Name
-          if (par <> nil) and (par.TypeInfo <> nil) then
-            s := par.TypeInfo.Name + '.' + s;
-          par.ReleaseReference;
-        end;
-        APrintedValue := APrintedValue + ' = ' + s; // TODO: offset to startaddress
-      end;
-      APrintedValue := APrintedValue + ': ';
-    end
-    else
-      t := AValue.DbgSymbol;
-
-    if AFlags * PV_FORWARD_FLAGS <> [] then
-      GetTypeName(s, t)
-    else
-      GetTypeAsDeclaration(s, t);
-    APrintedValue := APrintedValue + s;
-
-    if (AValue.Kind in [skFunction, skProcedure]) and IsReadableLoc(v) then begin
-      APrintedValue := APrintedValue + ' AT ' + '$'+IntToHex(va, AnAddressSize*2);
-    end;
-
-    ReleaseRefAndNil(procref);
-    Result := True;
-  end;
-
   procedure DoInt;
   var
     n: Integer;
-    ValSize: TFpDbgValueSize;
   begin
     case ADisplayFormat of
       wdfUnsigned: APrintedValue := IntToStr(QWord(AValue.AsInteger));
       wdfHex: begin
-          if (svfSize in AValue.FieldFlags) and AValue.GetSize(ValSize) then
-            n := SizeToFullBytes(ValSize)* 2
+          if svfSize in AValue.FieldFlags then
+            n := AValue.Size * 2
           else begin
             n := 16;
             if QWord(AValue.AsInteger) <= high(Cardinal) then n := 8;
@@ -869,13 +663,12 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
   procedure DoCardinal;
   var
     n: Integer;
-    ValSize: TFpDbgValueSize;
   begin
     case ADisplayFormat of
       wdfDecimal: APrintedValue := IntToStr(Int64(AValue.AsCardinal));
       wdfHex: begin
-          if (svfSize in AValue.FieldFlags) and AValue.GetSize(ValSize) then
-            n := SizeToFullBytes(ValSize)* 2
+          if svfSize in AValue.FieldFlags then
+            n := AValue.Size * 2
           else begin
             n := 16;
             if AValue.AsCardinal <= high(Cardinal) then n := 8;
@@ -914,10 +707,7 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
 
   procedure DoChar;
   begin
-    if svfWideString in AValue.FieldFlags then
-      APrintedValue := QuoteWideText(AValue.AsWideString)
-    else
-      APrintedValue := QuoteText(AValue.AsString);
+    APrintedValue := QuoteText(AValue.AsString);
     if (ppvCreateDbgType in AFlags) then begin
       ADBGTypeInfo^ := TDBGType.Create(skSimple, ResTypeName);
     end;
@@ -935,7 +725,7 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
 
   procedure DoWideString;
   begin
-    APrintedValue := QuoteWideText(AValue.AsWideString);
+    APrintedValue := QuoteText(AValue.AsString);
     if (ppvCreateDbgType in AFlags) then begin
       ADBGTypeInfo^ := TDBGType.Create(skWideString, ResTypeName);
     end;
@@ -986,7 +776,7 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
   var
     s: String;
     i: Integer;
-    m: TFpValue;
+    m: TFpDbgValue;
   begin
     APrintedValue := '';
     for i := 0 to AValue.MemberCount-1 do begin
@@ -997,15 +787,10 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
       if svfOrdinal in m.FieldFlags then // set of byte
         s := IntToStr(m.AsCardinal)
       else
-      begin
-        m.ReleaseReference;
-        continue;
-      end;
-
+        Continue; // Todo: missing member
       if APrintedValue = ''
       then APrintedValue := s
       else APrintedValue := APrintedValue + ', ' + s;
-      m.ReleaseReference;
     end;
     APrintedValue := '[' + APrintedValue + ']';
 
@@ -1019,13 +804,13 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
   var
     s, s2, MbName, MbVal: String;
     i: Integer;
-    MemberValue: TFpValue;
+    m: TFpDbgValue;
     fl: TFpPrettyPrintValueFlags;
     f: TDBGField;
-    ti: TFpSymbol;
+    ti: TFpDbgSymbol;
     Cache: TFpDbgMemCacheBase;
   begin
-    if (AValue.Kind in [skClass, skInterface]) and (AValue.AsCardinal = 0) then begin
+    if (AValue.Kind = skClass) and (AValue.AsCardinal = 0) then begin
       APrintedValue := 'nil';
       if (ppvCreateDbgType in AFlags) then begin
         ADBGTypeInfo^ := TDBGType.Create(skSimple, ResTypeName);
@@ -1035,7 +820,7 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
     end;
 
     if (MemManager <> nil) and (MemManager.CacheManager <> nil) then
-      Cache := MemManager.CacheManager.AddCache(AValue.DataAddress.Address, SizeToFullBytes(AValue.DataSize))
+      Cache := MemManager.CacheManager.AddCache(AValue.DataAddress.Address, AValue.DataSize)
     else
       Cache := nil;
     try
@@ -1044,9 +829,8 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
         s := ResTypeName;
         case AValue.Kind of
           skRecord: ADBGTypeInfo^ := TDBGType.Create(skRecord, s);
-          skObject: ADBGTypeInfo^ := TDBGType.Create(skObject, s);
+          skObject: ADBGTypeInfo^ := TDBGType.Create(skClass, s);
           skClass:  ADBGTypeInfo^ := TDBGType.Create(skClass, s);
-          skInterface:  ADBGTypeInfo^ := TDBGType.Create(skInterface, s);
         end;
       end;
 
@@ -1090,16 +874,14 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
       if not Result then
         APrintedValue := '';
       for i := 0 to AValue.MemberCount-1 do begin
-        MemberValue := AValue.Member[i];
-        if (MemberValue = nil) or (MemberValue.Kind in [skProcedure, skFunction]) then begin
-          MemberValue.ReleaseReference;
+        m := AValue.Member[i];
+        if (m = nil) or (m.Kind in [skProcedure, skFunction]) then
           continue;
-        end;
         s := '';
         // ppoStackParam: Do not expand nested structures // may need ppoSingleLine?
-        InternalPrintValue(MbVal, MemberValue, AnAddressSize, fl, ANestLevel+1, AnIndent, ADisplayFormat, -1, nil, AOptions+[ppoStackParam]);
-        if MemberValue.DbgSymbol <> nil then begin
-          MbName := MemberValue.DbgSymbol.Name;
+        InternalPrintValue(MbVal, m, AnAddressSize, fl, ANestLevel+1, AnIndent, ADisplayFormat, -1, nil, AOptions+[ppoStackParam]);
+        if m.DbgSymbol <> nil then begin
+          MbName := m.DbgSymbol.Name;
           s := MbName + ' = ' + MbVal;
         end
         else begin
@@ -1114,13 +896,12 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
         end;
         if (ppvCreateDbgType in AFlags) then begin
           s := '';
-          if MemberValue.ParentTypeInfo <> nil then s := MemberValue.ParentTypeInfo.Name;
-          f := TDBGField.Create(MbName, TDBGType.Create(skSimple, ResTypeName(MemberValue)),
+          if m.ContextTypeInfo <> nil then s := m.ContextTypeInfo.Name;
+          f := TDBGField.Create(MbName, TDBGType.Create(skSimple, ResTypeName(m)),
                                 flPublic, [], s);
           f.DBGType.Value.AsString := MbVal;
           ADBGTypeInfo^.Fields.Add(f);
         end;
-        MemberValue.ReleaseReference;
       end;
       if not Result then
         APrintedValue := ResTypeName + ' (' + APrintedValue + ')';
@@ -1135,9 +916,8 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
   var
     s: String;
     i: Integer;
-    MemberValue: TFpValue;
-    Cnt, FullCnt: Integer;
-    d: Int64;
+    m: TFpDbgValue;
+    Cnt, FullCnt, d: Integer;
   begin
     APrintedValue := '';
 
@@ -1165,16 +945,16 @@ function TFpPascalPrettyPrinter.InternalPrintValue(out APrintedValue: String;
     else if (ANestLevel > 1) and (Cnt > 3)  then Cnt := 3
     else if (ANestLevel > 0) and (Cnt > 10) then Cnt := 10
     else if (Cnt > 300)                     then Cnt := 300;
-
-    if (AValue.IndexTypeCount = 0) or (not AValue.IndexType[0].GetValueLowBound(AValue, d)) then
-      d := 0;
+    d := 0;
+    // TODO: use valueobject for bounds
+    if (AValue.IndexTypeCount > 0) and AValue.IndexType[0].HasBounds then
+      d := AValue.IndexType[0].OrdLowBound;
     for i := d to d + Cnt - 1 do begin
-      MemberValue := AValue.Member[i];
-      if MemberValue <> nil then
-        InternalPrintValue(s, MemberValue, AnAddressSize, AFlags * PV_FORWARD_FLAGS, ANestLevel+1, AnIndent, ADisplayFormat, -1, nil, AOptions)
+      m := AValue.Member[i];
+      if m <> nil then
+        InternalPrintValue(s, m, AnAddressSize, AFlags * PV_FORWARD_FLAGS, ANestLevel+1, AnIndent, ADisplayFormat, -1, nil, AOptions)
       else
         s := '{error}';
-      MemberValue.ReleaseReference;
       if APrintedValue = ''
       then APrintedValue := s
       else APrintedValue := APrintedValue + ', ' + s;
@@ -1189,7 +969,6 @@ var
   MemSize: Integer;
   MemDest: array of Byte;
   i: Integer;
-  ValSize: TFpDbgValueSize;
 begin
   if ADBGTypeInfo <> nil then ADBGTypeInfo^ := nil;
   if ANestLevel > 0 then begin
@@ -1201,21 +980,19 @@ begin
       MemAddr := UnInitializedLoc;
       if svfDataAddress in AValue.FieldFlags then begin
         MemAddr := AValue.DataAddress;
-        MemSize := SizeToFullBytes(AValue.DataSize);
+        MemSize := AValue.DataSize;
       end
       else
       if svfAddress in AValue.FieldFlags then begin
         MemAddr := AValue.Address;
-        if not AValue.GetSize(ValSize) then
-          ValSize := SizeVal(256);
-        MemSize := SizeToFullBytes(ValSize);
+        MemSize := AValue.Size;
       end;
       if MemSize < ARepeatCount then MemSize := ARepeatCount;
       if MemSize <= 0 then MemSize := 256;
 
       if IsTargetAddr(MemAddr) then begin
         SetLength(MemDest, MemSize);
-        if FMemManager.ReadMemory(MemAddr, SizeVal(MemSize), @MemDest[0]) then begin
+        if FMemManager.ReadMemory(MemAddr, MemSize, @MemDest[0]) then begin
           APrintedValue := IntToHex(MemAddr.Address, AnAddressSize*2)+ ':' + LineEnding;
           for i := 0 to high(MemDest) do begin
             if (i > 0) and (i mod 16 = 0) then
@@ -1243,10 +1020,8 @@ begin
   Result := False;
   case AValue.Kind of
     skUnit: ;
-    skProcedure,
-    skFunction,
-    skProcedureRef,
-    skFunctionRef:  DoFunction;
+    skProcedure: ;
+    skFunction: ;
     skPointer:   DoPointer(False);
     skInteger:   DoInt;
     skCardinal:  DoCardinal;
@@ -1264,9 +1039,8 @@ begin
     skRecord:    DoStructure;
     skObject:    DoStructure;
     skClass:     DoStructure;
-    skInterface: DoStructure;
+    skInterface: ;
     skArray:     DoArray;
-    skType:      DoType;
     skNone:      DoUnknown;
   end;
 
@@ -1282,7 +1056,7 @@ begin
   FAddressSize := AnAddressSize;
 end;
 
-function TFpPascalPrettyPrinter.PrintValue(out APrintedValue: String; AValue: TFpValue;
+function TFpPascalPrettyPrinter.PrintValue(out APrintedValue: String; AValue: TFpDbgValue;
   ADisplayFormat: TWatchDisplayFormat; ARepeatCount: Integer;
   AOptions: TFpPrettyPrintOptions): Boolean;
 begin
@@ -1291,7 +1065,7 @@ begin
 end;
 
 function TFpPascalPrettyPrinter.PrintValue(out APrintedValue: String; out
-  ADBGTypeInfo: TDBGType; AValue: TFpValue; ADisplayFormat: TWatchDisplayFormat;
+  ADBGTypeInfo: TDBGType; AValue: TFpDbgValue; ADisplayFormat: TWatchDisplayFormat;
   ARepeatCount: Integer): Boolean;
 begin
   Result := InternalPrintValue(APrintedValue, AValue,

@@ -1,5 +1,5 @@
 {%MainUnit win32int.pp}
-{ $Id$ }
+{ $Id: win32winapih.inc 53686 2016-12-15 08:16:09Z ondrej $ }
 
 {******************************************************************************
   All Windows API related stuff goes here.

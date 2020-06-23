@@ -5,8 +5,7 @@ unit frmpas2jsnodejsprojectoptions;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ButtonPanel,
-  strpas2jsdesign;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ButtonPanel;
 
 type
 
@@ -15,7 +14,6 @@ type
   TNodeJSProjectOptionsForm = class(TForm)
     BPNode: TButtonPanel;
     CBUseNodeJSApplication: TCheckBox;
-    procedure FormCreate(Sender: TObject);
   private
     function GetB(AIndex: Integer): Boolean;
     procedure SetB(AIndex: Integer; AValue: Boolean);
@@ -32,12 +30,6 @@ implementation
 {$R *.lfm}
 
 { TNodeJSProjectOptionsForm }
-
-procedure TNodeJSProjectOptionsForm.FormCreate(Sender: TObject);
-begin
-  Caption:=pjsdNodeJSProjectOptions;
-  CBUseNodeJSApplication.Caption:=pjsdUseNodeJSApplicationObject;
-end;
 
 function TNodeJSProjectOptionsForm.GetB(AIndex: Integer): Boolean;
 begin

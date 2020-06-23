@@ -13,7 +13,7 @@ uses
   process,
   FpDbgClasses,
   FpDbgLoader,
-  DbgIntfBaseTypes, DbgIntfDebuggerBase,
+  DbgIntfBaseTypes,
   FpDbgLinuxExtra,
   FpDbgDwarfDataClasses,
   FpImgReaderMacho,
@@ -107,14 +107,14 @@ type
     FDebugState64: x86_debug_state64_t;
     FDebugStateRead: boolean;
     FDebugStateChanged: boolean;
-    FIsSteppingBreakPoint: boolean;
   protected
     function ReadThreadState: boolean;
     function ReadDebugState: boolean;
   public
     function ResetInstructionPointerAfterBreakpoint: boolean; override;
-    procedure ApplyWatchPoints(AWatchPointData: TFpWatchPointData); override;
-    function DetectHardwareWatchpoint: Pointer; override;
+    function AddWatchpoint(AnAddr: TDBGPtr): integer; override;
+    function RemoveWatchpoint(AnId: integer): boolean; override;
+    function DetectHardwareWatchpoint: integer; override;
     procedure BeforeContinue; override;
     procedure LoadRegisterValues; override;
 
@@ -143,10 +143,9 @@ type
     procedure InitializeLoaders; override;
     function CreateThread(AthreadIdentifier: THandle; out IsMainThread: boolean): TDbgThread; override;
     function AnalyseDebugEvent(AThread: TDbgThread): TFPDEvent; override;
-    function CreateWatchPointData: TFpWatchPointData; override;
   public
-    class function StartInstance(AFileName: string; AParams, AnEnvironment: TStrings; AWorkingDirectory, AConsoleTty: string; AFlags: TStartInstanceFlags): TDbgProcess; override;
-    constructor Create(const AName: string; const AProcessID, AThreadID: Integer); override;
+    class function StartInstance(AFileName: string; AParams, AnEnvironment: TStrings; AWorkingDirectory, AConsoleTty: string; AOnLog: TOnLog; ReDirectOutput: boolean): TDbgProcess; override;
+    constructor Create(const AName: string; const AProcessID, AThreadID: Integer; AOnLog: TOnLog); override;
     destructor Destroy; override;
 
     function ReadData(const AAdress: TDbgPtr; const ASize: Cardinal; out AData): Boolean; override;
@@ -168,7 +167,6 @@ procedure RegisterDbgClasses;
 implementation
 
 var
-  DBG_VERBOSE, DBG_WARNINGS: PLazLoggerLogGroup;
   GConsoleTty: string;
 
 type
@@ -310,7 +308,7 @@ begin
   result := aKernResult = KERN_SUCCESS;
   if not result then
     begin
-    debugln(DBG_WARNINGS, 'Failed to call thread_get_state for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
+    Log('Failed to call thread_get_state for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
     end;
   FRegisterValueListValid:=false;
   FDebugStateRead:=false;
@@ -339,7 +337,7 @@ begin
   end;
   if aKernResult <> KERN_SUCCESS then
   begin
-    debugln(DBG_WARNINGS, 'Failed to call thread_get_state to ge debug-info for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
+    Log('Failed to call thread_get_state to ge debug-info for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
     result := false;
   end
   else
@@ -373,7 +371,7 @@ begin
 
   if aKernResult <> KERN_SUCCESS then
     begin
-    debugln(DBG_WARNINGS, 'Failed to call thread_set_state for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
+    Log('Failed to call thread_set_state for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
     result := false;
     end;
 end;
@@ -382,64 +380,128 @@ type
   TDr32bitArr = array[0..4] of cuint32;
   TDr64bitArr = array[0..4] of cuint64;
 
-procedure TDbgDarwinThread.ApplyWatchPoints(AWatchPointData: TFpWatchPointData);
-  procedure UpdateWatches32;
+function TDbgDarwinThread.AddWatchpoint(AnAddr: TDBGPtr): integer;
+
+  function SetBreakpoint32(ind: byte): boolean;
   var
     drArr: ^TDr32bitArr;
-    i: Integer;
-    r: boolean;
-    addr: cuint32;
   begin
     drArr := @FDebugState32.__dr0;
-
-    r := True;
-    for i := 0 to 3 do begin
-      addr := cuint32(TFpIntelWatchPointData(AWatchPointData).Dr03[i]);
-      drArr^[i]:=addr;
+    if (drArr^[ind]=0) and ((FDebugState32.__dr7 and (1 shl ind))=0) then
+    begin
+      FDebugState32.__dr7 := FDebugState32.__dr7 or (1 shl (ind*2));
+      FDebugState32.__dr7 := FDebugState32.__dr7 or ($30000 shl (ind*4));
+      drArr^[ind]:=AnAddr;
+      FDebugStateChanged:=true;
+      Result := True;
+    end
+    else
+    begin
+      result := False;
     end;
-    FDebugState32.__dr7 := (FDebugState32.__dr7 and $0000FF00);
-    if r then
-      FDebugState32.__dr7 := FDebugState32.__dr7 or cuint32(TFpIntelWatchPointData(AWatchPointData).Dr7);
   end;
 
-  procedure UpdateWatches64;
+  function SetBreakpoint64(ind: byte): boolean;
   var
     drArr: ^TDr64bitArr;
-    i: Integer;
-    r: boolean;
-    addr: cuint64;
   begin
     drArr := @FDebugState64.__dr0;
-
-    r := True;
-    for i := 0 to 3 do begin
-      addr := cuint64(TFpIntelWatchPointData(AWatchPointData).Dr03[i]);
-      drArr^[i]:=addr;
+    if (drArr^[ind]=0) and ((FDebugState64.__dr7 and (1 shl ind))=0) then
+    begin
+      FDebugState64.__dr7 := FDebugState64.__dr7 or (1 shl (ind*2));
+      FDebugState64.__dr7 := FDebugState64.__dr7 or ($30000 shl (ind*4));
+      drArr^[ind]:=AnAddr;
+      FDebugStateChanged:=true;
+      Result := True;
+    end
+    else
+    begin
+      result := False;
     end;
-    FDebugState32.__dr7 := (FDebugState32.__dr7 and $0000FF00);
-    if r then
-      FDebugState32.__dr7 := FDebugState32.__dr7 or cuint64(TFpIntelWatchPointData(AWatchPointData).Dr7);
+  end;
+
+var
+  i: integer;
+begin
+  result := -1;
+  if ID<0 then
+    Exit;
+  if not ReadDebugState then
+    exit;
+
+  i := 0;
+  if Process.Mode=dm32 then
+    while (i<4) and not SetBreakpoint32(i) do
+      inc(i)
+  else
+    while (i<4) and not SetBreakpoint64(i) do
+      inc(i);
+  if i=4 then
+    Process.Log('No hardware breakpoint available.')
+  else
+    result := i;
+end;
+
+function TDbgDarwinThread.RemoveWatchpoint(AnId: integer): boolean;
+
+  function RemoveBreakpoint32(ind: byte): boolean;
+  var
+    drArr: ^TDr32bitArr;
+  begin
+    drArr := @FDebugState32.__dr0;
+    if (drArr^[ind]<>0) and ((FDebugState32.__dr7 and (1 shl (ind*2)))<>0) then
+    begin
+      FDebugState32.__dr7 := FDebugState32.__dr7 xor (1 shl (ind*2));
+      FDebugState32.__dr7 := FDebugState32.__dr7 xor ($30000 shl (ind*4));
+      drArr^[ind]:=0;
+      FDebugStateChanged:=true;
+      Result := True;
+    end
+    else
+    begin
+      result := False;
+      Process.Log('HW watchpoint %d is not set.',[ind]);
+    end;
+  end;
+
+  function RemoveBreakpoint64(ind: byte): boolean;
+  var
+    drArr: ^TDr64bitArr;
+  begin
+    drArr := @FDebugState64.__dr0;
+    if (drArr^[ind]<>0) and ((FDebugState64.__dr7 and (1 shl (ind*2)))<>0) then
+    begin
+      FDebugState64.__dr7 := FDebugState64.__dr7 xor (1 shl (ind*2));
+      FDebugState64.__dr7 := FDebugState64.__dr7 xor ($30000 shl (ind*4));
+      drArr^[ind]:=0;
+      FDebugStateChanged:=true;
+      Result := True;
+    end
+    else
+    begin
+      result := False;
+      Process.Log('HW watchpoint %d is not set.',[ind]);
+    end;
   end;
 
 begin
+  result := false;
   if ID<0 then
     Exit;
   if not ReadDebugState then
     exit;
 
   if Process.Mode=dm32 then
-    UpdateWatches32
+    result := RemoveBreakpoint32(AnId)
   else
-    UpdateWatches64;
-  FDebugStateChanged:=true;
+    result := RemoveBreakpoint64(AnId);
 end;
 
-function TDbgDarwinThread.DetectHardwareWatchpoint: Pointer;
+function TDbgDarwinThread.DetectHardwareWatchpoint: integer;
 var
   dr6: DWord;
-  wd: TFpIntelWatchPointData;
 begin
-  result := nil;
+  result := -1;
   if ID<0 then
     Exit;
   if ReadDebugState then
@@ -449,13 +511,10 @@ begin
     else
       dr6 := lo(FDebugState64.__dr6);
 
-    wd := TFpIntelWatchPointData(Process.WatchPointData);
-    if dr6 and 1 = 1 then result := wd.Owner[0]
-    else if dr6 and 2 = 2 then result := wd.Owner[1]
-    else if dr6 and 4 = 4 then result := wd.Owner[2]
-    else if dr6 and 8 = 8 then result := wd.Owner[3];
-    if (Result = nil) and ((dr6 and 15) <> 0) then
-      Result := Pointer(-1); // not owned watchpoint
+    if dr6 and 1 = 1 then result := 0
+    else if dr6 and 2 = 2 then result := 1
+    else if dr6 and 4 = 4 then result := 2
+    else if dr6 and 8 = 8 then result := 3;
     end;
 end;
 
@@ -464,8 +523,7 @@ var
   aKernResult: kern_return_t;
   old_StateCnt: mach_msg_Type_number_t;
 begin
-  inherited;
-  if Process.CurrentWatchpoint <> nil then
+  if Process.CurrentWatchpoint>-1 then
     begin
     if Process.Mode=dm32 then
       FDebugState32.__dr6:=0
@@ -488,7 +546,7 @@ begin
       end;
 
     if aKernResult <> KERN_SUCCESS then
-      debugln(DBG_WARNINGS, 'Failed to call thread_set_state for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
+      Log('Failed to call thread_set_state for thread %d. Mach error: '+mach_error_string(aKernResult),[Id]);
   end;
 end;
 
@@ -584,7 +642,7 @@ begin
   stat := AuthorizationCreate(nil, kAuthorizationEmptyEnvironment, authFlags, author);
   if stat <> errAuthorizationSuccess then
     begin
-    debugln(DBG_WARNINGS, 'Failed to create authorization. Authorization error: ' + inttostr(stat));
+    debugln('Failed to create authorization. Authorization error: ' + inttostr(stat));
     exit;
     end;
 
@@ -599,7 +657,7 @@ begin
   stat := AuthorizationCopyRights(author, authRights, kAuthorizationEmptyEnvironment, authFlags, nil);
   if stat <> errAuthorizationSuccess then
     begin
-    debugln(DBG_WARNINGS, 'Failed to get debug-(taskport)-privilege. Authorization error: ' + inttostr(stat));
+    debugln('Failed to get debug-(taskport)-privilege. Authorization error: ' + inttostr(stat));
     exit;
     end;
   result := true;
@@ -619,23 +677,18 @@ begin
   result := TDbgDarwinThread.Create(Self, AthreadIdentifier, AthreadIdentifier)
 end;
 
-function TDbgDarwinProcess.CreateWatchPointData: TFpWatchPointData;
-begin
-  Result := TFpIntelWatchPointData.Create;
-end;
-
 constructor TDbgDarwinProcess.Create(const AName: string; const AProcessID,
-  AThreadID: Integer);
+  AThreadID: Integer; AOnLog: TOnLog);
 var
   aKernResult: kern_return_t;
 begin
-  inherited Create(AName, AProcessID, AThreadID);
+  inherited Create(AName, AProcessID, AThreadID, AOnLog);
 
   GetDebugAccessRights;
   aKernResult:=task_for_pid(mach_task_self, AProcessID, FTaskPort);
   if aKernResult <> KERN_SUCCESS then
     begin
-    debugln(DBG_WARNINGS, 'Failed to get task for process '+IntToStr(AProcessID)+'. Probably insufficient rights to debug applications. Mach error: '+mach_error_string(aKernResult));
+    log('Failed to get task for process '+IntToStr(AProcessID)+'. Probably insufficient rights to debug applications. Mach error: '+mach_error_string(aKernResult), dllInfo);
     end;
 end;
 
@@ -645,9 +698,7 @@ begin
   inherited Destroy;
 end;
 
-class function TDbgDarwinProcess.StartInstance(AFileName: string; AParams,
-  AnEnvironment: TStrings; AWorkingDirectory, AConsoleTty: string;
-  AFlags: TStartInstanceFlags): TDbgProcess;
+class function TDbgDarwinProcess.StartInstance(AFileName: string; AParams, AnEnvironment: TStrings; AWorkingDirectory, AConsoleTty: string; AOnLog: TOnLog; ReDirectOutput: boolean): TDbgProcess;
 var
   PID: TPid;
   AProcess: TProcessUTF8;
@@ -661,32 +712,32 @@ begin
     begin
     if not (ExtractFileExt(AnExecutabeFilename)='.app') then
       begin
-      DebugLn(DBG_WARNINGS, format('Can not debug %s, because it''s a directory',[AnExecutabeFilename]));
+      DebugLn(format('Can not debug %s, because it''s a directory',[AnExecutabeFilename]));
       Exit;
       end;
 
     AnExecutabeFilename := AnExecutabeFilename + '/Contents/MacOS/' + ChangeFileExt(ExtractFileName(AnExecutabeFilename),'');
     if not FileExists(AFileName) then
       begin
-      DebugLn(DBG_WARNINGS, format('Can not find  %s.',[AnExecutabeFilename]));
+      DebugLn(format('Can not find  %s.',[AnExecutabeFilename]));
       Exit;
       end;
     end;
 
   AMasterPtyFd:=-1;
-  if siRediretOutput in AFlags then
+  if ReDirectOutput then
     begin
     if AConsoleTty<>'' then
-      debugln(DBG_VERBOSE, 'It is of no use to provide a console-tty when the console output is being redirected.');
+      AOnLog('It is of no use to provide a console-tty when the console output is being redirected.', dllInfo);
     AMasterPtyFd := posix_openpt(O_RDWR + O_NOCTTY);
     if AMasterPtyFd<0 then
-      DebugLn(DBG_WARNINGS, 'Failed to open pseudo-tty. Errno: ' + IntToStr(fpgeterrno))
+      AOnLog('Failed to open pseudo-tty. Errno: ' + IntToStr(fpgeterrno), dllError)
     else
       begin
       if grantpt(AMasterPtyFd)<>0 then
-        DebugLn(DBG_WARNINGS, 'Failed to set pseudo-tty slave permissions. Errno: ' + IntToStr(fpgeterrno));
+        AOnLog('Failed to set pseudo-tty slave permissions. Errno: ' + IntToStr(fpgeterrno), dllError);
       if unlockpt(AMasterPtyFd)<>0 then
-        DebugLn(DBG_WARNINGS, 'Failed to unlock pseudo-tty slave. Errno: ' + IntToStr(fpgeterrno));
+        AOnLog('Failed to unlock pseudo-tty slave. Errno: ' + IntToStr(fpgeterrno), dllError);
       AConsoleTty := strpas(ptsname(AMasterPtyFd));
       end;
     end;
@@ -704,14 +755,14 @@ begin
     PID:=AProcess.ProcessID;
 
     sleep(100);
-    result := TDbgDarwinProcess.Create(AFileName, Pid, -1);
+    result := TDbgDarwinProcess.Create(AFileName, Pid, -1, AOnLog);
     TDbgDarwinProcess(result).FMasterPtyFd := AMasterPtyFd;
     TDbgDarwinProcess(result).FProcProcess := AProcess;
     TDbgDarwinProcess(result).FExecutableFilename := AnExecutabeFilename;
   except
     on E: Exception do
     begin
-      DebugLn(DBG_WARNINGS, Format('Failed to start process "%s". Errormessage: "%s".',[AFileName, E.Message]));
+      AOnLog(Format('Failed to start process "%s". Errormessage: "%s".',[AFileName, E.Message]), dllInfo);
       AProcess.Free;
 
       if AMasterPtyFd>-1 then
@@ -732,7 +783,7 @@ begin
   aKernResult := mach_vm_read(FTaskPort, AAdress, ASize, PtrUInt(b), cnt);
   if aKernResult <> KERN_SUCCESS then
     begin
-    DebugLn(DBG_WARNINGS, 'Failed to read data at address '+FormatAddress(AAdress)+'. Mach error: '+mach_error_string(aKernResult));
+    DebugLn('Failed to read data at address '+FormatAddress(AAdress)+'. Mach error: '+mach_error_string(aKernResult));
     Exit;
     end;
   System.Move(b^, AData, Cnt);
@@ -749,14 +800,14 @@ begin
   aKernResult:=mach_vm_protect(FTaskPort, AAdress, ASize, boolean_t(false), 7 {VM_PROT_READ + VM_PROT_WRITE + VM_PROT_COPY});
   if aKernResult <> KERN_SUCCESS then
     begin
-    DebugLn(DBG_WARNINGS, 'Failed to call vm_protect for address '+FormatAddress(AAdress)+'. Mach error: '+mach_error_string(aKernResult));
+    DebugLn('Failed to call vm_protect for address '+FormatAddress(AAdress)+'. Mach error: '+mach_error_string(aKernResult));
     Exit;
     end;
 
   aKernResult := mach_vm_write(FTaskPort, AAdress, vm_offset_t(@AData), ASize);
   if aKernResult <> KERN_SUCCESS then
     begin
-    DebugLn(DBG_WARNINGS, 'Failed to write data at address '+FormatAddress(AAdress)+'. Mach error: '+mach_error_string(aKernResult));
+    DebugLn('Failed to write data at address '+FormatAddress(AAdress)+'. Mach error: '+mach_error_string(aKernResult));
     Exit;
     end;
 
@@ -790,7 +841,7 @@ end;
 procedure TDbgDarwinProcess.SendConsoleInput(AString: string);
 begin
   if FpWrite(FMasterPtyFd, AString[1], length(AString)) <> Length(AString) then
-    debugln(DBG_WARNINGS, 'Failed to send input to console.');
+    Log('Failed to send input to console.', dllDebug);
 end;
 
 procedure TDbgDarwinProcess.TerminateProcess;
@@ -798,7 +849,7 @@ begin
   FIsTerminating:=true;
   if fpkill(ProcessID,SIGKILL)<>0 then
     begin
-    debugln(DBG_WARNINGS, 'Failed to send SIGKILL to process %d. Errno: %d',[ProcessID, errno]);
+    log('Failed to send SIGKILL to process %d. Errno: %d',[ProcessID, errno]);
     FIsTerminating:=false;
     end;
 end;
@@ -813,17 +864,9 @@ begin
 {$endif linux}
 {$ifdef darwin}
   AThread.NextIsSingleStep:=SingleStep;
-  AThread.BeforeContinue;  // TODO: All threads
-  if HasInsertedBreakInstructionAtLocation(AThread.GetInstructionPointerRegisterValue) then begin
-    TempRemoveBreakInstructionCode(AThread.GetInstructionPointerRegisterValue);
-    fpPTrace(PTRACE_SINGLESTEP, ProcessID, pointer(1), pointer(FExceptionSignal));
-    TDbgDarwinThread(AThread).FIsSteppingBreakPoint := True;
-  end
-  else
-  if SingleStep then begin
-    fpPTrace(PTRACE_SINGLESTEP, ProcessID, pointer(1), pointer(FExceptionSignal));
-    TDbgDarwinThread(AThread).FIsSteppingBreakPoint := True;
-  end
+  AThread.BeforeContinue;
+  if SingleStep or assigned(FCurrentBreakpoint) then
+    fpPTrace(PTRACE_SINGLESTEP, ProcessID, pointer(1), pointer(FExceptionSignal))
   else if FIsTerminating then
     fpPTrace(PTRACE_KILL, ProcessID, pointer(1), nil)
   else
@@ -832,7 +875,7 @@ begin
   e := fpgeterrno;
   if e <> 0 then
     begin
-    debugln(DBG_WARNINGS, 'Failed to continue process. Errcode: '+inttostr(e));
+    log('Failed to continue process. Errcode: '+inttostr(e));
     result := false;
     end
   else
@@ -848,17 +891,16 @@ begin
   ThreadIdentifier:=-1;
 
   ProcessIdentifier:=FpWaitPid(-1, FStatus, 0);
-  RestoreTempBreakInstructionCodes;
 
   result := ProcessIdentifier<>-1;
   if not result then
-    debugln(DBG_WARNINGS, 'Failed to wait for debug event. Errcode: %d', [fpgeterrno])
+    Log('Failed to wait for debug event. Errcode: %d', [fpgeterrno])
   else if (WIFSTOPPED(FStatus)) then
     begin
     aKernResult := task_threads(FTaskPort, act_list, act_listCtn);
     if aKernResult <> KERN_SUCCESS then
       begin
-      debugln(DBG_WARNINGS, 'Failed to call task_threads. Mach error: '+mach_error_string(aKernResult));
+      Log('Failed to call task_threads. Mach error: '+mach_error_string(aKernResult));
       end
     else if act_listCtn>0 then
       ThreadIdentifier := act_list^[0];
@@ -868,7 +910,6 @@ end;
 function TDbgDarwinProcess.Pause: boolean;
 begin
   result := FpKill(ProcessID, SIGTRAP)=0;
-  PauseRequested:=true;
 end;
 
 function TDbgDarwinProcess.AnalyseDebugEvent(AThread: TDbgThread): TFPDEvent;
@@ -886,7 +927,7 @@ begin
     end
   else if WIFSTOPPED(FStatus) then
     begin
-    //debugln(DBG_WARNINGS, 'Stopped ',FStatus, ' signal: ',wstopsig(FStatus));
+    //log('Stopped ',FStatus, ' signal: ',wstopsig(FStatus));
     TDbgDarwinThread(AThread).ReadThreadState;
     case wstopsig(FStatus) of
       SIGTRAP:
@@ -897,11 +938,7 @@ begin
           FProcessStarted:=true;
           end
         else
-          begin
           result := deBreakpoint;
-          if not TDbgDarwinThread(AThread).FIsSteppingBreakPoint then
-            AThread.CheckAndResetInstructionPointerAfterBreakpoint;
-          end
         end;
       SIGBUS:
         begin
@@ -949,12 +986,6 @@ begin
     end
   else
     raise exception.CreateFmt('Received unknown status %d from process with pid=%d',[FStatus, ProcessID]);
-
-  TDbgDarwinThread(AThread).FIsSteppingBreakPoint := False;
 end;
-
-initialization
-  DBG_VERBOSE := DebugLogger.FindOrRegisterLogGroup('DBG_VERBOSE' {$IFDEF DBG_VERBOSE} , True {$ENDIF} );
-  DBG_WARNINGS := DebugLogger.FindOrRegisterLogGroup('DBG_WARNINGS' {$IFDEF DBG_WARNINGS} , True {$ENDIF} );
 
 end.

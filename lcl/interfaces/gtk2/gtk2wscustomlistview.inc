@@ -991,7 +991,7 @@ begin
 
   GtkColumn := gtk_tree_view_get_column(PGtkTreeView(Widgets^.MainView), AIndex);
   if GtkColumn <> nil then
-    gtk_tree_view_column_set_title(GtkColumn, PChar(EscapeUnderscores(ACaption)));
+    gtk_tree_view_column_set_title(GtkColumn, PChar(ACaption));
 end;
 
 class procedure TGtk2WSCustomListView.ColumnSetImage(const ALV: TCustomListView;
@@ -2163,7 +2163,7 @@ begin
   if not WSCheckHandleAllocated(AWinControl, 'SetColor') then
     Exit;
   AWidget := {%H-}PGtkWidget(AWinControl.Handle);
-  AWidget := GetOrCreateWidgetInfo(AWidget)^.CoreWidget;
+  AWidget := GetWidgetInfo(AWidget, True)^.CoreWidget;
   Gtk2WidgetSet.SetWidgetColor(AWidget,
     AWinControl.Font.Color,
     AWinControl.Color,
@@ -2185,7 +2185,7 @@ begin
   if not WSCheckHandleAllocated(AWinControl, 'SetFont') then
     Exit;
   Widget := {%H-}PGtkWidget(AWinControl.Handle);
-  Widget := GetOrCreateWidgetInfo(Widget)^.CoreWidget;
+  Widget := GetWidgetInfo(Widget, True)^.CoreWidget;
   Gtk2WidgetSet.SetWidgetFont(Widget, AFont);
   Gtk2WidgetSet.SetWidgetColor(Widget, AFont.Color, clNone,
                               [GTK_STATE_NORMAL,GTK_STATE_ACTIVE,

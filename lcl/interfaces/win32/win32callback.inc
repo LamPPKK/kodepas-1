@@ -293,9 +293,7 @@ end;
 type
   TAccessCustomEdit = class(TCustomEdit);
 
-  { TWindowProcHelper }
-
-  TWindowProcHelper = record
+  TWindowProcHelper = class
   private
     // WindowProc parameters
     Window: HWnd;            // DWord / QWord
@@ -493,7 +491,7 @@ end;
 
 procedure TWindowProcHelper.CalcClipRgn(PaintRegion: HRGN);
 var
-  nSize: DWORD;
+  nSize, BytesCount: DWORD;
   RgnData: PRgnData;
   WindowOrg: Windows.POINT;
   XFRM: TXFORM;
@@ -527,7 +525,8 @@ begin
     XFRM.eM11:=-1; XFRM.eM12:=0;
     XFRM.eM21:=0;  XFRM.eM22:=1;
 
-    MirroredPaintRgn := ExtCreateRegion(@XFRM, nSize, RgnData^);
+    // ToDo: BytesCount is not initialized.
+    MirroredPaintRgn := ExtCreateRegion(@XFRM, BytesCount, RgnData^);
     Windows.SelectClipRgn(CurDoubleBuffer.DC, MirroredPaintRgn);
     Windows.DeleteObject(MirroredPaintRgn);
     Freemem(RgnData);
@@ -740,13 +739,13 @@ begin
   with LMScroll do
   begin
     Msg := LMsg;
-    ScrollCode := LOWORD(LongInt(WParam));
+    ScrollCode := LOWORD(WParam);
     SmallPos := 0;
     ScrollBar := HWND(LParam);
     Pos := 0;
   end;
 
-  if not (LOWORD(LongInt(WParam)) in [SB_THUMBTRACK, SB_THUMBPOSITION])
+  if not (LOWORD(WParam) in [SB_THUMBTRACK, SB_THUMBPOSITION])
   then begin
     WindowInfo^.TrackValid := False;
     Exit;
@@ -774,23 +773,23 @@ begin
   // MWE.
 
   ScrollInfo.cbSize := SizeOf(ScrollInfo);
-  if LOWORD(LongInt(WParam)) = SB_THUMBTRACK
+  if LOWORD(WParam) = SB_THUMBTRACK
   then begin
     ScrollInfo.fMask := SIF_TRACKPOS;
     // older windows versions may not support trackpos, so fill it with some default
     if WindowInfo^.TrackValid
-    then ScrollInfo.nTrackPos := Integer(WindowInfo^.TrackPos and $FFFF0000) or HIWORD(LongInt(WParam))
-    else ScrollInfo.nTrackPos := HIWORD(LongInt(WParam));
+    then ScrollInfo.nTrackPos := Integer(WindowInfo^.TrackPos and $FFFF0000) or HIWORD(WParam)
+    else ScrollInfo.nTrackPos := HIWORD(WParam);
   end
   else begin
     ScrollInfo.fMask := SIF_POS;
-    ScrollInfo.nPos := HIWORD(LongInt(WParam));
+    ScrollInfo.nPos := HIWORD(WParam);
   end;
 
   if LParam <> 0
   then begin
     // The message is send by a scrollbar
-    GetScrollInfo(HWND(LongInt(LParam)), SB_CTL, ScrollInfo);
+    GetScrollInfo(HWND(LParam), SB_CTL, ScrollInfo);
   end
   else begin
     // The message is send by a window's standard scrollbar
@@ -799,7 +798,7 @@ begin
     else GetScrollInfo(Window, SB_VERT, ScrollInfo);
   end;
 
-  if LOWORD(LongInt(WParam)) = SB_THUMBTRACK
+  if LOWORD(WParam) = SB_THUMBTRACK
   then begin
     LMScroll.Pos := ScrollInfo.nTrackPos;
     WindowInfo^.TrackPos := ScrollInfo.nTrackPos;
@@ -807,8 +806,8 @@ begin
   end
   else begin
     if WindowInfo^.TrackValid
-    then LMScroll.Pos := LongInt(WindowInfo^.TrackPos and $FFFF0000) or HIWORD(LongInt(WParam))
-    else LMScroll.Pos := (ScrollInfo.nPos and $FFFF0000) or HIWORD(LongInt(WParam));
+    then LMScroll.Pos := LongInt(WindowInfo^.TrackPos and $FFFF0000) or HIWORD(WParam)
+    else LMScroll.Pos := (ScrollInfo.nPos and $FFFF0000) or HIWORD(WParam);
   end;
 
   if LMScroll.Pos < High(LMScroll.SmallPos)
@@ -2668,13 +2667,17 @@ function
 var
   Helper: TWindowProcHelper;
 begin
-  FillChar(Helper, SizeOf(TWindowProcHelper), 0);
-  Helper.Window := Window;
-  Helper.Msg := Msg;
-  Helper.WParam := WParam;
-  Helper.LParam := LParam;
-  Helper.NMHdr := PNMHdr(LParam);
-  Result := Helper.DoWindowProc;
+  Helper := TWindowProcHelper.Create;
+  try
+    Helper.Window := Window;
+    Helper.Msg := Msg;
+    Helper.WParam := WParam;
+    Helper.LParam := LParam;
+    Helper.NMHdr := PNMHdr(LParam);
+    Result := Helper.DoWindowProc;
+  finally
+    Helper.Free;
+  end;
 end;
 
 {$ifdef MSG_DEBUG}

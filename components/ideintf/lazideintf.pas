@@ -214,10 +214,8 @@ type
     ): boolean of object;
 
   TSaveEditorFileStep = (
-    sefsSaveAs, // called after user selected a new filename and IDE did some sanity checks
-    sefsBeforeWrite, // called before writing to disk, aFile.Filename=TargetFilename
-    sefsAfterWrite, // called after writing to disk, aFile.Filename=TargetFilename
-    sefsSavedAs // see sefsSaveAs, called after writing and cleaning up, TargetFilename is old filename
+    sefsBeforeWrite,
+    sefsAfterWrite
     );
   TSaveEditorFileEvent = function(Sender: TObject; aFile: TLazProjectFile;
     SaveStep: TSaveEditorFileStep; TargetFilename: string): TModalResult of object;
@@ -232,7 +230,6 @@ type
     lihtSavingAll, // called before IDE saves everything
     lihtSavedAll,  // called after IDE saved everything
     lihtSaveEditorFile, // called when IDE saves an editor file to disk
-    lihtSaveAsEditorFile, // called after user selected a new filename for an editor file
     lihtIDERestoreWindows, // called when IDE is restoring the windows (before opening the first project)
     lihtIDEClose, // called when IDE is shutting down (after closequery, so no more interactivity)
     lihtProjectOpened,// called after IDE opened a project
@@ -302,8 +299,10 @@ type
                                        var Handled: boolean): TModalResult;
     procedure DoCallNotifyHandler(HandlerType: TLazarusIDEHandlerType;
                                   Sender: TObject); overload;
-    procedure DoCallShowDesignerFormOfSourceHandler(Sender: TObject;
-      AEditor: TSourceEditorInterface; AComponentPaletteClassSelected: Boolean);
+    procedure DoCallShowDesignerFormOfSourceHandler(
+      HandlerType: TLazarusIDEHandlerType;
+      Sender: TObject; AEditor: TSourceEditorInterface;
+      AComponentPaletteClassSelected: Boolean);
     procedure DoCallBuildingFinishedHandler(HandlerType: TLazarusIDEHandlerType;
       Sender: TObject; BuildSuccessful: Boolean);
 
@@ -717,13 +716,14 @@ begin
   FLazarusIDEHandlers[HandlerType].CallNotifyEvents(Sender);
 end;
 
-procedure TLazIDEInterface.DoCallShowDesignerFormOfSourceHandler(Sender: TObject;
+procedure TLazIDEInterface.DoCallShowDesignerFormOfSourceHandler(
+  HandlerType: TLazarusIDEHandlerType; Sender: TObject;
   AEditor: TSourceEditorInterface; AComponentPaletteClassSelected: Boolean);
 var
   i: Integer;
   Handler: TMethodList;
 begin
-  Handler:=FLazarusIDEHandlers[lihtShowDesignerFormOfSource];
+  Handler:=FLazarusIDEHandlers[HandlerType];
   i := Handler.Count;
   while Handler.NextDownIndex(i) do
     TShowDesignerFormOfSourceFunction(Handler[i])(Sender, AEditor,

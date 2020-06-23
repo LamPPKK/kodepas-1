@@ -269,9 +269,9 @@ end;
 procedure TFPGDBMILocals.ProcessLocals(ALocals: TLocals);
 var
   Ctx: TFpDbgInfoContext;
-  ProcVal: TFpValue;
+  ProcVal: TFpDbgValue;
   i: Integer;
-  m: TFpValue;
+  m: TFpDbgValue;
   n, v: String;
 begin
   Ctx := FpDebugger.GetInfoContextForContext(ALocals.ThreadId, ALocals.StackFrame);
@@ -298,11 +298,9 @@ begin
       else
         n := '';
       FpDebugger.FPrettyPrinter.PrintValue(v, m);
-      m.ReleaseReference;
       ALocals.Add(n, v);
     end;
   end;
-  ProcVal.ReleaseReference;
   ALocals.SetDataValidity(ddsValid);
 end;
 
@@ -473,42 +471,43 @@ var
 begin
   Result := False;
   // WINDOWS gdb dwarf names
-  if FDebugger.TargetWidth = 64 then
-    case ARegNum of
-       0:  rname := 'RAX'; // RAX
-       1:  rname := 'RDX'; // RDX
-       2:  rname := 'RCX'; // RCX
-       3:  rname := 'RBX'; // RBX
-       4:  rname := 'RSI';
-       5:  rname := 'RDI';
-       6:  rname := 'RBP';
-       7:  rname := 'RSP';
-       8:  rname := 'R8'; // R8D , but gdb uses R8
-       9:  rname := 'R9';
-      10:  rname := 'R10';
-      11:  rname := 'R11';
-      12:  rname := 'R12';
-      13:  rname := 'R13';
-      14:  rname := 'R14';
-      15:  rname := 'R15';
-      16:  rname := 'RIP';
-      else
-        exit;
-    end
-  else
-    case ARegNum of
-       0:  rname := 'EAX'; // RAX
-       1:  rname := 'ECX'; // RDX
-       2:  rname := 'EDX'; // RCX
-       3:  rname := 'EBX'; // RBX
-       4:  rname := 'ESP';
-       5:  rname := 'EBP';
-       6:  rname := 'ESI';
-       7:  rname := 'EDI';
-       8:  rname := 'EIP';
-      else
-        exit;
-    end;
+  {$IFDEF cpu64}
+  case ARegNum of
+     0:  rname := 'RAX'; // RAX
+     1:  rname := 'RDX'; // RDX
+     2:  rname := 'RCX'; // RCX
+     3:  rname := 'RBX'; // RBX
+     4:  rname := 'RSI';
+     5:  rname := 'RDI';
+     6:  rname := 'RBP';
+     7:  rname := 'RSP';
+     8:  rname := 'R8'; // R8D , but gdb uses R8
+     9:  rname := 'R9';
+    10:  rname := 'R10';
+    11:  rname := 'R11';
+    12:  rname := 'R12';
+    13:  rname := 'R13';
+    14:  rname := 'R14';
+    15:  rname := 'R15';
+    16:  rname := 'RIP';
+    else
+      exit;
+  end;
+  {$ELSE}
+  case ARegNum of
+     0:  rname := 'EAX'; // RAX
+     1:  rname := 'ECX'; // RDX
+     2:  rname := 'EDX'; // RCX
+     3:  rname := 'EBX'; // RBX
+     4:  rname := 'ESP';
+     5:  rname := 'EBP';
+     6:  rname := 'ESI';
+     7:  rname := 'EDI';
+     8:  rname := 'EIP';
+    else
+      exit;
+  end;
+  {$ENDIF}
   assert(AContext <> nil, 'TFpGDBMIDbgMemReader.ReadRegister: AContext <> nil');
   Reg := FDebugger.Registers.CurrentRegistersList[AContext.ThreadId, AContext.StackFrame];
   for i := 0 to Reg.Count - 1 do
@@ -533,10 +532,11 @@ end;
 
 function TFpGDBMIDbgMemReader.RegisterSize(ARegNum: Cardinal): Integer;
 begin
-  if FDebugger.TargetWidth = 64 then
-    Result := 8 // for the very few supported...
-  else
-    Result := 4; // for the very few supported...
+  {$IFDEF cpu64}
+  Result := 8; // for the very few supported...
+  {$ELSE}
+  Result := 4; // for the very few supported...
+  {$ENDIF}
 end;
 
 { TFPGDBMIWatches }
@@ -960,7 +960,7 @@ begin
 end;
 
 type
-  TGDBMIDwarfTypeIdentifier = class(TFpSymbolDwarfType)
+  TGDBMIDwarfTypeIdentifier = class(TFpDwarfSymbolType)
   public
     property InformationEntry;
   end;
@@ -975,11 +975,11 @@ function TFpGDBMIDebugger.EvaluateExpression(AWatchValue: TWatchValue; AExpressi
 var
   Ctx: TFpDbgInfoContext;
   PasExpr, PasExpr2: TFpPascalExpression;
-  ResValue: TFpValue;
+  ResValue: TFpDbgValue;
   s: String;
   DispFormat: TWatchDisplayFormat;
   RepeatCnt: Integer;
-  TiSym: TFpSymbol;
+  TiSym: TFpDbgSymbol;
 
   function IsWatchValueAlive: Boolean;
   begin
@@ -1048,18 +1048,24 @@ DebugLn(DBG_VERBOSE, [ErrorHandler.ErrorAsString(PasExpr.Error)]);
     if not IsWatchValueAlive then exit;
 
     ResValue := PasExpr.ResultValue;
+    if ResValue = nil then begin
+      AResText := 'Error';
+      if AWatchValue <> nil then
+        AWatchValue.Validity := ddsInvalid;
+      exit;
+    end;
 
     if (ResValue.Kind = skClass) and (ResValue.AsCardinal <> 0) and (defClassAutoCast in EvalFlags)
     then begin
       CastName := '';
-      if FMemManager.ReadAddress(ResValue.DataAddress, SizeVal(Ctx.SizeOfAddress), ClassAddr) then begin
+      if FMemManager.ReadAddress(ResValue.DataAddress, Ctx.SizeOfAddress, ClassAddr) then begin
         ClassAddr.Address := ClassAddr.Address + 3 * Ctx.SizeOfAddress;
-        if FMemManager.ReadAddress(ClassAddr, SizeVal(Ctx.SizeOfAddress), CNameAddr) then begin
-          if (FMemManager.ReadUnsignedInt(CNameAddr, SizeVal(1), NameLen)) then
+        if FMemManager.ReadAddress(ClassAddr, Ctx.SizeOfAddress, CNameAddr) then begin
+          if (FMemManager.ReadUnsignedInt(CNameAddr, 1, NameLen)) then
             if NameLen > 0 then begin
               SetLength(CastName, NameLen);
               CNameAddr.Address := CNameAddr.Address + 1;
-              FMemManager.ReadMemory(CNameAddr, SizeVal(NameLen), @CastName[1]);
+              FMemManager.ReadMemory(CNameAddr, NameLen, @CastName[1]);
               PasExpr2 := TFpPascalExpression.Create(CastName+'('+AExpression+')', Ctx);
               PasExpr2.ResultValue;
               if PasExpr2.Valid then begin
@@ -1074,28 +1080,34 @@ DebugLn(DBG_VERBOSE, [ErrorHandler.ErrorAsString(PasExpr.Error)]);
       end;
     end;
 
-    TiSym := ResValue.DbgSymbol;
-    if (ResValue.Kind = skNone) and (TiSym <> nil) and (TiSym.SymbolType = stType) then begin
-      if GetTypeAsDeclaration(AResText, TiSym) then
-        AResText := Format('{Type=} %1s', [AResText])
+    case ResValue.Kind of
+      skNone: begin
+          // maybe type
+          TiSym := ResValue.DbgSymbol;
+          if (TiSym <> nil) and (TiSym.SymbolType = stType) then begin
+            if GetTypeAsDeclaration(AResText, TiSym) then
+              AResText := Format('{Type=} %1s', [AResText])
+            else
+            if GetTypeName(AResText, TiSym) then
+              AResText := Format('{Type=} %1s', [AResText])
+            else
+              AResText := '{Type=} unknown';
+            Result := True;
+            if AWatchValue <> nil then begin
+              if not IsWatchValueAlive then exit;
+              AWatchValue.Value    := AResText;
+              AWatchValue.Validity := ddsValid; // TODO ddsError ?
+            end;
+            exit;
+          end;
+        end;
       else
-      if GetTypeName(AResText, TiSym) then
-        AResText := Format('{Type=} %1s', [AResText])
-      else
-        AResText := '{Type=} unknown';
-      Result := True;
-      if AWatchValue <> nil then begin
-        if not IsWatchValueAlive then exit;
-        AWatchValue.Value    := AResText;
-        AWatchValue.Validity := ddsValid; // TODO ddsError ?
+      begin
+        if defNoTypeInfo in EvalFlags then
+          FPrettyPrinter.PrintValue(AResText, ResValue, DispFormat, RepeatCnt)
+        else
+          FPrettyPrinter.PrintValue(AResText, ATypeInfo, ResValue, DispFormat, RepeatCnt);
       end;
-      exit;
-    end
-    else begin
-      if defNoTypeInfo in EvalFlags then
-        FPrettyPrinter.PrintValue(AResText, ResValue, DispFormat, RepeatCnt)
-      else
-        FPrettyPrinter.PrintValue(AResText, ATypeInfo, ResValue, DispFormat, RepeatCnt);
     end;
     if not IsWatchValueAlive then exit;
 

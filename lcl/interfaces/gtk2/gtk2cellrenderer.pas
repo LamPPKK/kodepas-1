@@ -86,9 +86,9 @@ begin
   MainWidget := GetMainWidget(Widget);
   if MainWidget = nil then
     exit;
-  WidgetInfo := GetWidgetInfo(MainWidget);
+  WidgetInfo := GetWidgetInfo(MainWidget, false);
   if WidgetInfo = nil then
-    WidgetInfo := GetWidgetInfo(cell);
+    WidgetInfo := GetWidgetInfo(cell, false);
   if WidgetInfo = nil then
     exit;
   LCLObject := WidgetInfo^.LCLObject; // the listbox or combobox

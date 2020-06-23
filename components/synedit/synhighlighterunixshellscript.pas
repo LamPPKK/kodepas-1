@@ -26,7 +26,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id$
+$Id: synhighlighterunixshellscript.pas 43540 2013-12-14 13:40:04Z martin $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -755,9 +755,16 @@ begin
   Result := ['_', '0'..'9', 'a'..'z', 'A'..'Z'];
 end;
 
+/////TL 11-06-2003: Moved from below
+resourcestring
+  LangName = 'UNIX Shell Script';
+
 class function TSynUNIXShellScriptSyn.GetLanguageName: string;
+/////TL 11-06-2003: FPC complained about local declaration... moved to the global scope
+/////TL resourcestring
+/////TL  LangName = 'UNIX Shell Script';
 begin
-  Result := SYNS_LangSh;
+  Result := LangName;
 end;
 
 initialization
