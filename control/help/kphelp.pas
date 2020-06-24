@@ -1,41 +1,33 @@
 unit kphelp;
 interface 
-    uses crt,
-    getos in './system/getos',
-    magicletter in './effect/magic/magicletter';
+    uses crt;
     procedure kphelp_run;
 implementation
     procedure kphelp_run;
     begin
-        kode_letter;
-        case getos_run of
-            'linux': writeln('KodePas in Linux');
-            'windows': writeln('KodePas in Windows');
-            else writeln('Unknow OS');
-        end;
-        writeln('Welcome to KodePas - Free and open source Software Development Kit for Pascal');
-       writeln('Try: kodepas [option-main] [--option-branch] [value]');
-       writeln('Try: kodepas [option-main] --help to see help of option');
-       writeln('Option:');
-       writeln('    help: give help');
-       writeln('    run: build and run project');
-       writeln('    start: run KodePas Live');
-       writeln('    create: create project');
-       writeln('    build: build project without run');
-       writeln('    version: get version of KodePas (include Control, Kernel, LCL, FCL...)');
-       writeln('    init: init the config, default file in project');
-       writeln('    render: use to render project as resource, images,...');
-       writeln('    add: add template, package to your project');
-       writeln('    doctor: check KodePas in your computer');
-       writeln('    setup: setup KodePas');
-       writeln('    upgrade: update KodePas System Packages');
-       writeln('    license: read license of KodePas project');
-       writeln('    legends: show the legends');
-       writeln('    pack: pack on folder to *.kpa');
-       writeln('    get: get pack online');
-       writeln('More documents:');
-       writeln('    KodePas Docs Official: https://kodelang.dev/docs');
-       writeln('    GitHub Wiki: https://github.com/kodestudio/kodepas/wiki');
-       writeln('    GitHub Community: https://github.com/kodestudio/kodepas/issues');
+        writeln('Welcome to Kode.');
+        writeln('Try: kodepas [option-main] [--option-brand] [value]');
+        writeln('To see help of [Options Main], try: "kodepas [options main] --help');
+        writeln('Options Main: ');
+        writeln('   setup: setup Kode');
+        writeln('   help: give how to use Kode CLI');
+        writeln('   build: build your project');
+        writeln('   run: build and run project at debug');
+        writeln('   get: download and install packages from KPStore');
+        writeln('   pack: pack all folder to KodePack: *.kpa');
+        writeln('   init: create some default file in Kode');
+        writeln('   create: create new project/packages in Kode');
+        writeln('   legend: show all coder of KodeSpace');
+        writeln('   doctor: check Kode in your local computer');
+        writeln('   upgrade: upgrade all system packages in Kode (at KPA)');
+        writeln('   update: update all Kode from Kode Server (at Git)');
+        writeln('   license: read license of Kode project');
+        writeln('   render: render resource, images, database,... to Kode project at KPS');
+        writeln('   version: view version of Kode');
+        writeln('   start: run Kode Live');
+        writeln('See more info of Kode CLI at');
+        writeln('   Website: https://kodelang.dev/cli');
+        writeln('   GitHub: https://www.github.com/kodestudio/kodepas');
+        writeln('   Forums: https://www.github.com/kodestudio/kodepas/issues');
     end;
 end.

@@ -1,53 +1,47 @@
 program kodepas;
-uses crt, sysutils,
-    getos in 'system/getos',
-    kphelp in 'help/kphelp',
-    terminalprint in 'effect/print/terminalprint',
-    kpsetup in 'setup/kpsetup',
-    kpcreate in 'create/kpcreate',
-    kpbuild in 'build/kpbuild',
-    kplog in 'log/kplog',
-    kpini in 'file/kpini',
-    kprun in 'run/kprun',
-    kptime in 'time/kptime',
-    kpstart in 'start/kpstart',
-    legends in './effect/legends/legends',
-    magicletter in './effect/magic/magicletter',
-    kpversion in './version/kpversion',
-    getkpdir in './system/getkpdir',
-    kpget in 'get/kpget',
-    kpzip in 'zip/kpzip',
-    kppack in 'pack/kppack',
-    kptext in 'file/kptext',
-    desktop_build in 'build/desktop/desktop_build',
-    pack_build in 'build/pack/pack_build',
-    desktop_run in 'run/desktop/desktop_run',
-    kppath in 'path/kppath',
-    renderos in 'system/renderos',
-    kpupdates in 'updates/kpupdates',
-    kpinit in 'init/kpinit';
+uses 
+    //thư viện mặc định
+    crt, sysutils,
+    //Setup Kode
+    kpsetup in 'setup/kpsetup.pas',
+    //Lấy thông tin về hệ điều hành
+    getos in 'system/getos.pas',
+    //In ra màn hình kết quả đã được định dạng
+    kpprint in 'effect/print/kpprint.pas',
+    //Một số hiệu ứng
+    kpmagic in 'effect/magic/kpmagic.pas',
+    //Hiển thị hướng dẫn
+    kphelp in 'help/kphelp.pas',
+    //Lấy gói từ máy chủ
+    kpget in 'get/kpget.pas',
+    //Xử lí file nén
+    kpzip in 'zip/kpzip.pas',
+    //tạo dự án mới
+    kpcreate in 'create/kpcreate.pas',
+    //tạo các loại dự án
+    native_create in 'create/native/native_create.pas',
+    web_create in 'create/web/web_create.pas',
+    hibrid_create in 'create/hibrid/hibrid_create.pas',
+    cli_create in 'create/cli/cli_create.pas',
+    packnative_create in 'create/pack/packnative_create.pas';
 begin
-    renderos_run;
     if (ParamCount > 0) then
-    begin
-        case paramStr(1) of 
-            'setup' : kpsetup_run;
-            'help' : kphelp_run;
-            'create': kpcreate_run;
-            'build': kpbuild_run;
-            'log' : kplog_get;
-            'run': kprun_run;
-            'start' : kpstart_run;
-            'legends': legends_run;
-            'version': kpversion_run;
-            'get' : kpget_run;
-            'pack': kppack_run;
-            'clear': kpbuild_clear;
-            'upgrade': kpupdates_run;
-            'init': kpinit_run;
-            else terminalprint_error('[Error] Unknow param (' + paramStr(1) + ') try "kodepas help" to see more param');
-        end;
-    end
+        begin
+            case ParamStr(1) of
+                //Cài đặt Kode
+                'setup': kpsetup_run;
+                //Hiển thị bảng hướng dẫn sử dụng
+                'help': kphelp_run;
+                //Lấy gói và tương tác với Kode Server
+                'get': kpget_run;
+                //tạo dự án
+                'create': kpcreate_run;
+                else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
+            end;
+        end
     else 
-        kphelp_run;
+        begin
+            kpmagic_kletter;
+            kphelp_run;
+        end;
 end.

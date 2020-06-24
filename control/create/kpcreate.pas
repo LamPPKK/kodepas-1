@@ -1,55 +1,46 @@
 unit kpcreate;
-interface 
+interface
     uses crt, sysutils, process,
-        terminalprint in './effect/print/terminalprint',
-        getos in './system/getos',
-        kpget in 'get/kpget',
-        kpzip in 'zip/kpzip';
+        kpprint in './effect/print/kpprint.pas',
+        kpget in './get/kpget.pas',
+        kpzip in './zip/kpzip.pas',
+        getos in './system/getos.pas',
+        native_create in 'native/native_create.pas',
+        web_create in 'web/web_create.pas',
+        hibrid_create in 'hibrid/hibrid_create.pas',
+        cli_create in 'cli/cli_create.pas',
+        packnative_create in 'pack/packnative_create.pas';
     procedure kpcreate_run;
+    procedure kpcreate_help;
 implementation
-    procedure help;
-    begin
-        writeln('Try: kodepas create [option]');
-        writeln('Options:');
-        writeln('   --help: give help');
-        writeln('   --desktop: create desktop project');
-        writeln('   --android: create project for Android divice');
-        writeln('   --game: create project with Graphics');
-        writeln('   --web: create web project');
-    end;
-    procedure create_desktop;
-    var s: ansistring;
-    begin
-        case getos_run of
-            'linux' : 
-                begin
-                    writeln('[Start] Get project from KPStore: kodestudio/project-desktop');
-                    kpget_download('kodestudio', 'project-desktop');
-                    kpzip_unzip('project-desktop');
-                    if (deleteFile('project-desktop.kpa'))then 
-                        terminalprint_complete('[Done ] Clear file temp')
-                    else terminalprint_error('[Error] Fail clear');
-                    terminalprint_complete('[Done ] Create project complete');
-                end;
-            'windows':
-                begin
-                    writeln('[Start] Get project from KPStore: kodestudio/project-desktop');
-                    kpget_download('kodestudio', 'project-desktop');
-                    kpzip_unzip('project-desktop');
-                    if (deleteFile('project-desktop.kpa'))then 
-                        terminalprint_complete('[Done ] Clear file temp')
-                    else terminalprint_error('[Error] Fail clear');
-                    terminalprint_complete('[Done ] Create project complete');
-                end;
-            else terminalprint_error('[Error] Unknow OS');
-        end;
-    end;
     procedure kpcreate_run;
     begin
-        case paramStr(2) of 
-            '--desktop' : create_desktop;
-            '--help' : help;
-            else terminalprint_error('[Error] Unknow param(' + paramStr(2) + '). Try "kodepas create --help" to see help');
-        end;
+        if (paramCount >1 ) then
+            begin
+                case (paramStr(2)) of
+                    '--help': kpcreate_help;
+                    '--native': native_create_run;
+                    '--web': web_create_run;
+                    '--hibrid': hibrid_create_run;
+                    '--cli': cli_create_run;
+                    '--packnative': packnative_create_run;
+                    else kpprint_error('[Error] Unknow param ('+ paramStr(2) + '). Try "kodepas create --help" to see more');
+                end;
+            end
+        else 
+            begin
+                kpcreate_help;
+            end;
+    end;
+    procedure kpcreate_help;
+    begin
+        writeln('Try: kodepas create [--options]');
+        writeln('Options:');
+        writeln('   --native: create native application project');
+        writeln('   --web: create web application project');
+        writeln('   --hibrid: create hibrid application project');
+        writeln('   --cli: create CLI project');
+        writeln('   --packnative: create packnative project');
+        writeln('   --help: give help of Kode create');
     end;
 end.

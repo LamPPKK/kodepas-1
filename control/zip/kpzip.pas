@@ -1,12 +1,10 @@
 unit kpzip;
 interface 
     uses crt, sysutils, process,
-    getos in './system/getos',
-    terminalprint in './effect/terminalprint',
-    getkpdir in './system/getkpdir';
+    getos in './system/getos.pas',
+    kpprint in './effect/print/kpprint.pas';
     procedure kpzip_zip(f_name: string);
     procedure kpzip_unzip(f_name: string);
-    procedure kpzip_updates(f_name:string);
 implementation
     procedure kpzip_zip(f_name: string);
         var s, runStr: ansistring;
@@ -18,12 +16,13 @@ implementation
                         runStr := 'zip -r '+f_name+'.kpa . -i *';
                         if (RunCommand(runStr, s)) then
                             begin
-                                terminalprint_complete('[Done ] Already packed');
+                                kpprint_complete('[Done ] Already packed');
                             end
                         else
                             begin
-                                terminalprint_error('[Error] Pack fail');
+                                kpprint_error('[Error] Pack fail');
                                 writeln(s);
+                                exit;
                             end;
                     end;
                 'windows':
@@ -31,68 +30,45 @@ implementation
                         runStr := 'zip -r '+f_name+'.kpa *';
                         if (RunCommand(runstr, s)) then
                             begin
-                                terminalprint_complete('[Done ] Already packed')
+                                kpprint_complete('[Done ] Already packed')
                             end
                         else
                             begin
-                                terminalprint_error('[Error] Pack fail');
+                                kpprint_error('[Error] Pack fail');
+                                exit;
                             end;
                     end;
-                else terminalprint_error('[Error] Unknow OS');
+                else kpprint_error('[Error] Unknow OS');
             end;
         end;
     procedure kpzip_unzip(f_name: string);
     var s: ansistring;
     begin
+        writeln('[Start] Unpack');
         case getos_run of
             'linux':
                 begin
                     if (runCommand('unzip -o ' + f_name + '.kpa', s)) then
-                        terminalprint_complete('[Done ] Unpacked')
+                        kpprint_complete('[Done ] Unpacked')
                     else
                         begin
-                            terminalprint_error('[Eror] Unpack fail. Error output: ');
+                            kpprint_error('[Error] Unpack fail. Error output: ');
                             writeln(s);
+                            exit;
                         end;
                 end;
             'windows':
                 begin
                     if (runCommand('unzip -o ' + f_name + '.kpa', s)) then
-                        terminalprint_complete('[Done ] Unpacked')
+                        kpprint_complete('[Done ] Unpacked')
                     else
                         begin
-                            terminalprint_error('[Eror] Unpack fail. Error output: ');
+                            kpprint_error('[Error] Unpack fail. Error output: ');
                             writeln(s);
+                            exit;
                         end;
                 end;
-            else terminalprint_error('[Error] Unknow OS');
-        end;
-    end;
-    procedure kpzip_updates(f_name: string);
-    var s: ansistring;
-    begin
-        case getos_run of
-            'linux':
-                begin
-                    if (runCommand('unzip -o ' + f_name + '.kpa -d ' + getkpdir_run, s)) then
-                        terminalprint_complete('[Done ] Unpacked')
-                    else
-                        begin
-                            terminalprint_error('[Eror] Unpack fail. Error output: ');
-                            writeln(s);
-                        end;
-                end;
-            'windows':
-                begin
-                    if (runCommand('unzip -o ' + f_name + '.kpa -d ' + getkpdir_run, s)) then
-                        terminalprint_complete('[Done ] Unpacked')
-                    else
-                        begin
-                            terminalprint_error('[Eror] Unpack fail. Error output: ');
-                            writeln(s);
-                        end;
-                end;
-            else terminalprint_error('[Error] Unknow OS');
+            else kpprint_error('[Error] Unknow OS');
         end;
     end;
 end.

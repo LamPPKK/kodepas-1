@@ -2,7 +2,7 @@ unit getos;
 interface 
     uses crt, sysutils;
     function getos_run: string;
-implementation 
+implementation
     function getos_run: string;
     begin
         {$IFDEF Linux}
