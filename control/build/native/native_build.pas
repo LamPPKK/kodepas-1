@@ -7,7 +7,59 @@ interface
     procedure native_build_run;
 implementation
     procedure native_build_run;
+    var cmdout: ansistring;
     begin
-        
+        writeln('[Start] Render data form local.ini to project');
+        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), 'bin\project', kpini_string('local.ini', 'CONFIG', 'bin'));
+        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), 'compiled\$(TargetCPU)-$(TargetOS)', kpini_string('local.ini', 'CONFIG', 'compiled'));
+        kpprint_complete('[Done ] Render complete');
+        //kết nối với Kernel và bắt đầu build
+        case (getos_run) of
+            'windows':
+                begin
+                    writeln('[Start] Connect to Kernel (Windows) and build');
+                    if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
+                        begin
+                            kpprint_complete('[Done ] Build complete');
+                        end
+                    else 
+                        begin
+                            kpprint_error('[Error] Cannot build');
+                            kpprint_error('[Fatal] Build project stop');
+                            exit;
+                        end;     
+                end;
+            'linux':
+                begin
+                    writeln('[Start] Connect to Kernel (Linux) and build');
+                    if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
+                        begin
+                            kpprint_complete('[Done ] Build complete');
+                        end
+                    else 
+                        begin
+                            kpprint_error('[Error] Cannot build');
+                            kpprint_error('[Fatal] Build project stop');
+                            exit;
+                        end;     
+                end;
+            'macos':
+                begin
+                    writeln('[Start] Connect to Kernel (MacOS) and build');
+                    if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
+                        begin
+                            kpprint_complete('[Done ] Build complete');
+                        end
+                    else 
+                        begin
+                            kpprint_error('[Error] Cannot build');
+                            kpprint_error('[Fatal] Build project stop');
+                            exit;
+                        end;     
+                end;
+        end;
+        //Xóa bỏ render và file tạm
+        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), kpini_string('local.ini', 'CONFIG', 'bin'), 'bin\project');
+        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), kpini_string('local.ini', 'CONFIG', 'compiled'), 'compiled\$(TargetCPU)-$(TargetOS)');
     end;
 end.
