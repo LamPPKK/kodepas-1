@@ -121,7 +121,8 @@ implementation
         channel := GetParent(input);
         pack := GetChild(input);
         //https://github.com/kodestudio/kpstore/raw/master/project-desktop.kpa
-        url := 'https://www.github.com/'+channel+'/kpstore/raw/master/'+pack+'.kpa';
+        //https://github.com/kodestudio/kpstore/raw/master/project-native/project-native.kpa
+        url := 'https://www.github.com/'+channel+'/kpstore/raw/master/'+pack+'/'+ pack + '.kpa';
         kpget_download(url, getCurrentDir);
     end;
 end.

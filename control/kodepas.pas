@@ -23,7 +23,9 @@ uses
     web_create in 'create/web/web_create.pas',
     hibrid_create in 'create/hibrid/hibrid_create.pas',
     cli_create in 'create/cli/cli_create.pas',
-    packnative_create in 'create/pack/packnative_create.pas';
+    packnative_create in 'create/pack/packnative_create.pas',
+    //thư viện xử lí tệp INI
+    kpini in 'ini/kpini.pas';
 begin
     if (ParamCount > 0) then
         begin
