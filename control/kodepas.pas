@@ -39,7 +39,9 @@ uses
     //Thư viện ghi tệp log
     kplog in 'log/kplog.pas',
     //Chạy
-    kprun in 'run/kprun.pas';
+    kprun in 'run/kprun.pas',
+    //native run
+    native_run in 'run/native/native_run.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then

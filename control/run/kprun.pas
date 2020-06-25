@@ -1,6 +1,10 @@
 unit kprun;
 interface
-    uses crt, sysutils,  process;
+    uses crt, sysutils,  process,
+        kpini in './ini/kpini.pas',
+        native_run in 'native/native_run.pas',
+        kpprint in './effect/print/kpprint',
+        kpbuild in './build/kpbuild.pas';
     procedure kprun_run;
     procedure kprun_help;
 implementation
@@ -10,6 +14,21 @@ implementation
     end;
     procedure kprun_run;
     begin
-        
+        if (paramStr(2) = '--help') then
+            begin
+                kprun_help;
+                exit;
+            end;
+        kpbuild_run;
+        case (kpini_string('local.ini', 'CONFIG','type')) of
+            'native':
+                begin
+                    native_run_run;
+                end;
+            else 
+                begin
+                    kpprint_error('[Fatal] Unknow to run');
+                end;
+        end;
     end;
 end.
