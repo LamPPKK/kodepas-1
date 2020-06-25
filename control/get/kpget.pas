@@ -12,6 +12,9 @@ interface
     procedure kpget_help;
     //Tải khi biết tên Channel và Pack
     procedure kpget_channel(input: string);
+    //lấy thông tin
+    procedure kpget_info(input: string);
+    procedure kpget_list(input:string);
 implementation
     //lấy đường dẫn mẹ
     function GetParent(input:string):string;
@@ -46,6 +49,8 @@ implementation
                         begin
                             kpget_channel(ParamStr(3));
                         end;
+                    '--list': kpget_list(paramStr(3));
+                    '--info': kpget_info(paramStr(3));
                     else
                         begin
                             //tải xuống
@@ -113,6 +118,56 @@ implementation
                     end;
                 end;
         end;
+    end;
+
+    procedure kpget_list(input: string);
+    var i,line: word;
+        a: array[1..10000] of string;
+        f: text;
+        cmdout: ansistring;
+    begin
+        //https://github.com/kodestudio/kpstore/raw/master/project-desktop.txt
+        //if (RunCommand('kpget https://www.github.com/' + input + '/kpstore/raw/master/LIST.txt',cmdout )) then;
+        kpget_download('https://www.github.com/' + input + '/kpstore/raw/master/LIST.txt', getCurrentDir);
+        assign(f, 'LIST.txt');
+        reset(f);
+        line := 1;
+        while (not eof(f)) do 
+            begin
+                readln(f,a[line]);
+                inc(line);
+            end;
+        dec(line);
+        close(f);
+        for i:=1 to line do writeln(a[i]);
+        if (deleteFile('LIST.txt')) then;
+    end;
+
+    procedure kpget_info(input: string);
+    var i,line: word;
+        a: array[1..10000] of string;
+        f: text;
+        cmdout: ansistring;
+        channel, pack, url: string;
+    begin
+       channel := GetParent(input);
+        pack := GetChild(input);
+        //https://github.com/kodestudio/kpstore/raw/master/project-desktop.kpa
+        //https://github.com/kodestudio/kpstore/raw/master/project-native/project-native.kpa
+        url := 'https://www.github.com/'+channel+'/kpstore/raw/master/'+pack+'/'+ pack + '.txt';
+        kpget_download(url, getCurrentDir);
+        assign(f, pack + '.txt');
+        reset(f);
+        line := 1;
+        while (not eof(f)) do 
+            begin
+                readln(f,a[line]);
+                inc(line);
+            end;
+        dec(line);
+        close(f);
+        for i:=1 to line do writeln(a[i]);
+        if (deleteFile(pack + '.txt')) then;
     end;
 
     procedure kpget_channel(input: string);
