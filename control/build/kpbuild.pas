@@ -7,5 +7,12 @@ interface
     procedure kpbuild_run;
     procedure kpbuild_help;
 implementation
-    
+    procedure kpbuild_help;
+    begin
+        
+    end;
+    procedure kpbuild_run;
+    begin
+
+    end;
 end.

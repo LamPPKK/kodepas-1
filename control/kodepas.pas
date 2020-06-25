@@ -25,7 +25,9 @@ uses
     cli_create in 'create/cli/cli_create.pas',
     packnative_create in 'create/pack/packnative_create.pas',
     //thư viện xử lí tệp INI
-    kpini in 'ini/kpini.pas';
+    kpini in 'ini/kpini.pas',
+    //Thêm thư viện build dự án
+    kpbuild in 'build/kpbuild.pas';
 begin
     if (ParamCount > 0) then
         begin
@@ -38,6 +40,7 @@ begin
                 'get': kpget_run;
                 //tạo dự án
                 'create': kpcreate_run;
+                'build': kpbuild_run;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end
