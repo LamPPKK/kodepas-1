@@ -57,6 +57,8 @@ begin
                 'pack': kppack_run;
                 //Xem phiên bản
                 'version': kpversion_run;
+                //show log
+                'log': kplog_show;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end
