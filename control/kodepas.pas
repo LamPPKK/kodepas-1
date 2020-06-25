@@ -27,7 +27,9 @@ uses
     //thư viện xử lí tệp INI
     kpini in 'ini/kpini.pas',
     //Thêm thư viện build dự án
-    kpbuild in 'build/kpbuild.pas';
+    kpbuild in 'build/kpbuild.pas',
+    //thêm thư viện tạo dự án thành Kode Packges
+    kppack in 'pack/kppack.pas';
 begin
     if (ParamCount > 0) then
         begin
@@ -40,7 +42,10 @@ begin
                 'get': kpget_run;
                 //tạo dự án
                 'create': kpcreate_run;
+                //Xây dựng dự án
                 'build': kpbuild_run;
+                //Đóng gói thư mục thành Kode Packages (*.kpa)
+                'pack': kppack_run;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end
