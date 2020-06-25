@@ -3,7 +3,8 @@ interface
     uses crt, sysutils, process,
         kpprint in '././effect/print/kpprint.pas',
         kpini in './ini/kpini.pas',
-        getos in './system/getos.pas';
+        getos in './system/getos.pas',
+        kplog in '././log/kplog.pas';
     procedure native_build_run;
 implementation
     procedure native_build_run;
@@ -20,10 +21,16 @@ implementation
                     writeln('[Start] Connect to Kernel (Windows) and build');
                     if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
                         begin
+                            writeln('[Start] Write log');
+                            kplog_run(cmdout);
+                            kpprint_complete('[Done ] Write complete');
                             kpprint_complete('[Done ] Build complete');
                         end
                     else 
                         begin
+                            writeln('[Start] Write log');
+                            kplog_run(cmdout);
+                            kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
                             kpprint_error('[Fatal] Build project stop');
                             exit;
@@ -34,10 +41,16 @@ implementation
                     writeln('[Start] Connect to Kernel (Linux) and build');
                     if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
                         begin
+                            writeln('[Start] Write log');
+                            kplog_run(cmdout);
+                            kpprint_complete('[Done ] Write complete');
                             kpprint_complete('[Done ] Build complete');
                         end
                     else 
                         begin
+                            writeln('[Start] Write log');
+                            kplog_run(cmdout);
+                            kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
                             kpprint_error('[Fatal] Build project stop');
                             exit;
@@ -48,10 +61,16 @@ implementation
                     writeln('[Start] Connect to Kernel (MacOS) and build');
                     if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
                         begin
+                            writeln('[Start] Write log');
+                            kplog_run(cmdout);
+                            kpprint_complete('[Done ] Write complete');
                             kpprint_complete('[Done ] Build complete');
                         end
                     else 
                         begin
+                            writeln('[Start] Write log');
+                            kplog_run(cmdout);
+                            kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
                             kpprint_error('[Fatal] Build project stop');
                             exit;

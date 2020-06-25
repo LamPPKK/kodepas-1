@@ -35,7 +35,9 @@ uses
     //xây dựng native project
     native_build in 'build/native/native_build.pas',
     //Thay đổi đường dẫn ở các hệ điều hành
-    renderos in 'system/renderos.pas';
+    renderos in 'system/renderos.pas',
+    //Thư viện ghi tệp log
+    kplog in 'log/kplog.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then
