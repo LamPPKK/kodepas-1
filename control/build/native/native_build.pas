@@ -32,6 +32,8 @@ implementation
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
+                            writeln('[Log  ]');
+                            writeln(cmdout);
                             kpprint_error('[Fatal] Build project stop');
                             exit;
                         end;     
@@ -52,6 +54,8 @@ implementation
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
+                            writeln('[Log  ]');
+                            writeln(cmdout);
                             kpprint_error('[Fatal] Build project stop');
                             exit;
                         end;     
@@ -72,6 +76,8 @@ implementation
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
+                            writeln('[Log  ]');
+                            writeln(cmdout);
                             kpprint_error('[Fatal] Build project stop');
                             exit;
                         end;     
