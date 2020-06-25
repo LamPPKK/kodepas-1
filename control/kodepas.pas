@@ -31,7 +31,9 @@ uses
     //thêm thư viện tạo dự án thành Kode Packges
     kppack in 'pack/kppack.pas',
     //Thêm số phiên bản
-    kpversion in 'version/kpversion.pas';
+    kpversion in 'version/kpversion.pas',
+    //xây dựng native project
+    native_build in 'build/native/native_build.pas';
 begin
     if (ParamCount > 0) then
         begin

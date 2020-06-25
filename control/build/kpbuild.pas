@@ -3,7 +3,8 @@ interface
     uses crt, sysutils, process,
         kpprint in './effect/print/kpprint.pas',
         kpini in './ini/kpini.pas',
-        getos in './system/getos.pas';
+        getos in './system/getos.pas',
+        native_build in 'native/native_build.pas';
     procedure kpbuild_run;
     procedure kpbuild_help;
 implementation
@@ -47,6 +48,14 @@ implementation
         //nếu đọc được thì thông báo không có lỗi
         kpprint_complete('[Done ] Read data complete');
         //Sau đó phân loại dự án nhằm chọn hướng xây dựng phù hợp theo từng loại
-        
+        case (kpini_string('local.ini', 'CONFIG','type')) of
+            'native': native_build_run;
+            else 
+                begin
+                    kpprint_error('[Error] Unknow how to build (' + kpini_string('local.ini', 'CONFIG','type') +')');
+                    kpprint_error('[Fatal] Build project stop');
+                    exit;
+                end;
+        end;
     end;
 end.
