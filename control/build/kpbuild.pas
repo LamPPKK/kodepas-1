@@ -10,7 +10,9 @@ interface
 implementation
     procedure kpbuild_help;
     begin
-        
+        writeln('Try: kodepas build [options]');
+        writeln('Options:');
+        writeln('   --help: show help');
     end;
     procedure kpbuild_run;
     var test: string;

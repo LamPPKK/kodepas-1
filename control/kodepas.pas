@@ -37,7 +37,9 @@ uses
     //Thay đổi đường dẫn ở các hệ điều hành
     renderos in 'system/renderos.pas',
     //Thư viện ghi tệp log
-    kplog in 'log/kplog.pas';
+    kplog in 'log/kplog.pas',
+    //Chạy
+    kprun in 'run/kprun.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then
@@ -59,6 +61,8 @@ begin
                 'version': kpversion_run;
                 //show log
                 'log': kplog_show;
+                //cái này để chạy
+                'run': kprun_run;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end
