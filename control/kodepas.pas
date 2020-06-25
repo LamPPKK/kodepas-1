@@ -33,8 +33,11 @@ uses
     //Thêm số phiên bản
     kpversion in 'version/kpversion.pas',
     //xây dựng native project
-    native_build in 'build/native/native_build.pas';
+    native_build in 'build/native/native_build.pas',
+    //Thay đổi đường dẫn ở các hệ điều hành
+    renderos in 'system/renderos.pas';
 begin
+    renderos_run;
     if (ParamCount > 0) then
         begin
             case ParamStr(1) of
