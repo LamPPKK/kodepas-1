@@ -9,7 +9,7 @@ interface
 implementation
     procedure packnative_create_run;
     begin
-        writeln('[Start] Create pack native project');
+        kpprint_process('[Start] Create pack native project');
         kpget_channel('kodestudio/project-packnative');
         kpzip_unzip('project-packnative');
         if (deleteFile('project-packnative.kpa')) then 

@@ -44,7 +44,7 @@ implementation
     procedure kpzip_unzip(f_name: string);
     var s: ansistring;
     begin
-        writeln('[Start] Unpack');
+        kpprint_process('[Start] Unpack');
         case getos_run of
             'linux':
                 begin

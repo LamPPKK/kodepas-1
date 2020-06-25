@@ -10,7 +10,7 @@ implementation
     procedure native_build_run;
     var cmdout: ansistring;
     begin
-        writeln('[Start] Render data form local.ini to project');
+        kpprint_process('[Start] Render data form local.ini to project');
         kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), 'bin\project', kpini_string('local.ini', 'CONFIG', 'bin'));
         kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), 'compiled\$(TargetCPU)-$(TargetOS)', kpini_string('local.ini', 'CONFIG', 'compiled'));
         kpprint_complete('[Done ] Render complete');
@@ -18,17 +18,17 @@ implementation
         case (getos_run) of
             'windows':
                 begin
-                    writeln('[Start] Connect to Kernel (Windows) and build');
+                    kpprint_process('[Start] Connect to Kernel (Windows) and build');
                     if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
                         begin
-                            writeln('[Start] Write log');
+                            kpprint_process('[Start] Write log');
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write complete');
                             kpprint_complete('[Done ] Build complete');
                         end
                     else 
                         begin
-                            writeln('[Start] Write log');
+                            kpprint_process('[Start] Write log');
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
@@ -40,17 +40,17 @@ implementation
                 end;
             'linux':
                 begin
-                    writeln('[Start] Connect to Kernel (Linux) and build');
+                    kpprint_process('[Start] Connect to Kernel (Linux) and build');
                     if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
                         begin
-                            writeln('[Start] Write log');
+                            kpprint_process('[Start] Write log');
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write complete');
                             kpprint_complete('[Done ] Build complete');
                         end
                     else 
                         begin
-                            writeln('[Start] Write log');
+                            kpprint_process('[Start] Write log');
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');
@@ -62,17 +62,17 @@ implementation
                 end;
             'macos':
                 begin
-                    writeln('[Start] Connect to Kernel (MacOS) and build');
+                    kpprint_process('[Start] Connect to Kernel (MacOS) and build');
                     if (runcommand('kodepaskernel --build-all ' + kpini_string('local.ini', 'CONFIG','run'), cmdout)) then
                         begin
-                            writeln('[Start] Write log');
+                            kpprint_process('[Start] Write log');
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write complete');
                             kpprint_complete('[Done ] Build complete');
                         end
                     else 
                         begin
-                            writeln('[Start] Write log');
+                            kpprint_process('[Start] Write log');
                             kplog_run(cmdout);
                             kpprint_complete('[Done ] Write log complete');
                             kpprint_error('[Error] Cannot build');

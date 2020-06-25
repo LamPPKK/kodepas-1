@@ -18,7 +18,7 @@ implementation
         a: array[1..10000] of string;
         f: text;
     begin
-        writeln('[Start] Show log');
+        kpprint_process('[Start] Show log');
         if (not FileExists('build.log')) then
             begin
                 kpprint_error('[Fatal] Log file not found');

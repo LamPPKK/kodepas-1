@@ -14,7 +14,7 @@ implementation
                     '--help': kppack_help;
                     else 
                         begin
-                            writeln('[Start] Pack folder to KPA');
+                            kpprint_process('[Start] Pack folder to KPA');
                             kpzip_zip(paramStr(2));
                         end;   
                 end; 

@@ -53,7 +53,7 @@ implementation
                             //giải nén
                             kpzip_unzip(getChild(paramStr(2)));
                             //xóa file thừa
-                            writeln('[Start] Clear temp');
+                            kpprint_process('[Start] Clear temp');
                             if (deleteFile(getChild(paramStr(2))+ '.kpa')) then 
                                 kpprint_complete('[Done ] Clear file temp')
                             else kpprint_error('[Error] Fail clear');
@@ -68,7 +68,7 @@ implementation
     procedure kpget_download(urlget, pathsave: string);
     var cmdout: ansistring;
     begin
-        writeln('[Start] Download form Kode Server');
+        kpprint_process('[Start] Download form Kode Server');
         case (getos_run) of
             'windows':
                 begin

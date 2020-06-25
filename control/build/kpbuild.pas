@@ -20,7 +20,7 @@ implementation
                 kpbuild_help;
                 exit;
             end;
-        writeln('[Start] Build project');
+        kpprint_process('[Start] Build project');
         writeln('[Check] Project cofig');
         //Kiểm tra tệp local.ini còn không.
         //Nếu còn thì đi tiếp còn mất thì báo lỗi đồng thời thoát khỏi kpbuild_run
@@ -42,7 +42,7 @@ implementation
         //    author=quocthinhvo ;cái này tên tác giả dự án
         //    project=project ; cái này tên dự án khi phát hành lên Kode Store
         //    ..=.. ;thêm không giới hạn và tùy theo loại và mục đích
-        writeln('[Start] Read data in local.ini');
+        kpprint_process('[Start] Read data in local.ini');
         //Đọc thử xem có lỗi không
         test := kpini_string('local.ini', 'CONFIG', 'run');
         //nếu đọc được thì thông báo không có lỗi

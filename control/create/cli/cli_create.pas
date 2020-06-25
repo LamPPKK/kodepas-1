@@ -9,7 +9,7 @@ interface
 implementation
     procedure cli_create_run;
     begin
-        writeln('[Start] Create CLI project');
+        kpprint_process('[Start] Create CLI project');
         kpget_channel('kodestudio/project-cli');
         kpzip_unzip('project-cli');
         if (deleteFile('project-cli.kpa')) then 

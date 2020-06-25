@@ -9,7 +9,7 @@ interface
 implementation
     procedure hibrid_create_run;
     begin
-        writeln('[Start] Create hibrid project');
+        kpprint_process('[Start] Create hibrid project');
         kpget_channel('kodestudio/project-hibrid');
         kpzip_unzip('project-hibrid');
         if (deleteFile('projec-hibrid.kpa')) then 

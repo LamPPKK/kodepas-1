@@ -9,7 +9,7 @@ interface
 implementation
     procedure native_create_run;
     begin
-        writeln('[Start] Create native project');
+        kpprint_process('[Start] Create native project');
         kpget_channel('kodestudio/project-native');
         kpzip_unzip('project-native');
         if (deleteFile('project-native.kpa')) then 

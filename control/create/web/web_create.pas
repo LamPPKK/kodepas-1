@@ -9,7 +9,7 @@ interface
 implementation
     procedure web_create_run;
     begin
-        writeln('[Start] Create web project');
+        kpprint_process('[Start] Create web project');
         kpget_channel('kodestudio/project-web');
         kpzip_unzip('project-web');
         if (deleteFile('project-web.kpa')) then 
