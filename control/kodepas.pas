@@ -29,7 +29,9 @@ uses
     //Thêm thư viện build dự án
     kpbuild in 'build/kpbuild.pas',
     //thêm thư viện tạo dự án thành Kode Packges
-    kppack in 'pack/kppack.pas';
+    kppack in 'pack/kppack.pas',
+    //Thêm số phiên bản
+    kpversion in 'version/kpversion.pas';
 begin
     if (ParamCount > 0) then
         begin
@@ -46,6 +48,8 @@ begin
                 'build': kpbuild_run;
                 //Đóng gói thư mục thành Kode Packages (*.kpa)
                 'pack': kppack_run;
+                //Xem phiên bản
+                'version': kpversion_run;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end
