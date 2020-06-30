@@ -41,7 +41,9 @@ uses
     //Chạy
     kprun in 'run/kprun.pas',
     //native run
-    native_run in 'run/native/native_run.pas';
+    native_run in 'run/native/native_run.pas',
+    //Kode Live
+    kpstart in 'start/kpstart.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then
@@ -65,6 +67,8 @@ begin
                 'log': kplog_show;
                 //cái này để chạy
                 'run': kprun_run;
+                //Start
+                'start': kpstart_run;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end

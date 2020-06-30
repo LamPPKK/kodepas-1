@@ -17,9 +17,9 @@ implementation
         if (paramStr(2) = '--help') then
             begin
                 kprun_help;
-                exit;
+                exit; 
             end;
-        kpbuild_run;
+        kpbuild_run; 
         case (kpini_string('local.ini', 'CONFIG','type')) of
             'native':
                 begin
@@ -28,6 +28,7 @@ implementation
             else 
                 begin
                     kpprint_error('[Fatal] Unknow to run');
+                    exit;
                 end;
         end;
     end;
