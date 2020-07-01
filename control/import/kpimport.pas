@@ -23,10 +23,10 @@ implementation
                     end
                 else 
                     begin
-                        kpprint_error('[Error] Some thing wrong');
+                        kpprint_error('[Error] Syntax error');
                         kpprint_error('[Code ]');
                         writeln(cmdout);
-                        writeln('[Fatal] Import stop');
+                        kpprint_error('[Fatal] Import stop');
                         exit;
                     end;
                 writeln('[Start] Make binay lib for Kode');
