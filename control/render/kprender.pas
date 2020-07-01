@@ -23,7 +23,9 @@ implementation
         kpprint_process('[Start] Render');
         if (runCommand('koderes ' + paramStr(2) + '.krs @' + paramStr(2), cmdout)) then
             begin
-                kpprint_complete('[Done ] Render complete')
+                kpprint_complete('[Done ] Render complete');
+                kpprint_complete('[Code ] from KodeRes');
+                writeln(cmdout);
             end
         else
             begin
