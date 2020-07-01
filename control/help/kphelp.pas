@@ -12,6 +12,7 @@ implementation
         writeln('   setup: setup Kode');
         writeln('   help: give how to use Kode CLI');
         writeln('   build: build your project');
+        writeln('   import: import lib, code, from more programing language');
         writeln('   run: build and run project at debug');
         writeln('   get: download and install packages from KPStore');
         writeln('   pack: pack all folder to KodePack: *.kpa');

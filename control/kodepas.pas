@@ -43,7 +43,9 @@ uses
     //native run
     native_run in 'run/native/native_run.pas',
     //Kode Live
-    kpstart in 'start/kpstart.pas';
+    kpstart in 'start/kpstart.pas',
+    //import mã nguồn
+    kpimport in 'import/kpimport.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then
@@ -69,6 +71,8 @@ begin
                 'run': kprun_run;
                 //Start
                 'start': kpstart_run;
+                //import chạy
+                'import': kpimport_run;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end
