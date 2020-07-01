@@ -45,7 +45,9 @@ uses
     //Kode Live
     kpstart in 'start/kpstart.pas',
     //import mã nguồn
-    kpimport in 'import/kpimport.pas';
+    kpimport in 'import/kpimport.pas',
+    //Thư viện kết xuất tài nguyên
+    kprender in 'render/kprender.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then
