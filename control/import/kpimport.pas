@@ -42,6 +42,16 @@ implementation
                         kpprint_error('[Fatal] Import stop');
                         exit;
                     end;
+                writeln('[Start] Clear temp files');
+                if (deleteFile(paramStr(3) + '.pp')) then
+                    begin  
+                        kpprint_complete('[Done ] Clear complete');
+                    end
+                else
+                    begin
+                        kpprint_error('[Error] Clear fail');
+                    end;
+                kpprint_complete('[Done ] Import complete');
             end; 
     end;
     procedure kpimport_help;
