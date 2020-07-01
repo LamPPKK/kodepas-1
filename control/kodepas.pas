@@ -75,6 +75,8 @@ begin
                 'start': kpstart_run;
                 //import chạy
                 'import': kpimport_run;
+                //Chuyển hướng qua KPRender
+                'render': kprender_run;
                 else kpprint_error('[Error] Unknow param ('+ paramstr(1) + '), try "kodepas help" to see more param');
             end;
         end
