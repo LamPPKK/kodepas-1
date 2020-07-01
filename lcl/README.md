@@ -1,3 +1,5 @@
+Lazarus Component Library
+
 It is organized according to the following structure:
 
 lcl
