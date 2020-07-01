@@ -56,10 +56,11 @@ var
     input: string;
     cmdout: ansistring;
 begin
-    kpprint_process('[Start] Call Kernel');
+    kpprint_process('[Start] Call Kode Kernel to run ' + paramStr(1));
     if (runcommand('kodepaskernel --build-all ' + paramStr(1),cmdout)) then
         begin
-            kpprint_complete('[Done ] Called');
+            kpprint_complete('[Done ] Called. Build complete');
+            kpprint_complete('[Code ]');
         end
     else 
         begin
@@ -69,5 +70,6 @@ begin
             kpprint_error('[Fatal] Stop');
             exit;
         end;
+    kpprint_process('[Start] Launcher ' + paramStr(1));
     ExecuteProcess('bin\project','');
 end.
