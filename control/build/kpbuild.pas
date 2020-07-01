@@ -23,7 +23,7 @@ implementation
                 exit;
             end;
         kpprint_process('[Start] Build project');
-        writeln('[Check] Project cofig');
+        writeln('[Check] Project config');
         //Kiểm tra tệp local.ini còn không.
         //Nếu còn thì đi tiếp còn mất thì báo lỗi đồng thời thoát khỏi kpbuild_run
         if (not FileExists('local.ini')) then
