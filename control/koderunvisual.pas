@@ -67,7 +67,8 @@ begin
             kpprint_error('[Error] Call Kode Kernel fail');
             kpprint_error('[Code]');
             writeln(cmdout);
-            kpprint_error('[Fatal] Stop');
+            kpprint_error('[Fatal] Stop. Press Entrer to exit');
+            readln;
             exit;
         end;
     kpprint_process('[Start] Launcher ' + paramStr(1));
