@@ -18,7 +18,9 @@ implementation
     procedure cli_run_run;
     begin
         kpprint_process('[Start] Run project');
+        kpprint_process('-------------------------------------------------');
         ExecuteProcess(kpini_string('local.ini', 'CONFIG', 'bin'),'');
+        kpprint_process('-------------------------------------------------');
         kpprint_complete('[Done ] Run complete');
     end;
 end.
