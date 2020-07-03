@@ -3,6 +3,7 @@ interface
     uses crt, sysutils,  process,
         kpini in './ini/kpini.pas',
         native_run in 'native/native_run.pas',
+        cli_run in 'cli/cli_run.pas',
         kpprint in './effect/print/kpprint',
         kpbuild in './build/kpbuild.pas';
     procedure kprun_run;
