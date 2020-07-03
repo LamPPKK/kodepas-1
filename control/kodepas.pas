@@ -34,6 +34,8 @@ uses
     kpversion in 'version/kpversion.pas',
     //xây dựng native project
     native_build in 'build/native/native_build.pas',
+    //xây dựng cli project
+    cli_build in 'build/cli/cli_build.pas',
     //Thay đổi đường dẫn ở các hệ điều hành
     renderos in 'system/renderos.pas',
     //Thư viện ghi tệp log
