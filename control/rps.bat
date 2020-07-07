@@ -1,0 +1,1 @@
+xcopy M:\kode\src\control\kodepas.exe M:\kode\kodegit\kodepas\bin\kodepas.exe /F
