@@ -97,6 +97,7 @@ implementation
         end;
         //for count := 1 to i do writeln(a[count]);
         //ghi dữ liệu ra đĩa tại thư mục tùy chỉnh
+        createDir(getuserdir + '/.kodepas');
         kpprint_process('[Start] Save setup');
         case getos_run of
             'linux':
