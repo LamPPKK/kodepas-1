@@ -11,8 +11,8 @@ implementation
     begin
         kpprint_process('[Start] Create Node project');
         kpget_channel('kodestudio/project-node');
-        kpzip_unzip('project-web');
-        if (deleteFile('project-web.kpa')) then 
+        kpzip_unzip('project-node');
+        if (deleteFile('project-node.kpa')) then 
             kpprint_complete('[Done ] Clear file temp')
         else kpprint_error('[Error] Fail clear');
         kpprint_complete('[Done ] Create project complete');
