@@ -16,7 +16,7 @@ implementation
             exit(extractFileName(input));
         end;
     procedure node_run_run;
-    VAR AProcess : TProcess;
+    var AProcess : TProcess;
     begin
         kpprint_process('[Start] Run project');
         kpprint_complete('[Done ] Run complete');
