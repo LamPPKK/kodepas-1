@@ -31,6 +31,10 @@ implementation
                 begin
                     cli_run_run;
                 end;
+            'node':
+                begin
+                    node_run_run;
+                end;
             else 
                 begin
                     kpprint_error('[Fatal] Unknow to run');
