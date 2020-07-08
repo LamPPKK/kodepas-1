@@ -16,10 +16,17 @@ implementation
             exit(extractFileName(input));
         end;
     procedure node_run_run;
+    VAR AProcess : TProcess;
     begin
         kpprint_process('[Start] Run project');
         kpprint_complete('[Done ] Run complete');
         writeln('===============================================');
-        ExecuteProcess('node ' + kpini_string('local.ini', 'CONFIG', 'launch'),'');
+        //ExecuteProcess('node','', kpini_string('local.ini', 'CONFIG', 'launch'));
+        AProcess:= TProcess.Create(nil);
+        Aprocess.Executable:= 'node';
+        Aprocess.Parameters.Add(kpini_string('local.ini', 'CONFIG', 'launch'));
+        AProcess.Options := AProcess.Options + [poWaitOnExit,poUsePipes];
+        AProcess.Execute;
+        AProcess.Free;
     end;
 end.
