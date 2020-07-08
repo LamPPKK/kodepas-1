@@ -18,7 +18,7 @@ implementation
     procedure node_run_run;
     begin
         kpprint_process('[Start] Run project');
-        ExecuteProcess(kpini_string('local.ini', 'CONFIG', 'bin'),'');
+        ExecuteProcess(kpini_string('local.ini', 'CONFIG', 'launch'),'');
         kpprint_complete('[Done ] Run complete');
     end;
 end.
