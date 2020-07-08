@@ -55,6 +55,7 @@ implementation
         case (kpini_string('local.ini', 'CONFIG','type')) of
             'native': native_build_run;
             'cli': cli_build_run;
+            'node': node_build_run;
             else 
                 begin
                     kpprint_error('[Error] Unknow how to build (' + kpini_string('local.ini', 'CONFIG','type') +')');
