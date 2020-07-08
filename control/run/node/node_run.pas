@@ -20,6 +20,6 @@ implementation
         kpprint_process('[Start] Run project');
         kpprint_complete('[Done ] Run complete');
         writeln('===============================================');
-        ExecuteProcess(node + kpini_string('local.ini', 'CONFIG', 'launche'),'');
+        ExecuteProcess('node' + kpini_string('local.ini', 'CONFIG', 'launche'),'');
     end;
 end.
