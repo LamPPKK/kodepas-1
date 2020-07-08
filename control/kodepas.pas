@@ -54,7 +54,9 @@ uses
     //Thư viện kết xuất tài nguyên
     kprender in 'render/kprender.pas',
     //thêm thư viện xây dựng ứng dụng node
-    node_build in 'build/node/node_build.pas';
+    node_build in 'build/node/node_build.pas',
+    //cái này là thư viện để chạy mấy dự án Node
+    node_run in 'run/node/node_run.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then
