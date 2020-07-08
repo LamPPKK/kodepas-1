@@ -25,8 +25,7 @@ implementation
         AProcess:= TProcess.Create(nil);
         Aprocess.Executable:= 'node';
         Aprocess.Parameters.Add(kpini_string('local.ini', 'CONFIG', 'launch'));
-        AProcess.Options := AProcess.Options + [poWaitOnExit,poUsePipes];
+        //AProcess.Options := AProcess.Options + [poWaitOnExit,poUsePipes];
         AProcess.Execute;
-        AProcess.Free;
     end;
 end.
