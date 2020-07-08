@@ -52,7 +52,9 @@ uses
     //import mã nguồn
     kpimport in 'import/kpimport.pas',
     //Thư viện kết xuất tài nguyên
-    kprender in 'render/kprender.pas';
+    kprender in 'render/kprender.pas',
+    //thêm thư viện xây dựng ứng dụng node
+    node_build in 'build/node/node_build.pas';
 begin
     renderos_run;
     if (ParamCount > 0) then
