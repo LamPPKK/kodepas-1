@@ -11,8 +11,7 @@ implementation
     var cmdout: ansistring;
     begin
         kpprint_process('[Start] Render data form local.ini to project');
-        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), 'bin\project', kpini_string('local.ini', 'CONFIG', 'bin'));
-        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), 'compiled\$(TargetCPU)-$(TargetOS)', kpini_string('local.ini', 'CONFIG', 'compiled'));
+        //thục ra chả có render gì hết, để cho ngầu thôi :)))
         kpprint_complete('[Done ] Render complete');
         //kết nối với Kernel và bắt đầu build
         case (getos_run) of
