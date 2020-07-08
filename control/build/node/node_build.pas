@@ -82,8 +82,5 @@ implementation
                         end;     
                 end;
         end;
-        //Xóa bỏ render và file tạm
-        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), kpini_string('local.ini', 'CONFIG', 'bin'), 'bin\project');
-        kpini_xml(kpini_string('local.ini', 'CONFIG', 'run'), kpini_string('local.ini', 'CONFIG', 'compiled'), 'compiled\$(TargetCPU)-$(TargetOS)');
     end;
 end.
