@@ -9,7 +9,8 @@ interface
         web_create in 'web/web_create.pas',
         hibrid_create in 'hibrid/hibrid_create.pas',
         cli_create in 'cli/cli_create.pas',
-        packnative_create in 'pack/packnative_create.pas';
+        packnative_create in 'pack/packnative_create.pas',
+        node_create in 'node/node_create.pas';
     procedure kpcreate_run;
     procedure kpcreate_help;
 implementation
@@ -24,6 +25,7 @@ implementation
                     '--hibrid': hibrid_create_run;
                     '--cli': cli_create_run;
                     '--packnative': packnative_create_run;
+                    '--node': node_create_run;
                     else kpprint_error('[Error] Unknow param ('+ paramStr(2) + '). Try "kodepas create --help" to see more');
                 end;
             end

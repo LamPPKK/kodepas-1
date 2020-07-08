@@ -24,6 +24,7 @@ uses
     hibrid_create in 'create/hibrid/hibrid_create.pas',
     cli_create in 'create/cli/cli_create.pas',
     packnative_create in 'create/pack/packnative_create.pas',
+    node_create in 'create/node/node_create.pas',
     //thư viện xử lí tệp INI
     kpini in 'ini/kpini.pas',
     //Thêm thư viện build dự án
