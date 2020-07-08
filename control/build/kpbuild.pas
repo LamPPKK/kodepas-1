@@ -5,7 +5,8 @@ interface
         kpini in './ini/kpini.pas',
         getos in './system/getos.pas',
         native_build in 'native/native_build.pas',
-        cli_build in 'cli/cli_build.pas';
+        cli_build in 'cli/cli_build.pas',
+        node_build in 'node/node_build.pas';
     procedure kpbuild_run;
     procedure kpbuild_help;
 implementation
