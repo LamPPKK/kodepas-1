@@ -35,6 +35,8 @@ uses
     kpversion in 'version/kpversion.pas',
     //xây dựng native project
     native_build in 'build/native/native_build.pas',
+    //thư viện xây dựng web
+    web_build in 'build/web/web_build.pas',
     //xây dựng cli project
     cli_build in 'build/cli/cli_build.pas',
     //Thay đổi đường dẫn ở các hệ điều hành
