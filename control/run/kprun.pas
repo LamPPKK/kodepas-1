@@ -6,7 +6,8 @@ interface
         cli_run in 'cli/cli_run.pas',
         node_run in 'node/node_run.pas',
         kpprint in './effect/print/kpprint',
-        kpbuild in './build/kpbuild.pas';
+        kpbuild in './build/kpbuild.pas',
+        web_run in 'web/web_run.pas';
     procedure kprun_run;
     procedure kprun_help;
 implementation
