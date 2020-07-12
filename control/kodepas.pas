@@ -47,6 +47,8 @@ uses
     kprun in 'run/kprun.pas',
     //native run
     native_run in 'run/native/native_run.pas',
+    //web run
+    web_run in 'run/web/web_run.pas',
     //cli run
     cli_run in 'run/cli/cli_run.pas',
     //Kode Live
