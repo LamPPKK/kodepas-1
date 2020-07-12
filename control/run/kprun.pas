@@ -35,6 +35,10 @@ implementation
                 begin
                     node_run_run;
                 end;
+            'web':
+                begin
+                    web_run_run;
+                end;
             else 
                 begin
                     kpprint_error('[Fatal] Unknow to run');
