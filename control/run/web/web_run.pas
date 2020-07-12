@@ -17,8 +17,6 @@ implementation
         end;
     procedure web_run_run;
     begin
-        kpprint_process('[Start] Run project');
-        ExecuteProcess(kpini_string('local.ini', 'CONFIG', 'bin'),'');
-        kpprint_complete('[Done ] Run complete');
+        writeln('[Warn ] Web project not support to run');
     end;
 end.
