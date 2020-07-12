@@ -17,6 +17,6 @@ implementation
         end;
     procedure web_run_run;
     begin
-        writeln('[Warn ] Web project not support to run');
+        writeln('[Warn ] Web project not support');
     end;
 end.
