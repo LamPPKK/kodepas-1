@@ -7,7 +7,7 @@
 To install FPC, download via this link: 
 https://sourceforge.net/projects/freepascal/files/Win32/3.0.4/fpc-3.0.4.i386-win32.exe/download
 
-Run the installation file after download finishes. It should be completed shortly.
+Run the installation file after download finishes. It should be completed shortly. 
 
 2. KodePas Source Code
 To get the KodePas SDK, you can manually download (normally as a Zip file), or obtain the source via Git.
