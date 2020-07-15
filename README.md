@@ -1,5 +1,5 @@
 ![alt](https://github.com/kodestudio/kodepas/blob/master/images/kodelogo.png)
-**KodePas is a Software Development Kit (SDK) for Kode**
+**KodePas is a Software Development Kit (SDK) for Kode (from FPC and Lazarus project)**
 <h1> Installation Guide </h1>
 <h3> Windows Users </h3>
 **Prerequisites:**
