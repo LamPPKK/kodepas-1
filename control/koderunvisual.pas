@@ -25,7 +25,7 @@ uses
     //tạo các loại dự án
     native_create in 'create/native/native_create.pas',
     web_create in 'create/web/web_create.pas',
-    hibrid_create in 'create/hibrid/hibrid_create.pas',
+    hybrid_create in 'create/hybrid/hybrid_create.pas',
     cli_create in 'create/cli/cli_create.pas',
     packnative_create in 'create/pack/packnative_create.pas',
     //thư viện xử lí tệp INI

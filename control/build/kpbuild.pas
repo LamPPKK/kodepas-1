@@ -39,8 +39,8 @@ implementation
         //Cấu trúc mẫu local.ini
         //    [CONFIG] ;cái này là NODE quan trọng nhất
         //    run=project.kode ;cái này là tệp khai báo dự án
-        //    type=(native/web/hibrid/cli/node) ;cái này là loại dự án
-        //    bin=bin/project ;cái này là đường dẫn output cho Binary project, chỉ dành riêng cho Native và Hibrid
+        //    type=(native/web/hybrid/cli/node) ;cái này là loại dự án
+        //    bin=bin/project ;cái này là đường dẫn output cho Binary project, chỉ dành riêng cho Native và hybrid
         //    compiled=compiled/code ;cái này là đường dẫn output các tệp hậu biên dịch
         //    sdk=kodepas //cái này khai báo SDK
         //    [INFO] ;cái này thêm cho vui, chủ yếu là thông báo quản quyền
