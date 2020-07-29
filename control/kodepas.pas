@@ -67,6 +67,7 @@ begin
         begin
             case ParamStr(1) of
                 //Cài đặt Kode
+                //Lưu các thông số cài đặt
                 'setup': kpsetup_run;
                 //Hiển thị bảng hướng dẫn sử dụng
                 'help': kphelp_run;
