@@ -35,12 +35,12 @@ implementation
         begin
             if (runcommand(command[i], s)) then
                 begin
-                    writeln('[Start] Run command: ', command[i]);
+                    //writeln('[Start] Run command: ', command[i]);
                     kpprint_complete('[Done ] Output: ' + s);
                 end
             else 
                 begin
-                    writeln('[Start] Run command: ', command[i]);
+                    //writeln('[Start] Run command: ', command[i]);
                     kpprint_complete('[Done ] Output: ' + s);
                 end;
         end;
