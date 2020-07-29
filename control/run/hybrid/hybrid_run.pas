@@ -1,15 +1,17 @@
 unit hybrid_run;
 interface
-    uses crt, sysutils ,fpjson, jsonparser, process;
+    uses crt, sysutils ,fpjson, jsonparser, process,
+        kpprint in './effect/print/kpprint';
     procedure hybrid_run_run;
 implementation
     procedure hybrid_run_json;
     var
         json: ansistring;
-        cache: string;;
+        cache: string;
         J: TJSONData;
 	    i: integer;
-	    command, s: array[1..10000] of string;
+	    command: array[1..10000] of string;
+        s: array[1..1000] of ansistring;
         f: text;
     begin   
         //đăng kí tệp
