@@ -7,7 +7,8 @@ interface
         native_build in 'native/native_build.pas',
         cli_build in 'cli/cli_build.pas',
         node_build in 'node/node_build.pas',
-        web_build in 'web/web_build.pas';
+        web_build in 'web/web_build.pas',
+        hybrid_build in 'hybrid/hybrid_build.pas';
     procedure kpbuild_run;
     procedure kpbuild_help;
 implementation
@@ -58,6 +59,7 @@ implementation
             'cli': cli_build_run;
             'node': node_build_run;
             'web': web_build_run;
+            'hybrid': hybrid_build_run;
             else 
                 begin
                     kpprint_error('[Error] Unknow how to build (' + kpini_string('local.ini', 'CONFIG','type') +')');

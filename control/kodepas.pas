@@ -39,6 +39,8 @@ uses
     web_build in 'build/web/web_build.pas',
     //xây dựng cli project
     cli_build in 'build/cli/cli_build.pas',
+    //xây cho hybrid
+    hybrid_build in 'build/hybrid/hybrid_build.pas',
     //Thay đổi đường dẫn ở các hệ điều hành
     renderos in 'system/renderos.pas',
     //Thư viện ghi tệp log
