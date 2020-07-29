@@ -41,6 +41,10 @@ implementation
                 begin
                     web_run_run;
                 end;
+            'hybrid':
+                begin
+                    hybrid_run_run;
+                end;
             else 
                 begin
                     kpprint_error('[Fatal] Unknow to run');

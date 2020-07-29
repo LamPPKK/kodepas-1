@@ -46,6 +46,6 @@ implementation
     end;
     procedure hybrid_run_run;
     begin
-        
+        hybrid_run_json;
     end;
 end.
