@@ -7,7 +7,8 @@ interface
         node_run in 'node/node_run.pas',
         kpprint in './effect/print/kpprint',
         kpbuild in './build/kpbuild.pas',
-        web_run in 'web/web_run.pas';
+        web_run in 'web/web_run.pas',
+        hybrid_run in 'hybrid/hybrid_run.pas';
     procedure kprun_run;
     procedure kprun_help;
 implementation
